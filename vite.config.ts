@@ -45,6 +45,9 @@ export default defineConfig({
       },
     }),
   ],
+  server: {
+    allowedHosts: ["maxs-macbook-pro.tail55b40a.ts.net"],
+  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "src"),
