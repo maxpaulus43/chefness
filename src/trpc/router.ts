@@ -6,6 +6,11 @@ import {
   updateRecipeInput,
 } from "@/types/recipe";
 import { recipeRepository } from "@/storage/recipes";
+import {
+  settingsSchema,
+  updateSettingsInput,
+} from "@/types/settings";
+import { settingsRepository, SETTINGS_SINGLETON_ID } from "@/storage/settings";
 
 const recipeRouter = router({
   /** Return every stored recipe. */
@@ -55,8 +60,30 @@ const recipeRouter = router({
     }),
 });
 
+const settingsRouter = router({
+  /** Return the singleton settings object. Auto-creates with defaults if none exists. */
+  get: procedure.output(settingsSchema).query(async () => {
+    const existing = await settingsRepository.getById(SETTINGS_SINGLETON_ID);
+    if (existing) return existing;
+    return settingsRepository.create({});
+  }),
+
+  /** Update the singleton settings. */
+  update: procedure
+    .input(updateSettingsInput)
+    .output(settingsSchema)
+    .mutation(async ({ input }) => {
+      const updated = await settingsRepository.update(input);
+      if (!updated) {
+        throw new Error(`Settings not found: ${input.id}`);
+      }
+      return updated;
+    }),
+});
+
 export const appRouter = router({
   recipe: recipeRouter,
+  settings: settingsRouter,
 });
 
 export type AppRouter = typeof appRouter;
