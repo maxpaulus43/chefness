@@ -1,10 +1,29 @@
-const navItems = ["Home", "Search", "Add", "Profile"] as const;
+export type Tab = "chat" | "recipes" | "history" | "settings";
 
-export function BottomNavBar() {
+const tabs: readonly { id: Tab; label: string }[] = [
+  { id: "chat", label: "Chat" },
+  { id: "recipes", label: "Recipes" },
+  { id: "history", label: "History" },
+  { id: "settings", label: "Settings" },
+] as const;
+
+interface BottomNavBarProps {
+  activeTab: Tab;
+  onTabChange: (tab: Tab) => void;
+}
+
+export function BottomNavBar({ activeTab, onTabChange }: BottomNavBarProps) {
   return (
     <nav style={styles.nav}>
-      {navItems.map((label) => (
-        <button key={label} style={styles.item}>
+      {tabs.map(({ id, label }) => (
+        <button
+          key={id}
+          style={{
+            ...styles.item,
+            color: id === activeTab ? "#3b82f6" : "#6b7280",
+          }}
+          onClick={() => onTabChange(id)}
+        >
           {label}
         </button>
       ))}
