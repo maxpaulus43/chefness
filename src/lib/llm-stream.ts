@@ -218,7 +218,236 @@ async function streamAnthropic(
 }
 
 // ---------------------------------------------------------------------------
-// Public API
+// Tool calling types
+// ---------------------------------------------------------------------------
+
+/** JSON Schema definition for a tool the model can call. */
+export interface ToolDefinition {
+  name: string;
+  description: string;
+  parameters: Record<string, unknown>;
+}
+
+/** The parsed result of a tool call returned by the model. */
+export interface ToolCallResult {
+  name: string;
+  arguments: Record<string, unknown>;
+}
+
+/** Options for a non-streaming tool-calling LLM request. */
+export interface ToolCallOptions {
+  providerId: string;
+  modelId: string;
+  apiKey: string;
+  systemPrompt: string;
+  messages: StreamMessage[];
+  tools: ToolDefinition[];
+  signal?: AbortSignal;
+}
+
+// ---------------------------------------------------------------------------
+// OpenAI-compatible tool calling (non-streaming)
+// ---------------------------------------------------------------------------
+
+async function callWithToolsOpenAI(
+  baseUrl: string,
+  apiKey: string,
+  modelId: string,
+  systemPrompt: string,
+  messages: StreamMessage[],
+  tools: ToolDefinition[],
+  signal?: AbortSignal,
+): Promise<ToolCallResult> {
+  const apiMessages = [
+    { role: "system" as const, content: systemPrompt },
+    ...messages.map((m) => ({ role: m.role, content: m.content })),
+  ];
+
+  const openaiTools = tools.map((t) => ({
+    type: "function" as const,
+    function: { name: t.name, description: t.description, parameters: t.parameters },
+  }));
+
+  const toolChoice =
+    tools.length === 1
+      ? { type: "function" as const, function: { name: tools[0]!.name } }
+      : undefined;
+
+  const url = `${baseUrl.replace(/\/+$/, "")}/chat/completions`;
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: modelId,
+      messages: apiMessages,
+      tools: openaiTools,
+      tool_choice: toolChoice,
+    }),
+    signal,
+  });
+
+  if (!response.ok) {
+    const body = await response.text().catch(() => "");
+    throw new Error(`${response.status} ${response.statusText}${body ? `: ${body}` : ""}`);
+  }
+
+  const json = (await response.json()) as {
+    choices?: Array<{
+      message?: {
+        tool_calls?: Array<{
+          function?: { name?: string; arguments?: string };
+        }>;
+      };
+    }>;
+  };
+
+  const toolCall = json.choices?.[0]?.message?.tool_calls?.[0];
+  if (!toolCall?.function?.name || !toolCall.function.arguments) {
+    throw new Error(
+      "The model did not return a tool call. The message may not contain a recipe.",
+    );
+  }
+
+  let parsedArgs: Record<string, unknown>;
+  try {
+    parsedArgs = JSON.parse(toolCall.function.arguments) as Record<string, unknown>;
+  } catch {
+    throw new Error("Failed to parse the extracted recipe data.");
+  }
+
+  return { name: toolCall.function.name, arguments: parsedArgs };
+}
+
+// ---------------------------------------------------------------------------
+// Anthropic-native tool calling (non-streaming)
+// ---------------------------------------------------------------------------
+
+async function callWithToolsAnthropic(
+  baseUrl: string,
+  apiKey: string,
+  modelId: string,
+  systemPrompt: string,
+  messages: StreamMessage[],
+  tools: ToolDefinition[],
+  signal?: AbortSignal,
+): Promise<ToolCallResult> {
+  const apiMessages = messages.map((m) => ({ role: m.role, content: m.content }));
+
+  const anthropicTools = tools.map((t) => ({
+    name: t.name,
+    description: t.description,
+    input_schema: t.parameters,
+  }));
+
+  const toolChoice =
+    tools.length === 1
+      ? { type: "tool" as const, name: tools[0]!.name }
+      : undefined;
+
+  const url = `${baseUrl.replace(/\/+$/, "")}/messages`;
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+      "anthropic-dangerous-direct-browser-access": "true",
+    },
+    body: JSON.stringify({
+      model: modelId,
+      max_tokens: 4096,
+      system: systemPrompt,
+      messages: apiMessages,
+      tools: anthropicTools,
+      tool_choice: toolChoice,
+    }),
+    signal,
+  });
+
+  if (!response.ok) {
+    const body = await response.text().catch(() => "");
+    throw new Error(
+      `${response.status} ${response.statusText}${body ? `: ${body}` : ""}`,
+    );
+  }
+
+  const json = (await response.json()) as {
+    content?: Array<{
+      type?: string;
+      name?: string;
+      input?: Record<string, unknown>;
+    }>;
+  };
+
+  const toolUseBlock = json.content?.find((b) => b.type === "tool_use");
+  if (!toolUseBlock?.name || !toolUseBlock.input) {
+    throw new Error(
+      "The model did not return a tool call. The message may not contain a recipe.",
+    );
+  }
+
+  return { name: toolUseBlock.name, arguments: toolUseBlock.input };
+}
+
+// ---------------------------------------------------------------------------
+// Public API — tool calling
+// ---------------------------------------------------------------------------
+
+/**
+ * Make a non-streaming LLM call with tool definitions and return the tool
+ * call result.
+ *
+ * Uses the same provider resolution logic as `streamChat`. The model is
+ * forced to call the specified tool (via `tool_choice`), giving guaranteed
+ * structured output.
+ */
+export async function callWithTools(
+  options: ToolCallOptions,
+): Promise<ToolCallResult> {
+  const { providerId, modelId, apiKey, systemPrompt, messages, tools, signal } =
+    options;
+
+  let providerInfo: ProviderInfo | undefined;
+  try {
+    providerInfo = await getProvider(providerId);
+  } catch {
+    // Fall back to OpenAI-compatible if lookup fails.
+  }
+
+  const config = toProviderConfig({
+    provider: providerId,
+    model: modelId,
+    apiKey,
+  });
+  const baseUrl = config.baseUrl || providerInfo?.baseUrl;
+
+  if (!baseUrl) {
+    throw new Error(
+      `No base URL found for provider "${providerId}". ` +
+        "Please check your provider configuration.",
+    );
+  }
+
+  const protocol = detectProtocol(providerInfo);
+
+  if (protocol === "anthropic") {
+    return callWithToolsAnthropic(
+      baseUrl, apiKey, modelId, systemPrompt, messages, tools, signal,
+    );
+  }
+
+  return callWithToolsOpenAI(
+    baseUrl, apiKey, modelId, systemPrompt, messages, tools, signal,
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Public API — streaming
 // ---------------------------------------------------------------------------
 
 /**

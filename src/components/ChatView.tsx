@@ -1,6 +1,15 @@
 import { useChat } from "@/hooks/useChat";
 import type { MealType, MealSize } from "@/hooks/useChat";
+import { useRecipes } from "@/hooks/useRecipes";
+import { useSettings } from "@/hooks/useSettings";
+import { extractRecipe } from "@/lib/recipe-extractor";
 import { useState, useEffect, useRef, useCallback } from "react";
+
+// ---------------------------------------------------------------------------
+// Save-recipe button state types
+// ---------------------------------------------------------------------------
+
+type SaveState = "idle" | "extracting" | "saved" | "error";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -54,10 +63,60 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
     isConfigured,
   } = useChat();
 
+  const { createRecipe } = useRecipes();
+  const { llmProvider, llmModel, llmApiKey } = useSettings();
+
   const [inputValue, setInputValue] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const lastUserMessageRef = useRef<string>("");
+
+  // Per-message save-recipe state tracking
+  const [saveStates, setSaveStates] = useState<Record<number, SaveState>>({});
+  const [saveErrors, setSaveErrors] = useState<Record<number, string>>({});
+
+  const handleSaveRecipe = useCallback(
+    async (index: number) => {
+      const msg = messages[index];
+      if (!msg || msg.role !== "assistant") return;
+
+      setSaveStates((prev) => ({ ...prev, [index]: "extracting" }));
+      setSaveErrors((prev) => {
+        const next = { ...prev };
+        delete next[index];
+        return next;
+      });
+
+      try {
+        const recipe = await extractRecipe({
+          messageContent: msg.content,
+          providerId: llmProvider,
+          modelId: llmModel,
+          apiKey: llmApiKey,
+        });
+        createRecipe(recipe);
+        setSaveStates((prev) => ({ ...prev, [index]: "saved" }));
+      } catch (err: unknown) {
+        const errMsg =
+          err instanceof Error ? err.message : "Failed to extract recipe.";
+        setSaveStates((prev) => ({ ...prev, [index]: "error" }));
+        setSaveErrors((prev) => ({ ...prev, [index]: errMsg }));
+      }
+    },
+    [messages, llmProvider, llmModel, llmApiKey, createRecipe],
+  );
+
+  const handleSaveRetry = useCallback(
+    (index: number) => {
+      setSaveStates((prev) => ({ ...prev, [index]: "idle" }));
+      setSaveErrors((prev) => {
+        const next = { ...prev };
+        delete next[index];
+        return next;
+      });
+    },
+    [],
+  );
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -155,23 +214,80 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
       <div style={styles.messageArea}>
         {!hasMessages ? renderEmptyState(handleSuggestionTap) : (
           <div style={styles.messageList}>
-            {messages.map((msg, i) => (
-              <div
-                key={i}
-                style={msg.role === "user" ? styles.userRow : styles.asstRow}
-              >
+            {messages.map((msg, i) => {
+              const isLastMsg = i === messages.length - 1;
+              const isActivelyStreaming = isStreaming && isLastMsg;
+              const showSaveBtn =
+                msg.role === "assistant" &&
+                msg.content !== "" &&
+                !isActivelyStreaming;
+              const saveState: SaveState = saveStates[i] ?? "idle";
+              const saveError = saveErrors[i];
+
+              return (
                 <div
-                  style={
-                    msg.role === "user" ? styles.userBubble : styles.asstBubble
-                  }
+                  key={i}
+                  style={msg.role === "user" ? styles.userRow : styles.asstRow}
                 >
-                  <span style={styles.msgText}>{msg.content}</span>
-                  {msg.role === "assistant" && msg.content === "" && isStreaming && (
-                    <span style={styles.typing}>●●●</span>
+                  <div
+                    style={
+                      msg.role === "user"
+                        ? styles.userBubble
+                        : styles.asstBubble
+                    }
+                  >
+                    <span style={styles.msgText}>{msg.content}</span>
+                    {msg.role === "assistant" &&
+                      msg.content === "" &&
+                      isStreaming && (
+                        <span style={styles.typing}>●●●</span>
+                      )}
+                  </div>
+                  {showSaveBtn && (
+                    <div style={styles.saveRow}>
+                      {saveState === "idle" && (
+                        <button
+                          type="button"
+                          style={styles.saveBtn}
+                          onClick={() => void handleSaveRecipe(i)}
+                        >
+                          Save Recipe
+                        </button>
+                      )}
+                      {saveState === "extracting" && (
+                        <button
+                          type="button"
+                          style={{
+                            ...styles.saveBtn,
+                            ...styles.saveBtnDisabled,
+                          }}
+                          disabled
+                        >
+                          Extracting…
+                        </button>
+                      )}
+                      {saveState === "saved" && (
+                        <span style={styles.savedLabel}>✅ Saved!</span>
+                      )}
+                      {saveState === "error" && (
+                        <div style={styles.saveErrorRow}>
+                          <span style={styles.saveErrorText}>
+                            {saveError ?? "Extraction failed."}
+                          </span>
+                          <button
+                            type="button"
+                            style={styles.saveRetryBtn}
+                            onClick={() => handleSaveRetry(i)}
+                          >
+                            Try Again
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
             <div ref={messagesEndRef} />
           </div>
         )}
@@ -547,5 +663,57 @@ const styles: Record<string, React.CSSProperties> = {
     minHeight: 44,
   },
   sendBtnDisabled: { opacity: 0.5, cursor: "not-allowed" },
+
+  // Save Recipe button styles
+  saveRow: {
+    marginTop: "0.25rem",
+    display: "flex",
+    alignItems: "center",
+    gap: "0.5rem",
+  },
+  saveBtn: {
+    padding: "0.375rem 0.75rem",
+    fontSize: "0.8125rem",
+    fontWeight: 500,
+    color: "#3b82f6",
+    backgroundColor: "#eff6ff",
+    border: "1px solid #bfdbfe",
+    borderRadius: 8,
+    cursor: "pointer",
+    minHeight: 32,
+    whiteSpace: "nowrap" as const,
+  },
+  saveBtnDisabled: {
+    opacity: 0.6,
+    cursor: "not-allowed",
+  },
+  savedLabel: {
+    fontSize: "0.8125rem",
+    fontWeight: 500,
+    color: "#16a34a",
+  },
+  saveErrorRow: {
+    display: "flex",
+    alignItems: "center",
+    gap: "0.375rem",
+    flexWrap: "wrap" as const,
+  },
+  saveErrorText: {
+    fontSize: "0.8125rem",
+    color: "#dc2626",
+    lineHeight: 1.4,
+  },
+  saveRetryBtn: {
+    padding: "0.25rem 0.625rem",
+    fontSize: "0.75rem",
+    fontWeight: 600,
+    color: "#dc2626",
+    backgroundColor: "#fef2f2",
+    border: "1px solid #fecaca",
+    borderRadius: 6,
+    cursor: "pointer",
+    whiteSpace: "nowrap" as const,
+    minHeight: 28,
+  },
 };
 

@@ -62,9 +62,7 @@ answer cooking-related questions.`,
   }
 
   parts.push(
-    `Keep responses concise and practical. Use clear formatting with numbered steps
-for recipes. Suggest ingredient substitutions when relevant. Be encouraging and
-conversational.`,
+    `Keep responses concise and practical. When providing a recipe, use clear formatting: a title, brief description, an Ingredients section with a bulleted list, and a Steps section with numbered steps. Suggest ingredient substitutions when relevant. Be encouraging and conversational.`,
   );
 
   return parts.join("\n\n");
