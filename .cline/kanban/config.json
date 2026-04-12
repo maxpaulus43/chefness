@@ -1,0 +1,9 @@
+{
+  "shortcuts": [
+    {
+      "label": "vite dev",
+      "command": "bun run dev -- --host",
+      "icon": "play"
+    }
+  ]
+}
