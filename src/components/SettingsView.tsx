@@ -21,6 +21,17 @@ export function SettingsView() {
   const [loadingProviders, setLoadingProviders] = useState(true);
   const [loadingModels, setLoadingModels] = useState(false);
 
+  // Local state for the selected provider so model fetching reacts
+  // synchronously to user selection instead of waiting for the async
+  // tRPC mutation round-trip.
+  const [selectedProvider, setSelectedProvider] = useState(llmProvider);
+
+  // Keep local state in sync when the hook value changes (initial load,
+  // external updates, page refresh).
+  useEffect(() => {
+    setSelectedProvider(llmProvider);
+  }, [llmProvider]);
+
   // Fetch provider list on mount.
   useEffect(() => {
     let cancelled = false;
@@ -38,13 +49,13 @@ export function SettingsView() {
 
   // Fetch models whenever the selected provider changes.
   useEffect(() => {
-    if (!llmProvider) {
+    if (!selectedProvider) {
       setModels({});
       return;
     }
     let cancelled = false;
     setLoadingModels(true);
-    void getModelsForProvider(llmProvider).then((result) => {
+    void getModelsForProvider(selectedProvider).then((result) => {
       if (!cancelled) {
         setModels(result);
         setLoadingModels(false);
@@ -53,10 +64,12 @@ export function SettingsView() {
     return () => {
       cancelled = true;
     };
-  }, [llmProvider]);
+  }, [selectedProvider]);
 
   const handleProviderChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    updateSettings({ llmProvider: e.target.value, llmModel: "" });
+    const newProvider = e.target.value;
+    setSelectedProvider(newProvider);
+    updateSettings({ llmProvider: newProvider, llmModel: "" });
   };
 
   const handleModelChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -99,8 +112,8 @@ export function SettingsView() {
       <h1 style={styles.header}>Settings</h1>
       <section style={styles.section}>
         <h2 style={styles.sectionTitle}>AI Configuration</h2>
-        {renderProviderField(llmProvider, sortedProviders, loadingProviders, handleProviderChange)}
-        {renderModelField(llmProvider, llmModel, modelEntries, loadingModels, handleModelChange)}
+        {renderProviderField(selectedProvider, sortedProviders, loadingProviders, handleProviderChange)}
+        {renderModelField(selectedProvider, llmModel, modelEntries, loadingModels, handleModelChange)}
         {renderApiKeyField(llmApiKey, maskedKey, handleApiKeyChange, handleClearApiKey)}
       </section>
     </div>
