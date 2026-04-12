@@ -1,4 +1,5 @@
 import { BottomNavBar, type Tab } from "@/components/BottomNavBar";
+import { SettingsView } from "@/components/SettingsView";
 import { useState } from "react";
 
 export function HomePage() {
@@ -31,7 +32,7 @@ function renderTab(tab: Tab) {
         </p>
       );
     case "settings":
-      return <div>Settings coming soon</div>;
+      return <SettingsView />;
   }
 }
 
