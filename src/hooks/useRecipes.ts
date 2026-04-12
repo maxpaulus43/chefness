@@ -17,6 +17,9 @@ export function useRecipes() {
     onSuccess: () => {
       void utils.recipe.list.invalidate();
     },
+    onError: (error) => {
+      console.error("Failed to create recipe:", error.message);
+    },
   });
 
   const updateMutation = trpc.recipe.update.useMutation({
@@ -43,6 +46,10 @@ export function useRecipes() {
 
     /** Create a new recipe. */
     createRecipe: (data: CreateRecipeInput) => createMutation.mutate(data),
+
+    /** Create a new recipe (async — resolves when the mutation completes). */
+    createRecipeAsync: (data: CreateRecipeInput) =>
+      createMutation.mutateAsync(data),
 
     /** `true` while a create is in flight. */
     isCreating: createMutation.isPending,

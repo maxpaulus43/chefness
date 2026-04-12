@@ -10,6 +10,7 @@
 import type { StorageRepository } from "@/storage/interface";
 import type { Recipe, CreateRecipeInput, UpdateRecipeInput } from "@/types/recipe";
 import { LocalStorageRepository } from "@/storage/local-storage";
+import { generateUUID } from "@/lib/uuid";
 
 /** Concrete type alias so consumers don't need to spell out the generics. */
 export type RecipeRepository = StorageRepository<
@@ -28,7 +29,7 @@ export const recipeRepository: RecipeRepository = new LocalStorageRepository<
   buildEntity: (data) => {
     const now = new Date().toISOString();
     return {
-      id: crypto.randomUUID(),
+      id: generateUUID(),
       ...data,
       createdAt: now,
       updatedAt: now,

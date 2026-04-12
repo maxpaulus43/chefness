@@ -63,7 +63,7 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
     isConfigured,
   } = useChat();
 
-  const { createRecipe } = useRecipes();
+  const { createRecipeAsync } = useRecipes();
   const { llmProvider, llmModel, llmApiKey } = useSettings();
 
   const [inputValue, setInputValue] = useState("");
@@ -94,16 +94,16 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
           modelId: llmModel,
           apiKey: llmApiKey,
         });
-        createRecipe(recipe);
+        await createRecipeAsync(recipe);
         setSaveStates((prev) => ({ ...prev, [index]: "saved" }));
       } catch (err: unknown) {
         const errMsg =
-          err instanceof Error ? err.message : "Failed to extract recipe.";
+          err instanceof Error ? err.message : "Failed to save recipe.";
         setSaveStates((prev) => ({ ...prev, [index]: "error" }));
         setSaveErrors((prev) => ({ ...prev, [index]: errMsg }));
       }
     },
-    [messages, llmProvider, llmModel, llmApiKey, createRecipe],
+    [messages, llmProvider, llmModel, llmApiKey, createRecipeAsync],
   );
 
   const handleSaveRetry = useCallback(
