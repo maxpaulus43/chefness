@@ -21,16 +21,25 @@ export function SettingsView() {
   const [loadingProviders, setLoadingProviders] = useState(true);
   const [loadingModels, setLoadingModels] = useState(false);
 
-  // Local state for the selected provider so model fetching reacts
-  // synchronously to user selection instead of waiting for the async
-  // tRPC mutation round-trip.
+  // Local state so the UI reacts synchronously to user selection instead
+  // of waiting for the async tRPC mutation round-trip.
   const [selectedProvider, setSelectedProvider] = useState(llmProvider);
+  const [selectedModel, setSelectedModel] = useState(llmModel);
+  const [selectedApiKey, setSelectedApiKey] = useState(llmApiKey);
 
   // Keep local state in sync when the hook value changes (initial load,
   // external updates, page refresh).
   useEffect(() => {
     setSelectedProvider(llmProvider);
   }, [llmProvider]);
+
+  useEffect(() => {
+    setSelectedModel(llmModel);
+  }, [llmModel]);
+
+  useEffect(() => {
+    setSelectedApiKey(llmApiKey);
+  }, [llmApiKey]);
 
   // Fetch provider list on mount.
   useEffect(() => {
@@ -69,25 +78,31 @@ export function SettingsView() {
   const handleProviderChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newProvider = e.target.value;
     setSelectedProvider(newProvider);
+    setSelectedModel("");
     updateSettings({ llmProvider: newProvider, llmModel: "" });
   };
 
   const handleModelChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    updateSettings({ llmModel: e.target.value });
+    const newModel = e.target.value;
+    setSelectedModel(newModel);
+    updateSettings({ llmModel: newModel });
   };
 
   const handleApiKeyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    updateSettings({ llmApiKey: e.target.value });
+    const newKey = e.target.value;
+    setSelectedApiKey(newKey);
+    updateSettings({ llmApiKey: newKey });
   };
 
   const handleClearApiKey = () => {
+    setSelectedApiKey("");
     updateSettings({ llmApiKey: "" });
   };
 
   const maskedKey =
-    llmApiKey.length >= 4
-      ? `••••••${llmApiKey.slice(-4)}`
-      : llmApiKey.length > 0
+    selectedApiKey.length >= 4
+      ? `••••••${selectedApiKey.slice(-4)}`
+      : selectedApiKey.length > 0
         ? "••••••"
         : "";
 
@@ -113,8 +128,8 @@ export function SettingsView() {
       <section style={styles.section}>
         <h2 style={styles.sectionTitle}>AI Configuration</h2>
         {renderProviderField(selectedProvider, sortedProviders, loadingProviders, handleProviderChange)}
-        {renderModelField(selectedProvider, llmModel, modelEntries, loadingModels, handleModelChange)}
-        {renderApiKeyField(llmApiKey, maskedKey, handleApiKeyChange, handleClearApiKey)}
+        {renderModelField(selectedProvider, selectedModel, modelEntries, loadingModels, handleModelChange)}
+        {renderApiKeyField(selectedApiKey, maskedKey, handleApiKeyChange, handleClearApiKey)}
       </section>
     </div>
   );
