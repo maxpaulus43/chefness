@@ -1,4 +1,6 @@
 import { useRecipes } from "@/hooks/useRecipes";
+import { useClipboard } from "@/hooks/useClipboard";
+import { recipeToMarkdown } from "@/lib/recipe-markdown";
 
 // ---------------------------------------------------------------------------
 // Props
@@ -15,6 +17,7 @@ interface RecipeDetailViewProps {
 
 export function RecipeDetailView({ recipeId, onBack }: RecipeDetailViewProps) {
   const { recipes, isLoading, error } = useRecipes();
+  const { copyToClipboard, copied, error: clipboardError } = useClipboard();
 
   if (isLoading) {
     return (
@@ -54,11 +57,29 @@ export function RecipeDetailView({ recipeId, onBack }: RecipeDetailViewProps) {
     );
   }
 
+  const handleCopyMarkdown = () => {
+    const markdown = recipeToMarkdown(recipe);
+    void copyToClipboard(markdown);
+  };
+
   return (
     <div style={styles.container}>
-      <button type="button" style={styles.backButton} onClick={onBack}>
-        ← Back
-      </button>
+      <div style={styles.headerRow}>
+        <button type="button" style={styles.backButton} onClick={onBack}>
+          ← Back
+        </button>
+        <button
+          type="button"
+          style={copied ? styles.copyButtonCopied : styles.copyButton}
+          onClick={handleCopyMarkdown}
+        >
+          {copied ? "✅ Copied!" : "📋 Copy as Markdown"}
+        </button>
+      </div>
+
+      {clipboardError && (
+        <p style={styles.clipboardError}>{clipboardError}</p>
+      )}
 
       <h1 style={styles.title}>{recipe.title}</h1>
 
@@ -131,6 +152,13 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: "1rem",
     lineHeight: 1.5,
   },
+  headerRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: "1.25rem",
+    gap: "0.5rem",
+  },
   backButton: {
     padding: "0.5rem 0.875rem",
     fontSize: "1rem",
@@ -141,7 +169,40 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: 8,
     cursor: "pointer",
     minHeight: 44,
-    marginBottom: "1.25rem",
+  },
+  copyButton: {
+    padding: "0.5rem 0.875rem",
+    fontSize: "0.875rem",
+    fontWeight: 500,
+    color: "#374151",
+    backgroundColor: "#f9fafb",
+    border: "1px solid #d1d5db",
+    borderRadius: 8,
+    cursor: "pointer",
+    minHeight: 44,
+    whiteSpace: "nowrap" as const,
+  },
+  copyButtonCopied: {
+    padding: "0.5rem 0.875rem",
+    fontSize: "0.875rem",
+    fontWeight: 500,
+    color: "#059669",
+    backgroundColor: "#ecfdf5",
+    border: "1px solid #a7f3d0",
+    borderRadius: 8,
+    cursor: "pointer",
+    minHeight: 44,
+    whiteSpace: "nowrap" as const,
+  },
+  clipboardError: {
+    fontSize: "0.8125rem",
+    color: "#dc2626",
+    backgroundColor: "#fef2f2",
+    border: "1px solid #fecaca",
+    borderRadius: 8,
+    padding: "0.5rem 0.75rem",
+    marginBottom: "1rem",
+    margin: "0 0 1rem",
   },
   title: {
     fontSize: "1.75rem",
