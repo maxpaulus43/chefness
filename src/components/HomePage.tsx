@@ -1,5 +1,6 @@
 import { BottomNavBar, type Tab } from "@/components/BottomNavBar";
 import { ChatView } from "@/components/ChatView";
+import { RecipeDetailView } from "@/components/RecipeDetailView";
 import { RecipeListView } from "@/components/RecipeListView";
 import { SettingsView } from "@/components/SettingsView";
 import { useState, useCallback } from "react";
@@ -28,18 +29,10 @@ export function HomePage() {
         )}
         {activeTab === "recipes" && (
           selectedRecipeId ? (
-            <div style={styles.detailPlaceholder}>
-              <button
-                type="button"
-                style={styles.backButton}
-                onClick={handleBackToList}
-              >
-                ← Back
-              </button>
-              <p style={styles.detailText}>
-                Recipe detail for {selectedRecipeId} — coming soon
-              </p>
-            </div>
+            <RecipeDetailView
+              recipeId={selectedRecipeId}
+              onBack={handleBackToList}
+            />
           ) : (
             <RecipeListView onSelectRecipe={handleSelectRecipe} />
           )
@@ -72,27 +65,5 @@ const styles: Record<string, React.CSSProperties> = {
     textAlign: "center",
     color: "#6b7280",
     padding: "2rem 1rem",
-  },
-  detailPlaceholder: {
-    padding: "1.5rem 1rem",
-    maxWidth: 600,
-    margin: "0 auto",
-  },
-  backButton: {
-    padding: "0.5rem 0.875rem",
-    fontSize: "0.875rem",
-    fontWeight: 600,
-    color: "#3b82f6",
-    backgroundColor: "#eff6ff",
-    border: "1px solid #bfdbfe",
-    borderRadius: 8,
-    cursor: "pointer",
-    minHeight: 44,
-    marginBottom: "1rem",
-  },
-  detailText: {
-    fontSize: "1rem",
-    color: "#374151",
-    lineHeight: 1.5,
   },
 };
