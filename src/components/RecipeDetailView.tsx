@@ -9,14 +9,19 @@ import { recipeToMarkdown } from "@/lib/recipe-markdown";
 interface RecipeDetailViewProps {
   recipeId: string;
   onBack: () => void;
+  onEdit: () => void;
 }
 
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
-export function RecipeDetailView({ recipeId, onBack }: RecipeDetailViewProps) {
-  const { recipes, isLoading, error } = useRecipes();
+export function RecipeDetailView({
+  recipeId,
+  onBack,
+  onEdit,
+}: RecipeDetailViewProps) {
+  const { recipes, isLoading, error, deleteRecipe, isDeleting } = useRecipes();
   const { copyToClipboard, copied, error: clipboardError } = useClipboard();
 
   if (isLoading) {
@@ -62,19 +67,42 @@ export function RecipeDetailView({ recipeId, onBack }: RecipeDetailViewProps) {
     void copyToClipboard(markdown);
   };
 
+  const handleDelete = () => {
+    const confirmed = window.confirm(
+      `Delete "${recipe.title}"? This cannot be undone.`,
+    );
+    if (confirmed) {
+      deleteRecipe(recipeId);
+      onBack();
+    }
+  };
+
   return (
     <div style={styles.container}>
       <div style={styles.headerRow}>
         <button type="button" style={styles.backButton} onClick={onBack}>
           ← Back
         </button>
-        <button
-          type="button"
-          style={copied ? styles.copyButtonCopied : styles.copyButton}
-          onClick={handleCopyMarkdown}
-        >
-          {copied ? "✅ Copied!" : "📋 Copy as Markdown"}
-        </button>
+        <div style={styles.headerActions}>
+          <button
+            type="button"
+            style={copied ? styles.copyButtonCopied : styles.copyButton}
+            onClick={handleCopyMarkdown}
+          >
+            {copied ? "✅ Copied!" : "📋 Copy"}
+          </button>
+          <button type="button" style={styles.editButton} onClick={onEdit}>
+            Edit
+          </button>
+          <button
+            type="button"
+            style={styles.deleteButton}
+            onClick={handleDelete}
+            disabled={isDeleting}
+          >
+            {isDeleting ? "Deleting…" : "Delete"}
+          </button>
+        </div>
       </div>
 
       {clipboardError && (
@@ -159,6 +187,10 @@ const styles: Record<string, React.CSSProperties> = {
     marginBottom: "1.25rem",
     gap: "0.5rem",
   },
+  headerActions: {
+    display: "flex",
+    gap: "0.5rem",
+  },
   backButton: {
     padding: "0.5rem 0.875rem",
     fontSize: "1rem",
@@ -201,8 +233,29 @@ const styles: Record<string, React.CSSProperties> = {
     border: "1px solid #fecaca",
     borderRadius: 8,
     padding: "0.5rem 0.75rem",
-    marginBottom: "1rem",
     margin: "0 0 1rem",
+  },
+  editButton: {
+    padding: "0.5rem 1rem",
+    fontSize: "0.9375rem",
+    fontWeight: 600,
+    color: "#3b82f6",
+    backgroundColor: "#eff6ff",
+    border: "1px solid #bfdbfe",
+    borderRadius: 8,
+    cursor: "pointer",
+    minHeight: 44,
+  },
+  deleteButton: {
+    padding: "0.5rem 1rem",
+    fontSize: "0.9375rem",
+    fontWeight: 600,
+    color: "#dc2626",
+    backgroundColor: "#fef2f2",
+    border: "1px solid #fecaca",
+    borderRadius: 8,
+    cursor: "pointer",
+    minHeight: 44,
   },
   title: {
     fontSize: "1.75rem",

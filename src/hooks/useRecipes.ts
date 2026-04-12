@@ -50,6 +50,10 @@ export function useRecipes() {
     /** Update an existing recipe. */
     updateRecipe: (data: UpdateRecipeInput) => updateMutation.mutate(data),
 
+    /** Update an existing recipe (async — resolves when the mutation completes). */
+    updateRecipeAsync: (data: UpdateRecipeInput) =>
+      updateMutation.mutateAsync(data),
+
     /** `true` while an update is in flight. */
     isUpdating: updateMutation.isPending,
 
