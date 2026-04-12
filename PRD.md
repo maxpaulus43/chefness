@@ -1,6 +1,6 @@
 # Chefness — Product Requirements Document
 
-> **Last updated:** 2025-04-11
+> **Last updated:** 2026-04-12
 >
 > This document is the single source of truth for **product requirements**.
 > For technical architecture details, see [ARCHITECTURE.md](./ARCHITECTURE.md).
@@ -17,7 +17,8 @@
 6. [Technical Dependencies](#6-technical-dependencies)
 7. [MVP Scope Summary](#7-mvp-scope-summary)
 8. [Future Roadmap](#8-future-roadmap)
-9. [Open Questions](#9-open-questions)
+9. [Implementation Status & Architectural Decisions](#9-implementation-status--architectural-decisions)
+10. [Open Questions](#10-open-questions)
 
 ---
 
@@ -458,17 +459,52 @@ The app uses the following packages for provider-agnostic LLM integration:
 
 | Package | Version | Purpose |
 | --- | --- | --- |
-| `@clinebot/llms` | 0.0.32 | Config-driven SDK for selecting, extending, and instantiating LLM providers and models. Used for provider/model selection UI and creating inference clients. |
-| `@clinebot/agents` | 0.0.32 | High-level SDK for building agentic loops with LLMs. Used for the chat session — manages the conversation loop, message history, and streaming. |
-| `@clinebot/core` | 0.0.32 | Cline Core SDK. Foundation dependency for the above packages. |
+| `@clinebot/llms` | 0.0.32 | Config-driven SDK for selecting, extending, and instantiating LLM providers and models. **Browser build used for provider/model registry only** (`getAllProviders`, `getModelsForProvider`, `toProviderConfig`). |
+| `@clinebot/agents` | 0.0.32 | High-level SDK for building agentic loops with LLMs. **Installed but unused at runtime** — `Agent` class requires Node.js (see §9 architectural decisions). |
+| `@clinebot/core` | 0.0.32 | Cline Core SDK. Foundation dependency for the above packages. **Installed but unused at runtime.** |
 | `@clinebot/shared` | 0.0.32 | Shared utilities, types, and schemas. Common types used across the integration layer. |
 
-> **Note:** These packages are not yet in `package.json` and need to be added
-> as dependencies before implementing the chat feature.
+> **Note:** These packages are in `package.json`. Only `@clinebot/llms` is used
+> at runtime (for provider/model metadata). `@clinebot/agents` and `@clinebot/core`
+> are installed but unused — they could be removed from dependencies if desired,
+> but they don't affect bundle size since they're tree-shaken out. See §9 for details.
 
-### Existing Scaffolding (Already Built)
+### Implemented File Structure (MVP)
 
-The following are implemented and ready to build upon:
+```
+src/
+  App.tsx                       App shell, tRPC/React Query providers
+  main.tsx                      Vite entry point
+  ReloadPrompt.tsx              PWA service worker update prompt
+  components/
+    BottomNavBar.tsx             Bottom nav with 4 tabs (Chat, Recipes, History, Settings), active state, Tab type export
+    ChatView.tsx                 Chat UI: message list, input, meal type/size pills, empty states, error handling, streaming display
+    HomePage.tsx                 Tab content switching with useState, renders ChatView/SettingsView/placeholder tabs
+    SettingsView.tsx             AI Configuration: provider/model dropdowns (from @clinebot/llms registry), API key input
+  hooks/
+    useChat.ts                  Chat state management, LLM streaming via fetch(), system prompt construction, offline detection
+    useRecipes.ts               Recipe CRUD (pre-existing scaffolding)
+    useSettings.ts              Settings singleton CRUD via tRPC, convenience getters (isConfigured, llmProvider, etc.)
+  lib/
+    llm-stream.ts               Browser-compatible LLM streaming client using fetch() + SSE parsing. Supports OpenAI-compatible and Anthropic native APIs.
+  storage/
+    settings.ts                 Settings repository singleton (storageKey: 'chefness:settings')
+    recipes.ts                  Recipe repository (pre-existing)
+    interface.ts                StorageRepository interface (pre-existing)
+    local-storage.ts            localStorage implementation (pre-existing)
+  trpc/
+    router.ts                   Updated with settings sub-router (get + update)
+    client.ts                   tRPC client setup (pre-existing)
+    index.ts                    tRPC exports (pre-existing)
+    provider.tsx                tRPC + React Query provider wrapper (pre-existing)
+  types/
+    settings.ts                 Settings Zod schemas (settingsSchema, createSettingsInput, updateSettingsInput)
+    recipe.ts                   Recipe Zod schemas (pre-existing)
+```
+
+### Pre-existing Scaffolding
+
+The following were implemented before MVP development and served as the foundation:
 
 | Component | Location | Status |
 | --- | --- | --- |
@@ -478,21 +514,21 @@ The following are implemented and ready to build upon:
 | Storage abstraction layer | `src/storage/interface.ts` | ✅ Complete |
 | localStorage implementation | `src/storage/local-storage.ts` | ✅ Complete |
 | Recipe CRUD (types, storage, router, hook) | `src/types/recipe.ts`, `src/storage/recipes.ts`, `src/trpc/router.ts`, `src/hooks/useRecipes.ts` | ✅ Complete |
-| Bottom nav bar component | `src/components/BottomNavBar.tsx` | ✅ Scaffold (needs tab update) |
-| App shell / home page | `src/App.tsx`, `src/components/HomePage.tsx` | ✅ Scaffold (needs tab routing) |
 | Provider wrapper (tRPC + React Query) | `src/trpc/provider.tsx` | ✅ Complete |
 
-### What Needs to Be Built for MVP
+### What Was Built for MVP (✅ All Complete)
 
-| Component | Description |
-| --- | --- |
-| Bottom nav bar update | Change tabs from `["Home", "Search", "Add", "Profile"]` to `["Chat", "Recipes", "History", "Settings"]`. Add active tab state and switching logic. |
-| Tab content switching | `App.tsx` or `HomePage.tsx` must render the correct content panel based on the active tab. |
-| Chat view component | Chat message list, input field, meal type/size controls, streaming display. |
-| Chat hook (`useChat`) | Manages conversation state, LLM calls via `@clinebot/agents`, system prompt construction, streaming. |
-| Settings view component | LLM provider/model selectors, API key input. |
-| Settings hook (`useSettings`) | Read/write settings to localStorage via the storage layer. |
-| Settings storage | tRPC procedures + storage repository for settings (or a simpler key-value approach using the existing `LocalStorageRepository`). |
+| Component | Location | Description |
+| --- | --- | --- |
+| Bottom nav bar | `src/components/BottomNavBar.tsx` | ✅ Updated tabs to Chat, Recipes, History, Settings with active state and `Tab` type export. |
+| Tab content switching | `src/components/HomePage.tsx` | ✅ `useState`-based tab switching, renders correct content per tab. Chat is default. |
+| Chat view | `src/components/ChatView.tsx` | ✅ Full chat UI with message list, text input, send button, meal type/size pill selectors, empty state with suggested prompts, error display, streaming display. |
+| Chat hook | `src/hooks/useChat.ts` | ✅ Conversation state management, LLM streaming via `fetch()` (not `@clinebot/agents`), system prompt construction with meal type/size, offline detection. |
+| LLM streaming client | `src/lib/llm-stream.ts` | ✅ Browser-compatible SSE streaming client. Supports OpenAI-compatible and Anthropic native APIs via direct `fetch()` calls. |
+| Settings view | `src/components/SettingsView.tsx` | ✅ AI Configuration section: provider dropdown, model dropdown (both from `@clinebot/llms` registry), API key input with masked display. |
+| Settings hook | `src/hooks/useSettings.ts` | ✅ Settings singleton CRUD via tRPC, convenience getters (`isConfigured`, `llmProvider`, etc.). |
+| Settings storage | `src/storage/settings.ts`, `src/types/settings.ts` | ✅ Zod schemas + storage repository singleton (key: `chefness:settings`). |
+| Settings tRPC router | `src/trpc/router.ts` | ✅ Added `settings.get` and `settings.update` procedures to existing router. |
 
 ---
 
@@ -502,24 +538,24 @@ A clear checklist of everything included in v1:
 
 ### ✅ In MVP
 
-- [ ] **Bottom nav bar** with 4 tabs: Chat, Recipes, History, Settings
-- [ ] **Tab switching** — tapping a tab shows its content; Chat is default
-- [ ] **Chat view** — full chat UI with message list, text input, send button
-- [ ] **AI streaming responses** — token-by-token rendering in chat bubbles
-- [ ] **Meal type selector** — breakfast / lunch / dinner / snack / dessert
-- [ ] **Meal size selector** — cooking for 1 / 2 / 4 / 6+
-- [ ] **System prompt** — base cooking guru persona + meal type + meal size
-- [ ] **New Chat button** — clears current conversation and starts fresh
-- [ ] **Empty chat state** — suggested prompt bubbles for quick start
-- [ ] **Error handling in chat** — network errors, invalid API key, offline state
-- [ ] **Settings page** — AI Configuration section
-- [ ] **LLM provider selector** — populated from `@clinebot/llms`
-- [ ] **LLM model selector** — updates based on selected provider
-- [ ] **API key input** — masked display, save, clear, stored in localStorage
-- [ ] **Offline detection** — chat shows offline message; rest of app works
-- [ ] **Recipes tab** — empty state placeholder ("Coming soon" or similar)
-- [ ] **History tab** — empty state placeholder ("Coming soon" or similar)
-- [ ] **Mobile-first responsive layout** — usable at 375px width minimum
+- [x] **Bottom nav bar** with 4 tabs: Chat, Recipes, History, Settings
+- [x] **Tab switching** — tapping a tab shows its content; Chat is default
+- [x] **Chat view** — full chat UI with message list, text input, send button
+- [x] **AI streaming responses** — token-by-token rendering in chat bubbles
+- [x] **Meal type selector** — breakfast / lunch / dinner / snack / dessert
+- [x] **Meal size selector** — cooking for 1 / 2 / 4 / 6+
+- [x] **System prompt** — base cooking guru persona + meal type + meal size
+- [x] **New Chat button** — clears current conversation and starts fresh
+- [x] **Empty chat state** — suggested prompt bubbles for quick start
+- [x] **Error handling in chat** — network errors, invalid API key, offline state
+- [x] **Settings page** — AI Configuration section
+- [x] **LLM provider selector** — populated from `@clinebot/llms`
+- [x] **LLM model selector** — updates based on selected provider
+- [x] **API key input** — masked display, save, clear, stored in localStorage
+- [x] **Offline detection** — chat shows offline message; rest of app works
+- [x] **Recipes tab** — empty state placeholder ("Coming soon" or similar)
+- [x] **History tab** — empty state placeholder ("Coming soon" or similar)
+- [x] **Mobile-first responsive layout** — usable at 375px width minimum
 
 ### ❌ Not in MVP
 
@@ -580,12 +616,62 @@ Each phase builds on the previous one.
 
 ---
 
-## 9. Open Questions
+## 9. Implementation Status & Architectural Decisions
+
+### MVP Status: ✅ Complete
+
+All MVP features from §7 have been implemented. The app is a fully functional
+mobile-first PWA with AI chat, settings configuration, and placeholder tabs for
+future features. See §6 for the complete file structure and §7 for the checked-off
+feature list.
+
+### Key Architectural Decisions
+
+The following decisions were made during MVP implementation. Future agents must
+understand these to avoid re-discovering limitations or breaking existing patterns.
+
+#### a) @clinebot/* packages: browser limitations
+
+- `@clinebot/llms` browser build exports the model/provider **registry** (`getAllProviders`, `getModelsForProvider`, `toProviderConfig`) but does **NOT** export `createHandler`/`createHandlerAsync`. These require Node.js because they dynamically import provider SDKs (`openai`, `@anthropic-ai/sdk`, etc.) which depend on Node builtins.
+- `@clinebot/agents` `Agent` class is **NOT usable in the browser** because it depends on `createHandler` internally.
+- **Decision:** We use `@clinebot/llms` for provider/model metadata only. Actual LLM communication uses a custom browser-compatible streaming client (`src/lib/llm-stream.ts`) that makes direct `fetch()` calls with SSE parsing.
+- The `@clinebot/agents` and `@clinebot/core` packages are installed but unused at runtime. They could be removed from dependencies if desired, but they don't affect bundle size since they're tree-shaken out.
+
+#### b) LLM streaming: fetch-based SSE client
+
+- `src/lib/llm-stream.ts` implements streaming for two protocols:
+  - **OpenAI-compatible:** POST to `{baseUrl}/chat/completions` with `stream:true` (covers ~80% of providers: OpenAI, OpenRouter, Groq, Together, Fireworks, DeepSeek, etc.)
+  - **Anthropic native:** POST to `{baseUrl}/messages` with `stream:true`, using `x-api-key` header and `anthropic-version` header
+- Provider base URL is resolved using `toProviderConfig()` from `@clinebot/llms` browser build.
+- **Google Gemini native API is NOT yet supported** (would need a different endpoint/format). Users can access Gemini via OpenRouter or other proxies.
+
+#### c) Settings reactivity pattern
+
+- `SettingsView` uses local component state (`selectedProvider`, `selectedModel`, `localApiKey`) that syncs with the `useSettings` hook on load but **leads** during user interaction. This avoids the async tRPC mutation round-trip delay that would cause dropdowns to snap back to old values.
+- **This pattern should be followed** for any future Settings fields that need immediate UI feedback.
+
+#### d) Tab switching: no router
+
+- Navigation uses simple `useState` in `HomePage.tsx`. No client-side router library. Tabs swap content in-place.
+- Chat tab is default on launch.
+
+### Deviations from Original Plan
+
+| Area | Original Plan | Actual Implementation | Reason |
+| --- | --- | --- | --- |
+| LLM integration | Use `@clinebot/agents` `Agent` class for chat | Custom `fetch()`-based SSE client (`llm-stream.ts`) | `Agent` class requires Node.js; not usable in browser |
+| Chat hook | `useChat` calls LLM via `@clinebot/agents` | `useChat` calls LLM via `src/lib/llm-stream.ts` | Same — browser compatibility |
+| Settings storage key | Multiple keys (`chefness:settings:llm-provider`, etc.) | Single key (`chefness:settings`) storing full settings object | Simpler singleton pattern via `LocalStorageRepository` |
+| Provider list | Potentially curated subset | All providers from `getAllProviders()` | Maximizes user choice; user enters their own API key |
+
+---
+
+## 10. Open Questions
 
 | # | Question | Impact | Status |
 | --- | --- | --- | --- |
-| 1 | Which `@clinebot/llms` providers/models should be available by default? Do we show all supported providers or a curated subset? | LLM-1, LLM-2 | Open |
-| 2 | Should the API key be stored as plaintext in localStorage or lightly obfuscated? (Note: true encryption isn't possible client-side without a server, but obfuscation could deter casual inspection.) | LLM-3 | Open |
+| 1 | Which `@clinebot/llms` providers/models should be available by default? Do we show all supported providers or a curated subset? | LLM-1, LLM-2 | ✅ **Resolved** — All providers from `getAllProviders()` are shown. The user selects their provider and enters their own API key. |
+| 2 | Should the API key be stored as plaintext in localStorage or lightly obfuscated? | LLM-3 | ✅ **Resolved** — Plaintext in localStorage (same as all other settings). No obfuscation for MVP. Acceptable given the single-user, no-server architecture. |
 | 3 | What heuristic or mechanism detects that an AI response contains a recipe vs. general conversation? Options: (a) structured output / tool call from the LLM, (b) regex-based detection, (c) a follow-up LLM call to classify. | SR-1 | Open — Phase 2 |
 | 4 | Should the "I cooked this!" action auto-populate the title from the recipe, or let the user name it? | HL-2 | Open — Phase 3 |
 | 5 | For AI Memory (DR-3), should the AI proactively suggest saving preferences, or should there also be a manual "Remember this" button the user can press? | DR-3 | Open — Phase 4 |
