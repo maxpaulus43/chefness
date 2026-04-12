@@ -1,0 +1,162 @@
+import { useRecipes } from "@/hooks/useRecipes";
+import type { Recipe } from "@/types/recipe";
+
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
+const DESCRIPTION_MAX_LENGTH = 100;
+
+// ---------------------------------------------------------------------------
+// Props
+// ---------------------------------------------------------------------------
+
+interface RecipeListViewProps {
+  onSelectRecipe: (id: string) => void;
+}
+
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
+
+export function RecipeListView({ onSelectRecipe }: RecipeListViewProps) {
+  const { recipes, isLoading, error } = useRecipes();
+
+  if (isLoading) {
+    return (
+      <div style={styles.centered}>
+        <p style={styles.loadingText}>Loading recipes…</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div style={styles.centered}>
+        <p style={styles.errorText}>
+          Failed to load recipes. Please try again later.
+        </p>
+      </div>
+    );
+  }
+
+  if (recipes.length === 0) {
+    return (
+      <div style={styles.centered}>
+        <p style={styles.emptyText}>
+          No saved recipes yet. Chat with your cooking guru and save recipes you
+          like!
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div style={styles.container}>
+      <h1 style={styles.header}>Recipes</h1>
+      <div style={styles.list}>
+        {recipes.map((recipe: Recipe) => (
+          <button
+            key={recipe.id}
+            type="button"
+            style={styles.card}
+            onClick={() => onSelectRecipe(recipe.id)}
+          >
+            <span style={styles.cardTitle}>{recipe.title}</span>
+            {recipe.description && (
+              <span style={styles.cardDescription}>
+                {truncate(recipe.description, DESCRIPTION_MAX_LENGTH)}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function truncate(text: string, maxLength: number): string {
+  if (text.length <= maxLength) return text;
+  return text.slice(0, maxLength).trimEnd() + "…";
+}
+
+// ---------------------------------------------------------------------------
+// Styles
+// ---------------------------------------------------------------------------
+
+const styles: Record<string, React.CSSProperties> = {
+  container: {
+    padding: "1.5rem 1rem",
+    maxWidth: 600,
+    margin: "0 auto",
+    minWidth: 0,
+  },
+  header: {
+    fontSize: "1.5rem",
+    fontWeight: 700,
+    margin: "0 0 1rem",
+    color: "#111827",
+  },
+  list: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "0.75rem",
+  },
+  card: {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "flex-start",
+    gap: "0.25rem",
+    padding: "0.875rem 1rem",
+    backgroundColor: "#fff",
+    border: "1px solid #e5e7eb",
+    borderRadius: 12,
+    cursor: "pointer",
+    textAlign: "left" as const,
+    minHeight: 44,
+    width: "100%",
+    boxSizing: "border-box" as const,
+  },
+  cardTitle: {
+    fontSize: "1rem",
+    fontWeight: 600,
+    color: "#111827",
+    lineHeight: 1.4,
+  },
+  cardDescription: {
+    fontSize: "0.875rem",
+    fontWeight: 400,
+    color: "#6b7280",
+    lineHeight: 1.4,
+  },
+  centered: {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "2rem 1rem",
+    minHeight: 200,
+  },
+  loadingText: {
+    textAlign: "center" as const,
+    color: "#6b7280",
+    fontSize: "0.9375rem",
+  },
+  errorText: {
+    textAlign: "center" as const,
+    color: "#dc2626",
+    fontSize: "0.9375rem",
+    lineHeight: 1.5,
+  },
+  emptyText: {
+    textAlign: "center" as const,
+    color: "#6b7280",
+    fontSize: "0.9375rem",
+    lineHeight: 1.5,
+    maxWidth: 320,
+  },
+};
