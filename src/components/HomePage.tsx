@@ -1,39 +1,38 @@
 import { BottomNavBar, type Tab } from "@/components/BottomNavBar";
+import { ChatView } from "@/components/ChatView";
 import { SettingsView } from "@/components/SettingsView";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 
 export function HomePage() {
   const [activeTab, setActiveTab] = useState<Tab>("chat");
 
+  const navigateToSettings = useCallback(() => {
+    setActiveTab("settings");
+  }, []);
+
   return (
     <div style={styles.root}>
-      <div style={styles.content}>{renderTab(activeTab)}</div>
+      <div style={styles.content}>
+        {activeTab === "chat" && (
+          <ChatView onNavigateToSettings={navigateToSettings} />
+        )}
+        {activeTab === "recipes" && (
+          <p style={styles.emptyState}>
+            No saved recipes yet. Chat with your cooking guru and save recipes
+            you like!
+          </p>
+        )}
+        {activeTab === "history" && (
+          <p style={styles.emptyState}>
+            No cooking history yet. Chat with your guru, cook something great,
+            and log it here!
+          </p>
+        )}
+        {activeTab === "settings" && <SettingsView />}
+      </div>
       <BottomNavBar activeTab={activeTab} onTabChange={setActiveTab} />
     </div>
   );
-}
-
-function renderTab(tab: Tab) {
-  switch (tab) {
-    case "chat":
-      return <div>Chat view coming soon</div>;
-    case "recipes":
-      return (
-        <p style={styles.emptyState}>
-          No saved recipes yet. Chat with your cooking guru and save recipes you
-          like!
-        </p>
-      );
-    case "history":
-      return (
-        <p style={styles.emptyState}>
-          No cooking history yet. Chat with your guru, cook something great, and
-          log it here!
-        </p>
-      );
-    case "settings":
-      return <SettingsView />;
-  }
 }
 
 const styles: Record<string, React.CSSProperties> = {
