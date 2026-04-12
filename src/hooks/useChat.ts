@@ -8,19 +8,19 @@
  *
  * ## LLM Integration
  *
- * Uses the `Agent` class from `@clinebot/agents` which provides:
- * - Automatic provider routing (OpenAI, Anthropic, Gemini, etc.)
- * - SSE streaming with token-by-token events
- * - Error handling and abort support
- * - Conversation history management
+ * Uses a browser-compatible streaming client (`src/lib/llm-stream.ts`)
+ * that calls LLM provider APIs directly via fetch() + ReadableStream.
+ * This avoids the `@clinebot/agents` Agent class, whose internal
+ * `createHandler` dependency is not available in the browser build
+ * of `@clinebot/llms`.
  *
- * The Agent's `onEvent` callback emits `content_start` events with
- * `{ text, accumulated }` fields, giving us real-time streaming for free.
+ * Supported protocols:
+ * - OpenAI-compatible (covers OpenAI, OpenRouter, Groq, Together, etc.)
+ * - Anthropic-native (Anthropic, MiniMax via Anthropic-compatible API)
  */
 import { useState, useRef, useCallback } from "react";
 import { useSettings } from "@/hooks/useSettings";
-import { Agent } from "@clinebot/agents";
-import type { AgentEvent } from "@clinebot/agents";
+import { streamChat } from "@/lib/llm-stream";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -104,8 +104,8 @@ export function useChat() {
   const [mealType, setMealType] = useState<MealType | null>(null);
   const [mealSize, setMealSize] = useState<MealSize | null>(null);
 
-  /** Persistent Agent ref — recreated when conversation is cleared. */
-  const agentRef = useRef<Agent | null>(null);
+  /** AbortController for the in-flight streaming request. */
+  const abortRef = useRef<AbortController | null>(null);
 
   const sendMessage = useCallback(
     async (text: string) => {
@@ -124,54 +124,38 @@ export function useChat() {
       setMessages([...history, { role: "assistant", content: "" }]);
       setIsStreaming(true);
 
+      const controller = new AbortController();
+      abortRef.current = controller;
+
       try {
         const systemPrompt = buildSystemPrompt(mealType, mealSize);
 
-        if (!agentRef.current) {
-          agentRef.current = new Agent({
-            providerId: llmProvider,
-            modelId: llmModel,
-            apiKey: llmApiKey,
-            systemPrompt,
-            tools: [],
-            maxIterations: 1,
-            onEvent: (event: AgentEvent) => {
-              if (
-                event.type === "content_start" &&
-                event.contentType === "text" &&
-                event.accumulated
-              ) {
-                const content = event.accumulated;
-                setMessages((prev) => {
-                  const next = [...prev];
-                  const last = next[next.length - 1];
-                  if (last?.role === "assistant") {
-                    next[next.length - 1] = { ...last, content };
-                  }
-                  return next;
-                });
+        const finalText = await streamChat({
+          providerId: llmProvider,
+          modelId: llmModel,
+          apiKey: llmApiKey,
+          systemPrompt,
+          messages: history,
+          signal: controller.signal,
+          onToken: (_token, accumulated) => {
+            setMessages((prev) => {
+              const next = [...prev];
+              const last = next[next.length - 1];
+              if (last?.role === "assistant") {
+                next[next.length - 1] = { ...last, content: accumulated };
               }
-            },
-          });
-        } else {
-          agentRef.current.updateConnection({
-            providerId: llmProvider,
-            modelId: llmModel,
-            apiKey: llmApiKey,
-          });
-        }
+              return next;
+            });
+          },
+        });
 
-        const result = history.length <= 1
-          ? await agentRef.current.run(text)
-          : await agentRef.current.continue(text);
-
-        // Ensure the final text is set
-        const finalText = result.text || "(No response received from the model.)";
+        // Ensure the final text is set.
+        const resultText = finalText || "(No response received from the model.)";
         setMessages((prev) => {
           const next = [...prev];
           const last = next[next.length - 1];
           if (last?.role === "assistant") {
-            next[next.length - 1] = { ...last, content: finalText };
+            next[next.length - 1] = { ...last, content: resultText };
           }
           return next;
         });
@@ -180,7 +164,7 @@ export function useChat() {
 
         setError(friendlyError(err));
 
-        // Remove empty assistant placeholder on error
+        // Remove empty assistant placeholder on error.
         setMessages((prev) => {
           const last = prev[prev.length - 1];
           if (last?.role === "assistant" && last.content === "") {
@@ -189,6 +173,7 @@ export function useChat() {
           return prev;
         });
       } finally {
+        abortRef.current = null;
         setIsStreaming(false);
       }
     },
@@ -196,9 +181,8 @@ export function useChat() {
   );
 
   const clearChat = useCallback(() => {
-    agentRef.current?.abort();
-    agentRef.current?.clearHistory();
-    agentRef.current = null;
+    abortRef.current?.abort();
+    abortRef.current = null;
     setMessages([]);
     setError(null);
     setIsStreaming(false);
