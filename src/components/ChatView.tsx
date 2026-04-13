@@ -295,7 +295,7 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
   const handleNewChat = useCallback(() => {
     if (messages.length > 0) {
       const confirmed = window.confirm(
-        "Start a new conversation? The current chat will be lost.",
+        "Start a new conversation? The current chat will be saved.",
       );
       if (!confirmed) return;
     }

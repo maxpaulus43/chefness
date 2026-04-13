@@ -4,7 +4,10 @@
  * This is the "brain" behind the Chat view. It manages all chat state,
  * constructs the system prompt, and streams LLM responses token-by-token.
  *
- * Conversation is in-memory only (MVP) — lost on page refresh.
+ * Conversations are automatically persisted to localStorage via the
+ * `useChatSessions` hook. The most recent session is restored on mount,
+ * new sessions are created on the first message, and messages are
+ * auto-saved after each completed LLM response.
  *
  * ## LLM Integration
  *
@@ -18,12 +21,14 @@
  * - OpenAI-compatible (covers OpenAI, OpenRouter, Groq, Together, etc.)
  * - Anthropic-native (Anthropic, MiniMax via Anthropic-compatible API)
  */
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useSettings } from "@/hooks/useSettings";
 import { useCookingLog } from "@/hooks/useCookingLog";
 import { useAiPreferences } from "@/hooks/useAiPreferences";
+import { useChatSessions } from "@/hooks/useChatSessions";
 import { streamChat } from "@/lib/llm-stream";
 import type { CookingLogEntry } from "@/types/cooking-log";
+import type { ChatSessionMessage } from "@/types/chat-session";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -149,6 +154,7 @@ export function useChat() {
   const { llmProvider, llmModel, llmApiKey, isConfigured, dietaryRestrictions, otherDietaryNotes } = useSettings();
   const { recentEntries } = useCookingLog();
   const { preferences: aiPreferences } = useAiPreferences();
+  const { sessions, updateSession, createSessionAsync } = useChatSessions();
 
   /** Preference texts for the system prompt — stable across renders. */
   const preferenceTexts = aiPreferences.map((p) => p.text);
@@ -159,8 +165,68 @@ export function useChat() {
   const [mealType, setMealType] = useState<MealType | null>(null);
   const [mealSize, setMealSize] = useState<MealSize | null>(null);
 
+  /** The ID of the active chat session, or `null` if no session exists yet. */
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+
   /** AbortController for the in-flight streaming request. */
   const abortRef = useRef<AbortController | null>(null);
+
+  /** Guard so session restore runs only once (when sessions first load). */
+  const hasRestoredRef = useRef(false);
+
+  // -------------------------------------------------------------------------
+  // Restore the most recent session on mount
+  // -------------------------------------------------------------------------
+
+  useEffect(() => {
+    if (hasRestoredRef.current) return;
+    if (sessions.length === 0) return;
+
+    hasRestoredRef.current = true;
+
+    const mostRecent = sessions[0]; // sorted by updatedAt desc
+    setCurrentSessionId(mostRecent.id);
+    setMessages(
+      mostRecent.messages.map((m) => ({ role: m.role, content: m.content })),
+    );
+    setMealType((mostRecent.mealType as MealType) ?? null);
+    setMealSize((mostRecent.mealSize as MealSize) ?? null);
+  }, [sessions]);
+
+  // -------------------------------------------------------------------------
+  // Helpers for session persistence
+  // -------------------------------------------------------------------------
+
+  /** Convert in-memory messages to the persisted format (adds timestamps). */
+  const toSessionMessages = useCallback(
+    (msgs: ChatMessage[]): ChatSessionMessage[] =>
+      msgs.map((m) => ({
+        role: m.role,
+        content: m.content,
+        timestamp: new Date().toISOString(),
+      })),
+    [],
+  );
+
+  /**
+   * Fire-and-forget save of the current messages to the active session.
+   * Called after each completed LLM response.
+   */
+  const persistMessages = useCallback(
+    (sessionId: string, msgs: ChatMessage[], mt: MealType | null, ms: MealSize | null) => {
+      updateSession({
+        id: sessionId,
+        messages: toSessionMessages(msgs),
+        mealType: mt,
+        mealSize: ms,
+      });
+    },
+    [updateSession, toSessionMessages],
+  );
+
+  // -------------------------------------------------------------------------
+  // sendMessage
+  // -------------------------------------------------------------------------
 
   const sendMessage = useCallback(
     async (text: string) => {
@@ -178,6 +244,23 @@ export function useChat() {
       const history = [...messages, userMsg];
       setMessages([...history, { role: "assistant", content: "" }]);
       setIsStreaming(true);
+
+      // Auto-create a session on the first message.
+      let sessionId = currentSessionId;
+      if (!sessionId) {
+        try {
+          const session = await createSessionAsync({
+            title: text.slice(0, 60),
+            mealType,
+            mealSize,
+          });
+          sessionId = session.id;
+          setCurrentSessionId(sessionId);
+        } catch {
+          // Session creation failed — continue without persistence.
+          console.error("Failed to create chat session; messages will not be persisted.");
+        }
+      }
 
       const controller = new AbortController();
       abortRef.current = controller;
@@ -206,14 +289,16 @@ export function useChat() {
 
         // Ensure the final text is set.
         const resultText = finalText || "(No response received from the model.)";
-        setMessages((prev) => {
-          const next = [...prev];
-          const last = next[next.length - 1];
-          if (last?.role === "assistant") {
-            next[next.length - 1] = { ...last, content: resultText };
-          }
-          return next;
-        });
+        const finalMessages: ChatMessage[] = [
+          ...history,
+          { role: "assistant", content: resultText },
+        ];
+        setMessages(finalMessages);
+
+        // Auto-save after streaming completes (fire-and-forget).
+        if (sessionId) {
+          persistMessages(sessionId, finalMessages, mealType, mealSize);
+        }
       } catch (err: unknown) {
         if (err instanceof DOMException && err.name === "AbortError") return;
 
@@ -232,8 +317,12 @@ export function useChat() {
         setIsStreaming(false);
       }
     },
-    [messages, mealType, mealSize, recentEntries, llmProvider, llmModel, llmApiKey, isConfigured, dietaryRestrictions, otherDietaryNotes, preferenceTexts],
+    [messages, mealType, mealSize, recentEntries, llmProvider, llmModel, llmApiKey, isConfigured, dietaryRestrictions, otherDietaryNotes, preferenceTexts, currentSessionId, createSessionAsync, persistMessages],
   );
+
+  // -------------------------------------------------------------------------
+  // clearChat — "New Chat" behavior
+  // -------------------------------------------------------------------------
 
   const clearChat = useCallback(() => {
     abortRef.current?.abort();
@@ -241,7 +330,35 @@ export function useChat() {
     setMessages([]);
     setError(null);
     setIsStreaming(false);
+    setMealType(null);
+    setMealSize(null);
+    setCurrentSessionId(null);
   }, []);
+
+  // -------------------------------------------------------------------------
+  // loadSession — switch to a past session
+  // -------------------------------------------------------------------------
+
+  const loadSession = useCallback(
+    (sessionId: string) => {
+      const session = sessions.find((s) => s.id === sessionId);
+      if (!session) return;
+
+      // Abort any in-flight streaming.
+      abortRef.current?.abort();
+      abortRef.current = null;
+      setIsStreaming(false);
+      setError(null);
+
+      setCurrentSessionId(session.id);
+      setMessages(
+        session.messages.map((m) => ({ role: m.role, content: m.content })),
+      );
+      setMealType((session.mealType as MealType) ?? null);
+      setMealSize((session.mealSize as MealSize) ?? null);
+    },
+    [sessions],
+  );
 
   return {
     messages,
@@ -256,5 +373,7 @@ export function useChat() {
     isConfigured,
     llmProvider,
     llmModel,
+    currentSessionId,
+    loadSession,
   } as const;
 }
