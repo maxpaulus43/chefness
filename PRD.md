@@ -295,19 +295,20 @@ viewable in the Recipes tab.
 
 #### Acceptance Criteria
 
-- [ ] Recipe detection: The app identifies when an AI response contains a
-      recipe (heuristic or LLM-assisted structured output).
-- [ ] Recipe parsing: The recipe is extracted into the existing `Recipe` schema
-      fields: `title`, `description`, `ingredients` (string[]),
-      `steps` (string[]).
-- [ ] Saving uses the existing `recipe.create` tRPC procedure.
-- [ ] The Recipes tab shows a list of saved recipe cards (title + brief
+- [x] Recipe detection: User-triggered — every assistant message shows a
+      "Save Recipe" button. No auto-detection heuristic needed.
+- [x] Recipe parsing: LLM-based extraction via native tool/function calling
+      (`callWithTools` in `llm-stream.ts`), not regex. The `save_recipe` tool
+      definition forces structured output from the LLM.
+- [x] Saving uses the existing `recipe.create` tRPC procedure (via
+      `createRecipeAsync` in `useRecipes` for proper error handling).
+- [x] The Recipes tab shows a list of saved recipe cards (title + brief
       description).
-- [ ] Recipe detail view shows all fields in a readable, kitchen-friendly
+- [x] Recipe detail view shows all fields in a readable, kitchen-friendly
       layout.
-- [ ] Edit and delete use the existing `recipe.update` and `recipe.delete`
+- [x] Edit and delete use the existing `recipe.update` and `recipe.delete`
       tRPC procedures.
-- [ ] Empty state in Recipes tab: "No saved recipes yet. Chat with your
+- [x] Empty state in Recipes tab: "No saved recipes yet. Chat with your
       cooking guru and save recipes you like!"
 
 ### 5.2 Share Recipes
@@ -325,11 +326,11 @@ Users can copy a saved recipe to the clipboard as formatted Markdown text.
 
 #### Acceptance Criteria
 
-- [ ] The share button is available on the recipe detail view.
-- [ ] The Markdown output includes: title (as `#`), description, ingredients
+- [x] The share button is available on the recipe detail view.
+- [x] The Markdown output includes: title (as `#`), description, ingredients
       (as bullet list), steps (as numbered list).
-- [ ] Uses the Clipboard API (`navigator.clipboard.writeText`).
-- [ ] Graceful fallback or error message if Clipboard API is unavailable.
+- [x] Uses the Clipboard API (`navigator.clipboard.writeText`).
+- [x] Graceful fallback or error message if Clipboard API is unavailable.
 
 ### 5.3 Cooking Log & History
 
@@ -469,7 +470,7 @@ The app uses the following packages for provider-agnostic LLM integration:
 > are installed but unused — they could be removed from dependencies if desired,
 > but they don't affect bundle size since they're tree-shaken out. See §9 for details.
 
-### Implemented File Structure (MVP)
+### Implemented File Structure
 
 ```
 src/
@@ -478,15 +479,22 @@ src/
   ReloadPrompt.tsx              PWA service worker update prompt
   components/
     BottomNavBar.tsx             Bottom nav with 4 tabs (Chat, Recipes, History, Settings), active state, Tab type export
-    ChatView.tsx                 Chat UI: message list, input, meal type/size pills, empty states, error handling, streaming display
-    HomePage.tsx                 Tab content switching with useState, renders ChatView/SettingsView/placeholder tabs
+    ChatView.tsx                 Chat UI: message list, input, meal type/size pills, empty states, error handling, streaming display, Save Recipe button
+    HomePage.tsx                 Tab content switching + recipe tab navigation (list/detail/edit via selectedRecipeId + recipeViewMode state)
+    RecipeDetailView.tsx         Full recipe display with ingredients, steps, back/edit/delete/copy buttons (Phase 2)
+    RecipeEditView.tsx           Edit form for recipes — title, description, ingredients, steps as textareas (Phase 2)
+    RecipeListView.tsx           Recipe card list for Recipes tab, with empty/loading/error states (Phase 2)
     SettingsView.tsx             AI Configuration: provider/model dropdowns (from @clinebot/llms registry), API key input
   hooks/
-    useChat.ts                  Chat state management, LLM streaming via fetch(), system prompt construction, offline detection
-    useRecipes.ts               Recipe CRUD (pre-existing scaffolding)
+    useChat.ts                  Chat state management, LLM streaming via fetch(), system prompt construction, offline detection, soft recipe formatting guideline
+    useClipboard.ts             Reusable clipboard hook: copyToClipboard, copied (2s timer), error (Phase 2)
+    useRecipes.ts               Recipe CRUD with createRecipeAsync/updateRecipeAsync for reliable awaitable mutations
     useSettings.ts              Settings singleton CRUD via tRPC, convenience getters (isConfigured, llmProvider, etc.)
   lib/
-    llm-stream.ts               Browser-compatible LLM streaming client using fetch() + SSE parsing. Supports OpenAI-compatible and Anthropic native APIs.
+    llm-stream.ts               Browser-compatible LLM streaming + non-streaming tool/function calling client. Supports OpenAI-compatible and Anthropic native APIs.
+    recipe-extractor.ts         Thin wrapper around callWithTools with save_recipe tool definition (Phase 2)
+    recipe-markdown.ts          Pure function: recipeToMarkdown(recipe) — converts Recipe to Markdown text (Phase 2)
+    uuid.ts                     UUID generator with crypto.randomUUID() fallback for older iOS Safari (Phase 2)
   storage/
     settings.ts                 Settings repository singleton (storageKey: 'chefness:settings')
     recipes.ts                  Recipe repository (pre-existing)
@@ -557,13 +565,18 @@ A clear checklist of everything included in v1:
 - [x] **History tab** — empty state placeholder ("Coming soon" or similar)
 - [x] **Mobile-first responsive layout** — usable at 375px width minimum
 
-### ❌ Not in MVP
+### ✅ Phase 2 (Complete)
+
+- [x] **Save Recipe from Chat** — user-triggered LLM extraction via native tool calling
+- [x] **Recipe List View** — scrollable card list in Recipes tab with empty/loading states
+- [x] **Recipe Detail View** — kitchen-friendly full recipe display (large text, ingredients bullet list, numbered steps)
+- [x] **Recipe Edit & Delete** — edit form with pre-populated fields, delete with confirmation
+- [x] **Share Recipe as Markdown** — copy-to-clipboard with `navigator.clipboard.writeText`
+
+### ❌ Not in MVP or Phase 2
 
 - Conversation persistence (lost on refresh)
 - Multiple chat sessions
-- Save Recipe from chat
-- Recipe list/detail view
-- Share/copy recipes
 - Cooking log / "I cooked this!"
 - History tab content
 - Dietary restrictions in Settings
@@ -577,13 +590,17 @@ A clear checklist of everything included in v1:
 Features are listed in suggested implementation order, grouped into phases.
 Each phase builds on the previous one.
 
-### Phase 2 — Recipes
+### Phase 2 — Recipes ✅ Complete
 
-1. **Save Recipe from Chat** (§5.1) — Recipe detection, parsing, save action
-2. **Recipe List View** — Browse saved recipes in the Recipes tab
-3. **Recipe Detail View** — Full recipe display with kitchen-friendly layout
-4. **Recipe Edit & Delete** — Modify or remove saved recipes
-5. **Share Recipe as Markdown** (§5.2) — Copy to clipboard
+All 5 Phase 2 items have been implemented. Recipe saving uses user-triggered LLM
+extraction via native tool calling. The Recipes tab now provides full list, detail,
+edit, and delete flows plus copy-to-clipboard sharing.
+
+1. ~~**Save Recipe from Chat** (§5.1) — Recipe detection, parsing, save action~~
+2. ~~**Recipe List View** — Browse saved recipes in the Recipes tab~~
+3. ~~**Recipe Detail View** — Full recipe display with kitchen-friendly layout~~
+4. ~~**Recipe Edit & Delete** — Modify or remove saved recipes~~
+5. ~~**Share Recipe as Markdown** (§5.2) — Copy to clipboard~~
 
 ### Phase 3 — Cooking History
 
@@ -655,6 +672,52 @@ understand these to avoid re-discovering limitations or breaking existing patter
 - Navigation uses simple `useState` in `HomePage.tsx`. No client-side router library. Tabs swap content in-place.
 - Chat tab is default on launch.
 
+### Phase 2 Status: ✅ Complete
+
+All Phase 2 (Recipes) features from §8 have been implemented. The Recipes tab is
+now fully functional with save, list, detail, edit, delete, and share flows.
+
+| Component | Location | Description |
+| --- | --- | --- |
+| Save Recipe button | `src/components/ChatView.tsx` | ✅ Every assistant message shows a "Save Recipe" button with idle/extracting/saved/error states. Uses `extractRecipe` + `createRecipeAsync`. |
+| Recipe extraction | `src/lib/recipe-extractor.ts` | ✅ Thin wrapper around `callWithTools` with `save_recipe` tool definition. Forces structured output from the LLM. |
+| Tool calling client | `src/lib/llm-stream.ts` | ✅ Added `callWithTools()` public function + `ToolDefinition`, `ToolCallResult`, `ToolCallOptions` types. Non-streaming. Supports OpenAI-compatible and Anthropic-native tool calling. |
+| Recipe list view | `src/components/RecipeListView.tsx` | ✅ Scrollable card list in Recipes tab with empty/loading/error states. |
+| Recipe detail view | `src/components/RecipeDetailView.tsx` | ✅ Kitchen-friendly full recipe display: large text, ingredients as bullet list, numbered steps, back/edit/delete/copy buttons. |
+| Recipe edit view | `src/components/RecipeEditView.tsx` | ✅ Edit form with pre-populated fields (title, description, ingredients, steps as textareas). |
+| Recipe tab navigation | `src/components/HomePage.tsx` | ✅ Added `selectedRecipeId` + `recipeViewMode` state for list/detail/edit navigation within the Recipes tab. |
+| Share as Markdown | `src/lib/recipe-markdown.ts` | ✅ Pure function `recipeToMarkdown(recipe)` — converts Recipe to Markdown text. |
+| Clipboard hook | `src/hooks/useClipboard.ts` | ✅ Reusable hook: `copyToClipboard`, `copied` (2s timer), `error`. |
+| UUID generation | `src/lib/uuid.ts` | ✅ `generateUUID()` with `crypto.randomUUID()` fallback for older iOS Safari. |
+| Async mutations | `src/hooks/useRecipes.ts` | ✅ Added `createRecipeAsync`, `updateRecipeAsync` (via `mutateAsync`) + `onError` callbacks. |
+| System prompt update | `src/hooks/useChat.ts` | ✅ Added soft recipe formatting guideline to system prompt. |
+
+#### Phase 2 Architectural Decisions
+
+#### e) Recipe extraction: native tool calling
+
+- Save Recipe uses `callWithTools()` in `llm-stream.ts` which extends the fetch-based client with non-streaming tool/function calling support. The `save_recipe` tool forces structured output from the LLM.
+- Works across OpenAI-compatible (function calling) and Anthropic (native tool use) protocols.
+- The extraction is user-triggered: every assistant message shows a "Save Recipe" button. No auto-detection heuristic is needed.
+- `src/lib/recipe-extractor.ts` is a thin wrapper that defines the `save_recipe` tool schema and calls `callWithTools`.
+
+#### f) UUID generation fallback
+
+- `src/lib/uuid.ts` provides `generateUUID()` with fallback from `crypto.randomUUID()` to `crypto.getRandomValues()`-based implementation for iOS Safari < 15.4 in non-secure contexts.
+- Used when creating new recipes from the save flow (where `crypto.randomUUID()` may throw on older mobile browsers).
+
+#### g) Recipe tab navigation
+
+- `HomePage.tsx` manages `selectedRecipeId` + `recipeViewMode` state (`list` | `detail` | `edit`) for navigation within the Recipes tab.
+- No router needed — the same `useState`-based pattern from MVP (decision d) is extended.
+- The Recipes tab renders `RecipeListView`, `RecipeDetailView`, or `RecipeEditView` based on the current state.
+
+#### h) Async mutations for reliability
+
+- `useRecipes` exposes `createRecipeAsync` / `updateRecipeAsync` (via `mutateAsync`) for callers that need to await the result (e.g., ChatView save handler needs to show success/error state).
+- Fire-and-forget `mutate` variants are still available for cases that don't need the result.
+- `createRecipeAsync` was introduced as a bug fix for proper error handling on iOS Safari where the non-async `mutate` callback timing was unreliable.
+
 ### Deviations from Original Plan
 
 | Area | Original Plan | Actual Implementation | Reason |
@@ -663,6 +726,7 @@ understand these to avoid re-discovering limitations or breaking existing patter
 | Chat hook | `useChat` calls LLM via `@clinebot/agents` | `useChat` calls LLM via `src/lib/llm-stream.ts` | Same — browser compatibility |
 | Settings storage key | Multiple keys (`chefness:settings:llm-provider`, etc.) | Single key (`chefness:settings`) storing full settings object | Simpler singleton pattern via `LocalStorageRepository` |
 | Provider list | Potentially curated subset | All providers from `getAllProviders()` | Maximizes user choice; user enters their own API key |
+| Recipe extraction | Regex-based detection + heuristic parser | User-triggered LLM extraction via native tool calling | More reliable; user controls what to save; LLM understands its own output |
 
 ---
 
@@ -672,7 +736,7 @@ understand these to avoid re-discovering limitations or breaking existing patter
 | --- | --- | --- | --- |
 | 1 | Which `@clinebot/llms` providers/models should be available by default? Do we show all supported providers or a curated subset? | LLM-1, LLM-2 | ✅ **Resolved** — All providers from `getAllProviders()` are shown. The user selects their provider and enters their own API key. |
 | 2 | Should the API key be stored as plaintext in localStorage or lightly obfuscated? | LLM-3 | ✅ **Resolved** — Plaintext in localStorage (same as all other settings). No obfuscation for MVP. Acceptable given the single-user, no-server architecture. |
-| 3 | What heuristic or mechanism detects that an AI response contains a recipe vs. general conversation? Options: (a) structured output / tool call from the LLM, (b) regex-based detection, (c) a follow-up LLM call to classify. | SR-1 | Open — Phase 2 |
+| 3 | What heuristic or mechanism detects that an AI response contains a recipe vs. general conversation? Options: (a) structured output / tool call from the LLM, (b) regex-based detection, (c) a follow-up LLM call to classify. | SR-1 | ✅ **Resolved** — No auto-detection. User taps "Save Recipe" on any assistant message. The app uses native LLM tool/function calling (`callWithTools` with a `save_recipe` tool definition) to extract structured recipe data. This avoids fragile regex heuristics and gives provider-enforced structured output. |
 | 4 | Should the "I cooked this!" action auto-populate the title from the recipe, or let the user name it? | HL-2 | Open — Phase 3 |
 | 5 | For AI Memory (DR-3), should the AI proactively suggest saving preferences, or should there also be a manual "Remember this" button the user can press? | DR-3 | Open — Phase 4 |
 | 6 | Is there a maximum number of chat sessions to retain before auto-pruning old ones? localStorage has a ~5–10MB limit. | CP-2 | Open — Phase 5 |
