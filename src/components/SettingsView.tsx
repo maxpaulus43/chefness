@@ -1,4 +1,5 @@
 import { useSettings } from "@/hooks/useSettings";
+import { useAiPreferences } from "@/hooks/useAiPreferences";
 import {
   getAllProviders,
   getModelsForProvider,
@@ -32,10 +33,22 @@ export function SettingsView() {
     updateSettings,
   } = useSettings();
 
+  const {
+    preferences: aiPreferences,
+    isCreating: isCreatingPreference,
+    isDeleting: isDeletingPreference,
+    createPreferenceAsync,
+    deletePreference,
+  } = useAiPreferences();
+
   const [providers, setProviders] = useState<ProviderInfo[]>([]);
   const [models, setModels] = useState<Record<string, ModelInfo>>({});
   const [loadingProviders, setLoadingProviders] = useState(true);
   const [loadingModels, setLoadingModels] = useState(false);
+
+  // AI Memory: inline "add preference" form state.
+  const [showAddPreference, setShowAddPreference] = useState(false);
+  const [newPreferenceText, setNewPreferenceText] = useState("");
 
   // Local state so the UI reacts synchronously to user selection instead
   // of waiting for the async tRPC mutation round-trip.
@@ -139,6 +152,25 @@ export function SettingsView() {
     updateSettings({ dietaryRestrictions: selectedRestrictions, otherDietaryNotes: value });
   };
 
+  const handleDeletePreference = (id: string, text: string) => {
+    if (window.confirm(`Remove preference: "${text}"?`)) {
+      deletePreference(id);
+    }
+  };
+
+  const handleSavePreference = async () => {
+    const trimmed = newPreferenceText.trim();
+    if (!trimmed) return;
+    await createPreferenceAsync({ text: trimmed });
+    setNewPreferenceText("");
+    setShowAddPreference(false);
+  };
+
+  const handleCancelAddPreference = () => {
+    setNewPreferenceText("");
+    setShowAddPreference(false);
+  };
+
   const maskedKey =
     selectedApiKey.length >= 4
       ? `••••••${selectedApiKey.slice(-4)}`
@@ -202,6 +234,78 @@ export function SettingsView() {
             style={{ ...styles.input, width: "100%" }}
           />
         </div>
+      </section>
+
+      <section style={styles.section}>
+        <h2 style={styles.sectionTitle}>AI Memory</h2>
+        <p style={styles.sectionDescription}>
+          Things Chefness remembers about you. These are automatically included in every conversation.
+        </p>
+
+        {aiPreferences.length === 0 ? (
+          <p style={styles.emptyText}>
+            No saved preferences yet. As you chat, Chefness may ask to remember things about you.
+          </p>
+        ) : (
+          <ul style={styles.preferenceList}>
+            {aiPreferences.map((pref) => (
+              <li key={pref.id} style={styles.preferenceRow}>
+                <span style={styles.preferenceText}>{pref.text}</span>
+                <button
+                  type="button"
+                  onClick={() => handleDeletePreference(pref.id, pref.text)}
+                  disabled={isDeletingPreference}
+                  style={styles.deleteButton}
+                  aria-label={`Delete preference: ${pref.text}`}
+                >
+                  ×
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {showAddPreference ? (
+          <div style={styles.addPreferenceForm}>
+            <input
+              type="text"
+              value={newPreferenceText}
+              onChange={(e) => setNewPreferenceText(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") void handleSavePreference();
+                if (e.key === "Escape") handleCancelAddPreference();
+              }}
+              placeholder="e.g., I have a small kitchen"
+              style={{ ...styles.input, width: "100%" }}
+              autoFocus
+            />
+            <div style={styles.addPreferenceActions}>
+              <button
+                type="button"
+                onClick={() => void handleSavePreference()}
+                disabled={isCreatingPreference || !newPreferenceText.trim()}
+                style={styles.saveButton}
+              >
+                {isCreatingPreference ? "Saving…" : "Save"}
+              </button>
+              <button
+                type="button"
+                onClick={handleCancelAddPreference}
+                style={styles.cancelButton}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setShowAddPreference(true)}
+            style={styles.addPreferenceButton}
+          >
+            + Add preference
+          </button>
+        )}
       </section>
     </div>
   );
@@ -385,5 +489,88 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: 9999,
     cursor: "pointer",
     whiteSpace: "nowrap" as const,
+  },
+  sectionDescription: {
+    fontSize: "0.8125rem",
+    color: "#6b7280",
+    margin: "0 0 1rem",
+    lineHeight: 1.5,
+  },
+  emptyText: {
+    fontSize: "0.875rem",
+    color: "#9ca3af",
+    fontStyle: "italic" as const,
+    margin: "0 0 1rem",
+  },
+  preferenceList: {
+    listStyle: "none",
+    margin: "0 0 1rem",
+    padding: 0,
+  },
+  preferenceRow: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: "0.5rem",
+    padding: "0.625rem 0.75rem",
+    backgroundColor: "#f9fafb",
+    border: "1px solid #e5e7eb",
+    borderRadius: 8,
+    marginBottom: "0.5rem",
+  },
+  preferenceText: {
+    fontSize: "0.875rem",
+    color: "#111827",
+    flex: 1,
+    minWidth: 0,
+  },
+  deleteButton: {
+    background: "none",
+    border: "none",
+    fontSize: "1.25rem",
+    lineHeight: 1,
+    color: "#9ca3af",
+    cursor: "pointer",
+    padding: "0.25rem 0.5rem",
+    borderRadius: 4,
+    flexShrink: 0,
+  },
+  addPreferenceButton: {
+    background: "none",
+    border: "none",
+    fontSize: "0.875rem",
+    fontWeight: 500,
+    color: "#f97316",
+    cursor: "pointer",
+    padding: "0.375rem 0",
+  },
+  addPreferenceForm: {
+    display: "flex",
+    flexDirection: "column" as const,
+    gap: "0.5rem",
+  },
+  addPreferenceActions: {
+    display: "flex",
+    gap: "0.5rem",
+  },
+  saveButton: {
+    padding: "0.5rem 1rem",
+    fontSize: "0.875rem",
+    fontWeight: 500,
+    color: "#fff",
+    backgroundColor: "#f97316",
+    border: "none",
+    borderRadius: 8,
+    cursor: "pointer",
+  },
+  cancelButton: {
+    padding: "0.5rem 1rem",
+    fontSize: "0.875rem",
+    fontWeight: 500,
+    color: "#6b7280",
+    backgroundColor: "transparent",
+    border: "1px solid #d1d5db",
+    borderRadius: 8,
+    cursor: "pointer",
   },
 };

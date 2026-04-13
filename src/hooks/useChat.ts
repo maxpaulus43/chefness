@@ -92,7 +92,7 @@ answer cooking-related questions.`,
 
   if (preferences.length > 0) {
     const prefList = preferences.map((p) => `- ${p}`).join("\n");
-    parts.push(`Remembered preferences:\n${prefList}`);
+    parts.push(`Things to remember about this user:\n${prefList}`);
   }
 
   parts.push(
