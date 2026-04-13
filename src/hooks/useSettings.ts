@@ -24,6 +24,8 @@ export function useSettings() {
     llmProvider: "",
     llmModel: "",
     llmApiKey: "",
+    dietaryRestrictions: [] as string[],
+    otherDietaryNotes: "",
     createdAt: "",
     updatedAt: "",
   };
@@ -53,6 +55,12 @@ export function useSettings() {
 
     /** Convenience getter: the current LLM API key. */
     llmApiKey: settings.llmApiKey,
+
+    /** Convenience getter: the current dietary restrictions list. */
+    dietaryRestrictions: settings.dietaryRestrictions,
+
+    /** Convenience getter: the current freeform dietary notes. */
+    otherDietaryNotes: settings.otherDietaryNotes,
 
     /** `true` when provider, model, and API key are all non-empty. */
     isConfigured:

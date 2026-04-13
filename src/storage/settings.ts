@@ -45,6 +45,8 @@ export const settingsRepository: SettingsRepository = new LocalStorageRepository
       ...(patch.llmProvider !== undefined && { llmProvider: patch.llmProvider }),
       ...(patch.llmModel !== undefined && { llmModel: patch.llmModel }),
       ...(patch.llmApiKey !== undefined && { llmApiKey: patch.llmApiKey }),
+      ...(patch.dietaryRestrictions !== undefined && { dietaryRestrictions: patch.dietaryRestrictions }),
+      ...(patch.otherDietaryNotes !== undefined && { otherDietaryNotes: patch.otherDietaryNotes }),
       updatedAt: new Date().toISOString(),
     };
   },

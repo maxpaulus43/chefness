@@ -7,12 +7,28 @@ import {
 } from "@clinebot/llms";
 import { useEffect, useState } from "react";
 
+/** Predefined dietary restriction labels shown as toggleable chips. */
+const PREDEFINED_RESTRICTIONS = [
+  "vegetarian",
+  "vegan",
+  "gluten-free",
+  "dairy-free",
+  "nut-free",
+  "halal",
+  "kosher",
+  "pescatarian",
+  "low-carb",
+  "keto",
+] as const;
+
 export function SettingsView() {
   const {
     isLoading,
     llmProvider,
     llmModel,
     llmApiKey,
+    dietaryRestrictions,
+    otherDietaryNotes,
     updateSettings,
   } = useSettings();
 
@@ -26,6 +42,8 @@ export function SettingsView() {
   const [selectedProvider, setSelectedProvider] = useState(llmProvider);
   const [selectedModel, setSelectedModel] = useState(llmModel);
   const [selectedApiKey, setSelectedApiKey] = useState(llmApiKey);
+  const [selectedRestrictions, setSelectedRestrictions] = useState<string[]>(dietaryRestrictions);
+  const [selectedOtherNotes, setSelectedOtherNotes] = useState(otherDietaryNotes);
 
   // Keep local state in sync when the hook value changes (initial load,
   // external updates, page refresh).
@@ -40,6 +58,14 @@ export function SettingsView() {
   useEffect(() => {
     setSelectedApiKey(llmApiKey);
   }, [llmApiKey]);
+
+  useEffect(() => {
+    setSelectedRestrictions(dietaryRestrictions);
+  }, [dietaryRestrictions]);
+
+  useEffect(() => {
+    setSelectedOtherNotes(otherDietaryNotes);
+  }, [otherDietaryNotes]);
 
   // Fetch provider list on mount.
   useEffect(() => {
@@ -99,6 +125,20 @@ export function SettingsView() {
     updateSettings({ llmApiKey: "" });
   };
 
+  const handleToggleRestriction = (restriction: string) => {
+    const updated = selectedRestrictions.includes(restriction)
+      ? selectedRestrictions.filter((r) => r !== restriction)
+      : [...selectedRestrictions, restriction];
+    setSelectedRestrictions(updated);
+    updateSettings({ dietaryRestrictions: updated, otherDietaryNotes: selectedOtherNotes });
+  };
+
+  const handleOtherNotesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSelectedOtherNotes(value);
+    updateSettings({ dietaryRestrictions: selectedRestrictions, otherDietaryNotes: value });
+  };
+
   const maskedKey =
     selectedApiKey.length >= 4
       ? `••••••${selectedApiKey.slice(-4)}`
@@ -130,6 +170,38 @@ export function SettingsView() {
         {renderProviderField(selectedProvider, sortedProviders, loadingProviders, handleProviderChange)}
         {renderModelField(selectedProvider, selectedModel, modelEntries, loadingModels, handleModelChange)}
         {renderApiKeyField(selectedApiKey, maskedKey, handleApiKeyChange, handleClearApiKey)}
+      </section>
+
+      <section style={styles.section}>
+        <h2 style={styles.sectionTitle}>Dietary Restrictions</h2>
+        <div style={styles.chipsContainer}>
+          {PREDEFINED_RESTRICTIONS.map((restriction) => {
+            const isActive = selectedRestrictions.includes(restriction);
+            return (
+              <button
+                key={restriction}
+                type="button"
+                onClick={() => handleToggleRestriction(restriction)}
+                style={isActive ? styles.chipActive : styles.chip}
+              >
+                {restriction}
+              </button>
+            );
+          })}
+        </div>
+        <div style={styles.field}>
+          <label htmlFor="other-dietary-notes" style={styles.label}>
+            Other restrictions / notes
+          </label>
+          <input
+            id="other-dietary-notes"
+            type="text"
+            value={selectedOtherNotes}
+            onChange={handleOtherNotesChange}
+            placeholder="e.g., Low sodium, no shellfish"
+            style={{ ...styles.input, width: "100%" }}
+          />
+        </div>
       </section>
     </div>
   );
@@ -285,5 +357,33 @@ const styles: Record<string, React.CSSProperties> = {
     textAlign: "center" as const,
     color: "#6b7280",
     padding: "2rem 1rem",
+  },
+  chipsContainer: {
+    display: "flex",
+    flexWrap: "wrap" as const,
+    gap: "0.5rem",
+    marginBottom: "1.25rem",
+  },
+  chip: {
+    padding: "0.375rem 0.75rem",
+    fontSize: "0.8125rem",
+    fontWeight: 500,
+    color: "#374151",
+    backgroundColor: "#fff",
+    border: "1px solid #d1d5db",
+    borderRadius: 9999,
+    cursor: "pointer",
+    whiteSpace: "nowrap" as const,
+  },
+  chipActive: {
+    padding: "0.375rem 0.75rem",
+    fontSize: "0.8125rem",
+    fontWeight: 500,
+    color: "#fff",
+    backgroundColor: "#f97316",
+    border: "1px solid #f97316",
+    borderRadius: 9999,
+    cursor: "pointer",
+    whiteSpace: "nowrap" as const,
   },
 };

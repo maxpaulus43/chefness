@@ -68,12 +68,25 @@ function buildSystemPrompt(
   mealType: MealType | null,
   mealSize: MealSize | null,
   recentHistory: CookingLogEntry[],
+  dietaryRestrictions: string[],
+  otherDietaryNotes: string,
 ): string {
   const parts: string[] = [
     `You are Chefness, a friendly and knowledgeable AI cooking guru. You help users
 plan meals, suggest recipes, provide step-by-step cooking instructions, and
 answer cooking-related questions.`,
   ];
+
+  if (dietaryRestrictions.length > 0 || otherDietaryNotes) {
+    const lines: string[] = [];
+    if (dietaryRestrictions.length > 0) {
+      lines.push(`Dietary restrictions: ${dietaryRestrictions.join(", ")}`);
+    }
+    if (otherDietaryNotes) {
+      lines.push(`Other dietary notes: "${otherDietaryNotes}"`);
+    }
+    parts.push(lines.join("\n"));
+  }
 
   if (mealType) {
     parts.push(`The user is planning ${mealType}.`);
@@ -122,7 +135,7 @@ function friendlyError(err: unknown): string {
 // ---------------------------------------------------------------------------
 
 export function useChat() {
-  const { llmProvider, llmModel, llmApiKey, isConfigured } = useSettings();
+  const { llmProvider, llmModel, llmApiKey, isConfigured, dietaryRestrictions, otherDietaryNotes } = useSettings();
   const { recentEntries } = useCookingLog();
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -155,7 +168,7 @@ export function useChat() {
       abortRef.current = controller;
 
       try {
-        const systemPrompt = buildSystemPrompt(mealType, mealSize, recentEntries);
+        const systemPrompt = buildSystemPrompt(mealType, mealSize, recentEntries, dietaryRestrictions, otherDietaryNotes);
 
         const finalText = await streamChat({
           providerId: llmProvider,
@@ -204,7 +217,7 @@ export function useChat() {
         setIsStreaming(false);
       }
     },
-    [messages, mealType, mealSize, recentEntries, llmProvider, llmModel, llmApiKey, isConfigured],
+    [messages, mealType, mealSize, recentEntries, llmProvider, llmModel, llmApiKey, isConfigured, dietaryRestrictions, otherDietaryNotes],
   );
 
   const clearChat = useCallback(() => {
