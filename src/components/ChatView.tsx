@@ -1,15 +1,86 @@
 import { useChat } from "@/hooks/useChat";
 import type { MealType, MealSize } from "@/hooks/useChat";
+import { useCookingLog } from "@/hooks/useCookingLog";
 import { useRecipes } from "@/hooks/useRecipes";
 import { useSettings } from "@/hooks/useSettings";
 import { extractRecipe } from "@/lib/recipe-extractor";
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useReducer } from "react";
 
 // ---------------------------------------------------------------------------
-// Save-recipe button state types
+// Per-message action state — reducer
 // ---------------------------------------------------------------------------
 
-type SaveState = "idle" | "extracting" | "saved" | "error";
+type SaveStatus = "idle" | "extracting" | "saved" | "error";
+type LogStatus = "idle" | "logging" | "logged" | "error";
+
+interface MessageActionState {
+  save: SaveStatus;
+  saveError: string | null;
+  log: LogStatus;
+  logError: string | null;
+}
+
+const defaultActionState: MessageActionState = {
+  save: "idle",
+  saveError: null,
+  log: "idle",
+  logError: null,
+};
+
+type MessageActionsState = Record<number, MessageActionState>;
+
+type MessageAction =
+  | { type: "SAVE_START"; index: number }
+  | { type: "SAVE_OK"; index: number }
+  | { type: "SAVE_ERR"; index: number; error: string }
+  | { type: "SAVE_RETRY"; index: number }
+  | { type: "LOG_START"; index: number }
+  | { type: "LOG_OK"; index: number }
+  | { type: "LOG_ERR"; index: number; error: string }
+  | { type: "LOG_RETRY"; index: number };
+
+function messageActionsReducer(
+  state: MessageActionsState,
+  action: MessageAction,
+): MessageActionsState {
+  const prev = state[action.index] ?? defaultActionState;
+
+  switch (action.type) {
+    case "SAVE_START":
+      return { ...state, [action.index]: { ...prev, save: "extracting", saveError: null } };
+    case "SAVE_OK":
+      return { ...state, [action.index]: { ...prev, save: "saved" } };
+    case "SAVE_ERR":
+      return { ...state, [action.index]: { ...prev, save: "error", saveError: action.error } };
+    case "SAVE_RETRY":
+      return { ...state, [action.index]: { ...prev, save: "idle", saveError: null } };
+    case "LOG_START":
+      return { ...state, [action.index]: { ...prev, log: "logging", logError: null } };
+    case "LOG_OK":
+      return { ...state, [action.index]: { ...prev, log: "logged" } };
+    case "LOG_ERR":
+      return { ...state, [action.index]: { ...prev, log: "error", logError: action.error } };
+    case "LOG_RETRY":
+      return { ...state, [action.index]: { ...prev, log: "idle", logError: null } };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+/** Extract a human-readable title from the first non-empty line of an assistant message. */
+function extractTitleFromMessage(content: string): string {
+  const firstLine =
+    content.split("\n").find((line) => line.trim().length > 0) ??
+    "Untitled meal";
+  return (
+    firstLine
+      .replace(/^#+\s*/, "")
+      .replace(/\*\*/g, "")
+      .trim() || "Untitled meal"
+  );
+}
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -64,6 +135,7 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
   } = useChat();
 
   const { createRecipeAsync } = useRecipes();
+  const { createEntryAsync } = useCookingLog();
   const { llmProvider, llmModel, llmApiKey } = useSettings();
 
   const [inputValue, setInputValue] = useState("");
@@ -71,21 +143,18 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const lastUserMessageRef = useRef<string>("");
 
-  // Per-message save-recipe state tracking
-  const [saveStates, setSaveStates] = useState<Record<number, SaveState>>({});
-  const [saveErrors, setSaveErrors] = useState<Record<number, string>>({});
+  // Per-message action state (save recipe + cooking log)
+  const [actionStates, dispatch] = useReducer(
+    messageActionsReducer,
+    {} as MessageActionsState,
+  );
 
   const handleSaveRecipe = useCallback(
     async (index: number) => {
       const msg = messages[index];
       if (!msg || msg.role !== "assistant") return;
 
-      setSaveStates((prev) => ({ ...prev, [index]: "extracting" }));
-      setSaveErrors((prev) => {
-        const next = { ...prev };
-        delete next[index];
-        return next;
-      });
+      dispatch({ type: "SAVE_START", index });
 
       try {
         const recipe = await extractRecipe({
@@ -95,28 +164,47 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
           apiKey: llmApiKey,
         });
         await createRecipeAsync(recipe);
-        setSaveStates((prev) => ({ ...prev, [index]: "saved" }));
+        dispatch({ type: "SAVE_OK", index });
       } catch (err: unknown) {
         const errMsg =
           err instanceof Error ? err.message : "Failed to save recipe.";
-        setSaveStates((prev) => ({ ...prev, [index]: "error" }));
-        setSaveErrors((prev) => ({ ...prev, [index]: errMsg }));
+        dispatch({ type: "SAVE_ERR", index, error: errMsg });
       }
     },
     [messages, llmProvider, llmModel, llmApiKey, createRecipeAsync],
   );
 
-  const handleSaveRetry = useCallback(
-    (index: number) => {
-      setSaveStates((prev) => ({ ...prev, [index]: "idle" }));
-      setSaveErrors((prev) => {
-        const next = { ...prev };
-        delete next[index];
-        return next;
-      });
+  const handleSaveRetry = useCallback((index: number) => {
+    dispatch({ type: "SAVE_RETRY", index });
+  }, []);
+
+  const handleLogCook = useCallback(
+    async (index: number) => {
+      const msg = messages[index];
+      if (!msg || msg.role !== "assistant") return;
+
+      dispatch({ type: "LOG_START", index });
+
+      try {
+        const title = extractTitleFromMessage(msg.content);
+        await createEntryAsync({
+          title,
+          date: new Date().toISOString().slice(0, 10),
+          recipeId: null,
+        });
+        dispatch({ type: "LOG_OK", index });
+      } catch (err: unknown) {
+        const errMsg =
+          err instanceof Error ? err.message : "Failed to log meal.";
+        dispatch({ type: "LOG_ERR", index, error: errMsg });
+      }
     },
-    [],
+    [messages, createEntryAsync],
   );
+
+  const handleLogRetry = useCallback((index: number) => {
+    dispatch({ type: "LOG_RETRY", index });
+  }, []);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -217,12 +305,11 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
             {messages.map((msg, i) => {
               const isLastMsg = i === messages.length - 1;
               const isActivelyStreaming = isStreaming && isLastMsg;
-              const showSaveBtn =
+              const showActionBtns =
                 msg.role === "assistant" &&
                 msg.content !== "" &&
                 !isActivelyStreaming;
-              const saveState: SaveState = saveStates[i] ?? "idle";
-              const saveError = saveErrors[i];
+              const action = actionStates[i] ?? defaultActionState;
 
               return (
                 <div
@@ -243,9 +330,9 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
                         <span style={styles.typing}>●●●</span>
                       )}
                   </div>
-                  {showSaveBtn && (
+                  {showActionBtns && (
                     <div style={styles.saveRow}>
-                      {saveState === "idle" && (
+                      {action.save === "idle" && (
                         <button
                           type="button"
                           style={styles.saveBtn}
@@ -254,7 +341,7 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
                           Save Recipe
                         </button>
                       )}
-                      {saveState === "extracting" && (
+                      {action.save === "extracting" && (
                         <button
                           type="button"
                           style={{
@@ -266,18 +353,57 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
                           Extracting…
                         </button>
                       )}
-                      {saveState === "saved" && (
+                      {action.save === "saved" && (
                         <span style={styles.savedLabel}>✅ Saved!</span>
                       )}
-                      {saveState === "error" && (
+                      {action.save === "error" && (
                         <div style={styles.saveErrorRow}>
                           <span style={styles.saveErrorText}>
-                            {saveError ?? "Extraction failed."}
+                            {action.saveError ?? "Extraction failed."}
                           </span>
                           <button
                             type="button"
                             style={styles.saveRetryBtn}
                             onClick={() => handleSaveRetry(i)}
+                          >
+                            Try Again
+                          </button>
+                        </div>
+                      )}
+
+                      {action.log === "idle" && (
+                        <button
+                          type="button"
+                          style={styles.logBtn}
+                          onClick={() => void handleLogCook(i)}
+                        >
+                          I Cooked This!
+                        </button>
+                      )}
+                      {action.log === "logging" && (
+                        <button
+                          type="button"
+                          style={{
+                            ...styles.logBtn,
+                            ...styles.logBtnDisabled,
+                          }}
+                          disabled
+                        >
+                          Logging…
+                        </button>
+                      )}
+                      {action.log === "logged" && (
+                        <span style={styles.loggedLabel}>✅ Logged!</span>
+                      )}
+                      {action.log === "error" && (
+                        <div style={styles.saveErrorRow}>
+                          <span style={styles.saveErrorText}>
+                            {action.logError ?? "Failed to log meal."}
+                          </span>
+                          <button
+                            type="button"
+                            style={styles.saveRetryBtn}
+                            onClick={() => handleLogRetry(i)}
                           >
                             Try Again
                           </button>
@@ -670,6 +796,7 @@ const styles: Record<string, React.CSSProperties> = {
     display: "flex",
     alignItems: "center",
     gap: "0.5rem",
+    flexWrap: "wrap" as const,
   },
   saveBtn: {
     padding: "0.375rem 0.75rem",
@@ -714,6 +841,29 @@ const styles: Record<string, React.CSSProperties> = {
     cursor: "pointer",
     whiteSpace: "nowrap" as const,
     minHeight: 28,
+  },
+
+  // "I Cooked This!" button styles
+  logBtn: {
+    padding: "0.375rem 0.75rem",
+    fontSize: "0.8125rem",
+    fontWeight: 500,
+    color: "#ea580c",
+    backgroundColor: "#fff7ed",
+    border: "1px solid #fed7aa",
+    borderRadius: 8,
+    cursor: "pointer",
+    minHeight: 32,
+    whiteSpace: "nowrap" as const,
+  },
+  logBtnDisabled: {
+    opacity: 0.6,
+    cursor: "not-allowed",
+  },
+  loggedLabel: {
+    fontSize: "0.8125rem",
+    fontWeight: 500,
+    color: "#16a34a",
   },
 };
 
