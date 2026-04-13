@@ -6,7 +6,7 @@ const chatMessageSchema = z.object({
   content: z.string(),
   timestamp: z.string(), // ISO string
   // Per-message action flags — only relevant for assistant messages
-  recipeSaved: z.boolean().optional().default(false),
+  savedRecipeId: z.string().optional().default(""),  // empty = not saved
   cookLogged: z.boolean().optional().default(false),
   memorySaved: z.boolean().optional().default(false),
 });

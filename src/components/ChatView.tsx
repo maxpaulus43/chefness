@@ -163,7 +163,7 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
     loadSession,
   } = useChat();
 
-  const { createRecipeAsync } = useRecipes();
+  const { recipes, createRecipeAsync } = useRecipes();
   const { createEntryAsync } = useCookingLog();
   const { createPreferenceAsync } = useAiPreferences();
   const { effectiveProvider, effectiveModel, effectiveApiKey } = useSettings();
@@ -181,12 +181,16 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
   );
 
   // Seed reducer state from persisted message flags when session changes
+  // or when recipes list changes (e.g. after a deletion).
   useEffect(() => {
+    const recipeIds = new Set(recipes.map((r) => r.id));
     const initial: MessageActionsState = {};
     messages.forEach((msg, i) => {
       if (msg.role === "assistant") {
+        // Recipe is only considered "saved" if the recipe still exists
+        const recipeSaved = !!msg.savedRecipeId && recipeIds.has(msg.savedRecipeId);
         initial[i] = {
-          save: msg.recipeSaved ? "saved" : "idle",
+          save: recipeSaved ? "saved" : "idle",
           saveError: null,
           log: msg.cookLogged ? "logged" : "idle",
           logError: null,
@@ -197,7 +201,7 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
     });
     dispatch({ type: "RESET", states: initial });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentSessionId]);
+  }, [currentSessionId, recipes]);
 
   const handleSaveRecipe = useCallback(
     async (index: number) => {
@@ -213,9 +217,9 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
           modelId: effectiveModel,
           apiKey: effectiveApiKey,
         });
-        await createRecipeAsync(recipe);
+        const saved = await createRecipeAsync(recipe);
         dispatch({ type: "SAVE_OK", index });
-        setMessageFlag(index, "recipeSaved");
+        setMessageFlag(index, "savedRecipeId", saved.id);
       } catch (err: unknown) {
         const errMsg =
           err instanceof Error ? err.message : "Failed to save recipe.";

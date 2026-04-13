@@ -39,7 +39,7 @@ export interface ChatMessage {
   role: "user" | "assistant";
   content: string;
   /** Persisted action flags — only relevant for assistant messages. */
-  recipeSaved?: boolean;
+  savedRecipeId?: string;  // ID of saved recipe, or empty/undefined = not saved
   cookLogged?: boolean;
   memorySaved?: boolean;
 }
@@ -194,7 +194,7 @@ export function useChat() {
       mostRecent.messages.map((m) => ({
         role: m.role,
         content: m.content,
-        recipeSaved: m.recipeSaved,
+        savedRecipeId: m.savedRecipeId,
         cookLogged: m.cookLogged,
         memorySaved: m.memorySaved,
       })),
@@ -214,7 +214,7 @@ export function useChat() {
         role: m.role,
         content: m.content,
         timestamp: new Date().toISOString(),
-        recipeSaved: m.recipeSaved ?? false,
+        savedRecipeId: m.savedRecipeId ?? "",
         cookLogged: m.cookLogged ?? false,
         memorySaved: m.memorySaved ?? false,
       })),
@@ -246,12 +246,16 @@ export function useChat() {
    * session so the flag survives tab switches and reloads.
    */
   const setMessageFlag = useCallback(
-    (index: number, flag: "recipeSaved" | "cookLogged" | "memorySaved") => {
+    (index: number, flag: "savedRecipeId" | "cookLogged" | "memorySaved", value?: string | boolean) => {
       setMessages((prev) => {
         const next = [...prev];
         const msg = next[index];
         if (msg) {
-          next[index] = { ...msg, [flag]: true };
+          if (flag === "savedRecipeId") {
+            next[index] = { ...msg, savedRecipeId: value as string };
+          } else {
+            next[index] = { ...msg, [flag]: true };
+          }
         }
         // Persist immediately so the flag is durable.
         if (currentSessionId) {
@@ -259,7 +263,7 @@ export function useChat() {
             role: m.role,
             content: m.content,
             timestamp: new Date().toISOString(),
-            recipeSaved: m.recipeSaved ?? false,
+            savedRecipeId: m.savedRecipeId ?? "",
             cookLogged: m.cookLogged ?? false,
             memorySaved: m.memorySaved ?? false,
           })) as ChatSessionMessage[];
@@ -405,7 +409,7 @@ export function useChat() {
         session.messages.map((m) => ({
           role: m.role,
           content: m.content,
-          recipeSaved: m.recipeSaved,
+          savedRecipeId: m.savedRecipeId,
           cookLogged: m.cookLogged,
           memorySaved: m.memorySaved,
         })),
