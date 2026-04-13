@@ -21,6 +21,7 @@
 import { useState, useRef, useCallback } from "react";
 import { useSettings } from "@/hooks/useSettings";
 import { useCookingLog } from "@/hooks/useCookingLog";
+import { useAiPreferences } from "@/hooks/useAiPreferences";
 import { streamChat } from "@/lib/llm-stream";
 import type { CookingLogEntry } from "@/types/cooking-log";
 
@@ -70,6 +71,7 @@ function buildSystemPrompt(
   recentHistory: CookingLogEntry[],
   dietaryRestrictions: string[],
   otherDietaryNotes: string,
+  preferences: string[],
 ): string {
   const parts: string[] = [
     `You are Chefness, a friendly and knowledgeable AI cooking guru. You help users
@@ -87,6 +89,15 @@ answer cooking-related questions.`,
     }
     parts.push(lines.join("\n"));
   }
+
+  if (preferences.length > 0) {
+    const prefList = preferences.map((p) => `- ${p}`).join("\n");
+    parts.push(`Remembered preferences:\n${prefList}`);
+  }
+
+  parts.push(
+    `If the user mentions a lasting personal preference, dietary need, kitchen equipment, or cooking style that isn't already in your known preferences, ask: "Would you like me to remember that you [preference]?" Wait for their confirmation before considering it saved.`,
+  );
 
   if (mealType) {
     parts.push(`The user is planning ${mealType}.`);
@@ -137,6 +148,10 @@ function friendlyError(err: unknown): string {
 export function useChat() {
   const { llmProvider, llmModel, llmApiKey, isConfigured, dietaryRestrictions, otherDietaryNotes } = useSettings();
   const { recentEntries } = useCookingLog();
+  const { preferences: aiPreferences } = useAiPreferences();
+
+  /** Preference texts for the system prompt — stable across renders. */
+  const preferenceTexts = aiPreferences.map((p) => p.text);
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
@@ -168,7 +183,7 @@ export function useChat() {
       abortRef.current = controller;
 
       try {
-        const systemPrompt = buildSystemPrompt(mealType, mealSize, recentEntries, dietaryRestrictions, otherDietaryNotes);
+        const systemPrompt = buildSystemPrompt(mealType, mealSize, recentEntries, dietaryRestrictions, otherDietaryNotes, preferenceTexts);
 
         const finalText = await streamChat({
           providerId: llmProvider,
@@ -217,7 +232,7 @@ export function useChat() {
         setIsStreaming(false);
       }
     },
-    [messages, mealType, mealSize, recentEntries, llmProvider, llmModel, llmApiKey, isConfigured, dietaryRestrictions, otherDietaryNotes],
+    [messages, mealType, mealSize, recentEntries, llmProvider, llmModel, llmApiKey, isConfigured, dietaryRestrictions, otherDietaryNotes, preferenceTexts],
   );
 
   const clearChat = useCallback(() => {

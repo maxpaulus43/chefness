@@ -1,8 +1,10 @@
 import { useChat } from "@/hooks/useChat";
 import type { MealType, MealSize } from "@/hooks/useChat";
+import { useAiPreferences } from "@/hooks/useAiPreferences";
 import { useCookingLog } from "@/hooks/useCookingLog";
 import { useRecipes } from "@/hooks/useRecipes";
 import { useSettings } from "@/hooks/useSettings";
+import { extractPreference } from "@/lib/preference-extractor";
 import { extractRecipe } from "@/lib/recipe-extractor";
 import { useState, useEffect, useRef, useCallback, useReducer } from "react";
 
@@ -12,12 +14,15 @@ import { useState, useEffect, useRef, useCallback, useReducer } from "react";
 
 type SaveStatus = "idle" | "extracting" | "saved" | "error";
 type LogStatus = "idle" | "logging" | "logged" | "error";
+type MemoryStatus = "idle" | "extracting" | "saved" | "error";
 
 interface MessageActionState {
   save: SaveStatus;
   saveError: string | null;
   log: LogStatus;
   logError: string | null;
+  memory: MemoryStatus;
+  memoryError: string | null;
 }
 
 const defaultActionState: MessageActionState = {
@@ -25,6 +30,8 @@ const defaultActionState: MessageActionState = {
   saveError: null,
   log: "idle",
   logError: null,
+  memory: "idle",
+  memoryError: null,
 };
 
 type MessageActionsState = Record<number, MessageActionState>;
@@ -37,7 +44,11 @@ type MessageAction =
   | { type: "LOG_START"; index: number }
   | { type: "LOG_OK"; index: number }
   | { type: "LOG_ERR"; index: number; error: string }
-  | { type: "LOG_RETRY"; index: number };
+  | { type: "LOG_RETRY"; index: number }
+  | { type: "MEMORY_START"; index: number }
+  | { type: "MEMORY_OK"; index: number }
+  | { type: "MEMORY_ERR"; index: number; error: string }
+  | { type: "MEMORY_RETRY"; index: number };
 
 function messageActionsReducer(
   state: MessageActionsState,
@@ -62,6 +73,14 @@ function messageActionsReducer(
       return { ...state, [action.index]: { ...prev, log: "error", logError: action.error } };
     case "LOG_RETRY":
       return { ...state, [action.index]: { ...prev, log: "idle", logError: null } };
+    case "MEMORY_START":
+      return { ...state, [action.index]: { ...prev, memory: "extracting", memoryError: null } };
+    case "MEMORY_OK":
+      return { ...state, [action.index]: { ...prev, memory: "saved" } };
+    case "MEMORY_ERR":
+      return { ...state, [action.index]: { ...prev, memory: "error", memoryError: action.error } };
+    case "MEMORY_RETRY":
+      return { ...state, [action.index]: { ...prev, memory: "idle", memoryError: null } };
   }
 }
 
@@ -136,6 +155,7 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
 
   const { createRecipeAsync } = useRecipes();
   const { createEntryAsync } = useCookingLog();
+  const { createPreferenceAsync } = useAiPreferences();
   const { llmProvider, llmModel, llmApiKey } = useSettings();
 
   const [inputValue, setInputValue] = useState("");
@@ -204,6 +224,46 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
 
   const handleLogRetry = useCallback((index: number) => {
     dispatch({ type: "LOG_RETRY", index });
+  }, []);
+
+  const handleSaveMemory = useCallback(
+    async (index: number) => {
+      const msg = messages[index];
+      if (!msg || msg.role !== "assistant") return;
+
+      dispatch({ type: "MEMORY_START", index });
+
+      try {
+        // Collect last 6 messages up to (and including) this assistant message
+        // for context about what preference was discussed.
+        const snippetStart = Math.max(0, index - 5);
+        const snippetMessages = messages.slice(snippetStart, index + 1);
+        const conversationSnippet = snippetMessages
+          .map((m) => `${m.role === "user" ? "User" : "Assistant"}: ${m.content}`)
+          .join("\n\n");
+
+        const preferenceText = await extractPreference({
+          conversationSnippet,
+          providerId: llmProvider,
+          modelId: llmModel,
+          apiKey: llmApiKey,
+        });
+
+        await createPreferenceAsync({ text: preferenceText });
+        dispatch({ type: "MEMORY_OK", index });
+      } catch (err: unknown) {
+        const errMsg =
+          err instanceof Error
+            ? err.message
+            : "Failed to extract preference.";
+        dispatch({ type: "MEMORY_ERR", index, error: errMsg });
+      }
+    },
+    [messages, llmProvider, llmModel, llmApiKey, createPreferenceAsync],
+  );
+
+  const handleMemoryRetry = useCallback((index: number) => {
+    dispatch({ type: "MEMORY_RETRY", index });
   }, []);
 
   useEffect(() => {
@@ -404,6 +464,48 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
                             type="button"
                             style={styles.saveRetryBtn}
                             onClick={() => handleLogRetry(i)}
+                          >
+                            Try Again
+                          </button>
+                        </div>
+                      )}
+
+                      {action.memory === "idle" && (
+                        <button
+                          type="button"
+                          style={styles.memoryBtn}
+                          onClick={() => void handleSaveMemory(i)}
+                        >
+                          🧠 Save to Memory
+                        </button>
+                      )}
+                      {action.memory === "extracting" && (
+                        <button
+                          type="button"
+                          style={{
+                            ...styles.memoryBtn,
+                            ...styles.memoryBtnDisabled,
+                          }}
+                          disabled
+                        >
+                          Extracting…
+                        </button>
+                      )}
+                      {action.memory === "saved" && (
+                        <span style={styles.memorySavedLabel}>
+                          ✅ Remembered!
+                        </span>
+                      )}
+                      {action.memory === "error" && (
+                        <div style={styles.saveErrorRow}>
+                          <span style={styles.saveErrorText}>
+                            {action.memoryError ??
+                              "No preference found in this conversation."}
+                          </span>
+                          <button
+                            type="button"
+                            style={styles.saveRetryBtn}
+                            onClick={() => handleMemoryRetry(i)}
                           >
                             Try Again
                           </button>
@@ -861,6 +963,29 @@ const styles: Record<string, React.CSSProperties> = {
     cursor: "not-allowed",
   },
   loggedLabel: {
+    fontSize: "0.8125rem",
+    fontWeight: 500,
+    color: "#16a34a",
+  },
+
+  // "Save to Memory" button styles
+  memoryBtn: {
+    padding: "0.375rem 0.75rem",
+    fontSize: "0.8125rem",
+    fontWeight: 500,
+    color: "#7c3aed",
+    backgroundColor: "#f5f3ff",
+    border: "1px solid #ddd6fe",
+    borderRadius: 8,
+    cursor: "pointer",
+    minHeight: 32,
+    whiteSpace: "nowrap" as const,
+  },
+  memoryBtnDisabled: {
+    opacity: 0.6,
+    cursor: "not-allowed",
+  },
+  memorySavedLabel: {
     fontSize: "0.8125rem",
     fontWeight: 500,
     color: "#16a34a",
