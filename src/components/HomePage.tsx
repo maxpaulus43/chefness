@@ -5,11 +5,16 @@ import { RecipeDetailView } from "@/components/RecipeDetailView";
 import { RecipeEditView } from "@/components/RecipeEditView";
 import { RecipeListView } from "@/components/RecipeListView";
 import { SettingsView } from "@/components/SettingsView";
+import { useOpenRouterOAuth } from "@/hooks/useOpenRouterOAuth";
 import { useState, useCallback } from "react";
 
 type RecipeViewMode = "list" | "detail" | "edit";
 
 export function HomePage() {
+  // Process OpenRouter OAuth callback (if redirected back with ?code=).
+  // This must run inside TRPCProvider so useSettings() works.
+  useOpenRouterOAuth();
+
   const [activeTab, setActiveTab] = useState<Tab>("chat");
   const [selectedRecipeId, setSelectedRecipeId] = useState<string | null>(null);
   const [recipeViewMode, setRecipeViewMode] = useState<RecipeViewMode>("list");
