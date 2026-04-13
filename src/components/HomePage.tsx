@@ -1,5 +1,6 @@
 import { BottomNavBar, type Tab } from "@/components/BottomNavBar";
 import { ChatView } from "@/components/ChatView";
+import { HistoryView } from "@/components/HistoryView";
 import { RecipeDetailView } from "@/components/RecipeDetailView";
 import { RecipeEditView } from "@/components/RecipeEditView";
 import { RecipeListView } from "@/components/RecipeListView";
@@ -68,12 +69,7 @@ export function HomePage() {
           <ChatView onNavigateToSettings={navigateToSettings} />
         )}
         {activeTab === "recipes" && renderRecipesTab()}
-        {activeTab === "history" && (
-          <p style={styles.emptyState}>
-            No cooking history yet. Chat with your guru, cook something great,
-            and log it here!
-          </p>
-        )}
+        {activeTab === "history" && <HistoryView />}
         {activeTab === "settings" && <SettingsView />}
       </div>
       <BottomNavBar activeTab={activeTab} onTabChange={setActiveTab} />
@@ -91,10 +87,5 @@ const styles: Record<string, React.CSSProperties> = {
     flex: 1,
     overflowY: "auto",
     paddingBottom: 56,
-  },
-  emptyState: {
-    textAlign: "center",
-    color: "#6b7280",
-    padding: "2rem 1rem",
   },
 };
