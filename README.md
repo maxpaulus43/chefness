@@ -4,7 +4,11 @@
 
 Chefness is a mobile-first, offline-first Progressive Web App (PWA) that helps you cook using AI. Chat with a knowledgeable cooking guru that remembers your dietary restrictions, recent cooking history, and preferences — and helps you plan meals, discover recipes, and cook step-by-step. Save recipes to a personal collection, log what you've cooked, and let the AI suggest variety based on your history. It runs entirely in the browser with no backend server — you bring your own LLM API key.
 
-<!-- TODO: Add screenshots -->
+
+|      |      |      |      |      |
+| ---- | ---- | ---- | ---- | ---- |
+|   <img width="424" height="906" alt="image" src="https://github.com/user-attachments/assets/0e976598-056b-4aa2-8ee2-612b73d54799" /> |   <img width="424" height="906" alt="image" src="https://github.com/user-attachments/assets/954112d7-f186-4479-ba6e-796c593b042b" />|   <img width="424" height="906" alt="image" src="https://github.com/user-attachments/assets/a99d9687-3f35-4da6-b332-9438f698c988" />|   <img width="424" height="906" alt="image" src="https://github.com/user-attachments/assets/284502b9-7f6d-4e3d-b57a-000c35fac420" />|   <img width="424" height="906" alt="image" src="https://github.com/user-attachments/assets/80938759-65a2-4f0f-8751-194442e52dfd" />   |
+
 
 ---
 
