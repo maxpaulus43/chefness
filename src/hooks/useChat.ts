@@ -38,6 +38,10 @@ import type { ChatSessionMessage } from "@/types/chat-session";
 export interface ChatMessage {
   role: "user" | "assistant";
   content: string;
+  /** Persisted action flags — only relevant for assistant messages. */
+  recipeSaved?: boolean;
+  cookLogged?: boolean;
+  memorySaved?: boolean;
 }
 
 /** Supported meal type values. */
@@ -187,7 +191,13 @@ export function useChat() {
     const mostRecent = sessions[0]; // sorted by updatedAt desc
     setCurrentSessionId(mostRecent.id);
     setMessages(
-      mostRecent.messages.map((m) => ({ role: m.role, content: m.content })),
+      mostRecent.messages.map((m) => ({
+        role: m.role,
+        content: m.content,
+        recipeSaved: m.recipeSaved,
+        cookLogged: m.cookLogged,
+        memorySaved: m.memorySaved,
+      })),
     );
     setMealType((mostRecent.mealType as MealType) ?? null);
     setMealSize((mostRecent.mealSize as MealSize) ?? null);
@@ -204,6 +214,9 @@ export function useChat() {
         role: m.role,
         content: m.content,
         timestamp: new Date().toISOString(),
+        recipeSaved: m.recipeSaved ?? false,
+        cookLogged: m.cookLogged ?? false,
+        memorySaved: m.memorySaved ?? false,
       })),
     [],
   );
@@ -222,6 +235,43 @@ export function useChat() {
       });
     },
     [updateSession, toSessionMessages],
+  );
+
+  // -------------------------------------------------------------------------
+  // setMessageFlag — mark a per-message action as completed & persist
+  // -------------------------------------------------------------------------
+
+  /**
+   * Set a persisted action flag on a specific message and auto-save the
+   * session so the flag survives tab switches and reloads.
+   */
+  const setMessageFlag = useCallback(
+    (index: number, flag: "recipeSaved" | "cookLogged" | "memorySaved") => {
+      setMessages((prev) => {
+        const next = [...prev];
+        const msg = next[index];
+        if (msg) {
+          next[index] = { ...msg, [flag]: true };
+        }
+        // Persist immediately so the flag is durable.
+        if (currentSessionId) {
+          const sessionMsgs = next.map((m) => ({
+            role: m.role,
+            content: m.content,
+            timestamp: new Date().toISOString(),
+            recipeSaved: m.recipeSaved ?? false,
+            cookLogged: m.cookLogged ?? false,
+            memorySaved: m.memorySaved ?? false,
+          })) as ChatSessionMessage[];
+          updateSession({
+            id: currentSessionId,
+            messages: sessionMsgs,
+          });
+        }
+        return next;
+      });
+    },
+    [currentSessionId, updateSession],
   );
 
   // -------------------------------------------------------------------------
@@ -352,7 +402,13 @@ export function useChat() {
 
       setCurrentSessionId(session.id);
       setMessages(
-        session.messages.map((m) => ({ role: m.role, content: m.content })),
+        session.messages.map((m) => ({
+          role: m.role,
+          content: m.content,
+          recipeSaved: m.recipeSaved,
+          cookLogged: m.cookLogged,
+          memorySaved: m.memorySaved,
+        })),
       );
       setMealType((session.mealType as MealType) ?? null);
       setMealSize((session.mealSize as MealSize) ?? null);
@@ -370,6 +426,7 @@ export function useChat() {
     clearChat,
     setMealType,
     setMealSize,
+    setMessageFlag,
     isConfigured,
     llmProvider: effectiveProvider,
     llmModel: effectiveModel,

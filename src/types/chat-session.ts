@@ -5,6 +5,10 @@ const chatMessageSchema = z.object({
   role: z.enum(["user", "assistant"]),
   content: z.string(),
   timestamp: z.string(), // ISO string
+  // Per-message action flags — only relevant for assistant messages
+  recipeSaved: z.boolean().optional().default(false),
+  cookLogged: z.boolean().optional().default(false),
+  memorySaved: z.boolean().optional().default(false),
 });
 
 /** Zod schema for a stored chat session. */

@@ -50,12 +50,17 @@ type MessageAction =
   | { type: "MEMORY_START"; index: number }
   | { type: "MEMORY_OK"; index: number }
   | { type: "MEMORY_ERR"; index: number; error: string }
-  | { type: "MEMORY_RETRY"; index: number };
+  | { type: "MEMORY_RETRY"; index: number }
+  | { type: "RESET"; states: MessageActionsState };
 
 function messageActionsReducer(
   state: MessageActionsState,
   action: MessageAction,
 ): MessageActionsState {
+  if (action.type === "RESET") {
+    return action.states;
+  }
+
   const prev = state[action.index] ?? defaultActionState;
 
   switch (action.type) {
@@ -152,6 +157,7 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
     clearChat,
     setMealType,
     setMealSize,
+    setMessageFlag,
     isConfigured,
     currentSessionId,
     loadSession,
@@ -174,6 +180,25 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
     {} as MessageActionsState,
   );
 
+  // Seed reducer state from persisted message flags when session changes
+  useEffect(() => {
+    const initial: MessageActionsState = {};
+    messages.forEach((msg, i) => {
+      if (msg.role === "assistant") {
+        initial[i] = {
+          save: msg.recipeSaved ? "saved" : "idle",
+          saveError: null,
+          log: msg.cookLogged ? "logged" : "idle",
+          logError: null,
+          memory: msg.memorySaved ? "saved" : "idle",
+          memoryError: null,
+        };
+      }
+    });
+    dispatch({ type: "RESET", states: initial });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentSessionId]);
+
   const handleSaveRecipe = useCallback(
     async (index: number) => {
       const msg = messages[index];
@@ -190,13 +215,14 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
         });
         await createRecipeAsync(recipe);
         dispatch({ type: "SAVE_OK", index });
+        setMessageFlag(index, "recipeSaved");
       } catch (err: unknown) {
         const errMsg =
           err instanceof Error ? err.message : "Failed to save recipe.";
         dispatch({ type: "SAVE_ERR", index, error: errMsg });
       }
     },
-    [messages, effectiveProvider, effectiveModel, effectiveApiKey, createRecipeAsync],
+    [messages, effectiveProvider, effectiveModel, effectiveApiKey, createRecipeAsync, setMessageFlag],
   );
 
   const handleSaveRetry = useCallback((index: number) => {
@@ -218,13 +244,14 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
           recipeId: null,
         });
         dispatch({ type: "LOG_OK", index });
+        setMessageFlag(index, "cookLogged");
       } catch (err: unknown) {
         const errMsg =
           err instanceof Error ? err.message : "Failed to log meal.";
         dispatch({ type: "LOG_ERR", index, error: errMsg });
       }
     },
-    [messages, createEntryAsync],
+    [messages, createEntryAsync, setMessageFlag],
   );
 
   const handleLogRetry = useCallback((index: number) => {
@@ -256,6 +283,7 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
 
         await createPreferenceAsync({ text: preferenceText });
         dispatch({ type: "MEMORY_OK", index });
+        setMessageFlag(index, "memorySaved");
       } catch (err: unknown) {
         const errMsg =
           err instanceof Error
@@ -264,7 +292,7 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
         dispatch({ type: "MEMORY_ERR", index, error: errMsg });
       }
     },
-    [messages, effectiveProvider, effectiveModel, effectiveApiKey, createPreferenceAsync],
+    [messages, effectiveProvider, effectiveModel, effectiveApiKey, createPreferenceAsync, setMessageFlag],
   );
 
   const handleMemoryRetry = useCallback((index: number) => {
