@@ -31,6 +31,21 @@ export function useSettings() {
     updatedAt: "",
   };
 
+  // Resolve effective LLM credentials — prefer manual config, fall back to OpenRouter OAuth
+  const effectiveProvider = settings.llmApiKey
+    ? settings.llmProvider
+    : settings.openRouterOAuthKey
+      ? "openrouter"
+      : settings.llmProvider;
+
+  const effectiveModel = settings.llmApiKey
+    ? settings.llmModel
+    : settings.openRouterOAuthKey
+      ? settings.llmModel || "openai/gpt-5.2"
+      : settings.llmModel;
+
+  const effectiveApiKey = settings.llmApiKey || settings.openRouterOAuthKey;
+
   return {
     /** The current settings object (sensible defaults while loading). */
     settings,
@@ -56,6 +71,15 @@ export function useSettings() {
 
     /** Convenience getter: the current LLM API key. */
     llmApiKey: settings.llmApiKey,
+
+    /** Resolved provider ID — uses OpenRouter when OAuth is active and no manual key. */
+    effectiveProvider,
+
+    /** Resolved model ID — uses OpenRouter default when OAuth is active and no model selected. */
+    effectiveModel,
+
+    /** Resolved API key — prefers manual key, falls back to OpenRouter OAuth key. */
+    effectiveApiKey,
 
     /** Convenience getter: the current dietary restrictions list. */
     dietaryRestrictions: settings.dietaryRestrictions,

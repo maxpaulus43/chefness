@@ -159,7 +159,7 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
   const { createRecipeAsync } = useRecipes();
   const { createEntryAsync } = useCookingLog();
   const { createPreferenceAsync } = useAiPreferences();
-  const { llmProvider, llmModel, llmApiKey } = useSettings();
+  const { effectiveProvider, effectiveModel, effectiveApiKey } = useSettings();
 
   const [inputValue, setInputValue] = useState("");
   const [showSessionList, setShowSessionList] = useState(false);
@@ -183,9 +183,9 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
       try {
         const recipe = await extractRecipe({
           messageContent: msg.content,
-          providerId: llmProvider,
-          modelId: llmModel,
-          apiKey: llmApiKey,
+          providerId: effectiveProvider,
+          modelId: effectiveModel,
+          apiKey: effectiveApiKey,
         });
         await createRecipeAsync(recipe);
         dispatch({ type: "SAVE_OK", index });
@@ -195,7 +195,7 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
         dispatch({ type: "SAVE_ERR", index, error: errMsg });
       }
     },
-    [messages, llmProvider, llmModel, llmApiKey, createRecipeAsync],
+    [messages, effectiveProvider, effectiveModel, effectiveApiKey, createRecipeAsync],
   );
 
   const handleSaveRetry = useCallback((index: number) => {
@@ -248,9 +248,9 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
 
         const preferenceText = await extractPreference({
           conversationSnippet,
-          providerId: llmProvider,
-          modelId: llmModel,
-          apiKey: llmApiKey,
+          providerId: effectiveProvider,
+          modelId: effectiveModel,
+          apiKey: effectiveApiKey,
         });
 
         await createPreferenceAsync({ text: preferenceText });
@@ -263,7 +263,7 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
         dispatch({ type: "MEMORY_ERR", index, error: errMsg });
       }
     },
-    [messages, llmProvider, llmModel, llmApiKey, createPreferenceAsync],
+    [messages, effectiveProvider, effectiveModel, effectiveApiKey, createPreferenceAsync],
   );
 
   const handleMemoryRetry = useCallback((index: number) => {
