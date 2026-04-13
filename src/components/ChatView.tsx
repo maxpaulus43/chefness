@@ -1,3 +1,4 @@
+import { ChatSessionList } from "@/components/ChatSessionList";
 import { useChat } from "@/hooks/useChat";
 import type { MealType, MealSize } from "@/hooks/useChat";
 import { useAiPreferences } from "@/hooks/useAiPreferences";
@@ -151,6 +152,8 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
     setMealType,
     setMealSize,
     isConfigured,
+    currentSessionId,
+    loadSession,
   } = useChat();
 
   const { createRecipeAsync } = useRecipes();
@@ -159,6 +162,7 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
   const { llmProvider, llmModel, llmApiKey } = useSettings();
 
   const [inputValue, setInputValue] = useState("");
+  const [showSessionList, setShowSessionList] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const lastUserMessageRef = useRef<string>("");
@@ -300,7 +304,25 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
       if (!confirmed) return;
     }
     clearChat();
+    setShowSessionList(false);
   }, [messages.length, clearChat]);
+
+  const handleToggleSessionList = useCallback(() => {
+    setShowSessionList((prev) => !prev);
+  }, []);
+
+  const handleSelectSession = useCallback(
+    (sessionId: string) => {
+      loadSession(sessionId);
+      setShowSessionList(false);
+    },
+    [loadSession],
+  );
+
+  const handleNewChatFromList = useCallback(() => {
+    clearChat();
+    setShowSessionList(false);
+  }, [clearChat]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -358,7 +380,16 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
 
   return (
     <div style={styles.root}>
-      {renderHeader(handleNewChat, hasMessages)}
+      {renderHeader(handleNewChat, hasMessages, handleToggleSessionList, showSessionList)}
+      {showSessionList ? (
+        <div style={styles.messageArea}>
+          <ChatSessionList
+            onSelectSession={handleSelectSession}
+            onNewChat={handleNewChatFromList}
+            currentSessionId={currentSessionId}
+          />
+        </div>
+      ) : (
       <div style={styles.messageArea}>
         {!hasMessages ? renderEmptyState(handleSuggestionTap) : (
           <div style={styles.messageList}>
@@ -520,10 +551,11 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
           </div>
         )}
       </div>
+      )}
 
-      {error && renderErrorBanner(error, handleRetry)}
+      {!showSessionList && error && renderErrorBanner(error, handleRetry)}
 
-      {renderInputArea(
+      {!showSessionList && renderInputArea(
         inputValue,
         setInputValue,
         handleKeyDown,
@@ -543,15 +575,35 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
 // Sub-renders
 // ---------------------------------------------------------------------------
 
-function renderHeader(onNewChat: () => void, showNewChat: boolean) {
+function renderHeader(
+  onNewChat: () => void,
+  showNewChat: boolean,
+  onToggleSessions?: () => void,
+  sessionListOpen?: boolean,
+) {
   return (
     <div style={styles.header}>
       <h1 style={styles.headerTitle}>Chefness</h1>
-      {showNewChat && (
-        <button type="button" onClick={onNewChat} style={styles.newChatBtn}>
-          New Chat
-        </button>
-      )}
+      <div style={styles.headerActions}>
+        {onToggleSessions && (
+          <button
+            type="button"
+            onClick={onToggleSessions}
+            style={{
+              ...styles.sessionsBtn,
+              ...(sessionListOpen ? styles.sessionsBtnActive : {}),
+            }}
+            aria-label={sessionListOpen ? "Hide sessions" : "Show sessions"}
+          >
+            💬
+          </button>
+        )}
+        {showNewChat && (
+          <button type="button" onClick={onNewChat} style={styles.newChatBtn}>
+            New Chat
+          </button>
+        )}
+      </div>
     </div>
   );
 }
@@ -687,6 +739,29 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 700,
     color: "#111827",
     margin: 0,
+  },
+  headerActions: {
+    display: "flex",
+    alignItems: "center",
+    gap: "0.5rem",
+  },
+  sessionsBtn: {
+    padding: "0.5rem",
+    fontSize: "1.125rem",
+    backgroundColor: "#f9fafb",
+    border: "1px solid #e5e7eb",
+    borderRadius: 8,
+    cursor: "pointer",
+    minWidth: 40,
+    minHeight: 40,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    lineHeight: 1,
+  },
+  sessionsBtnActive: {
+    backgroundColor: "#eff6ff",
+    borderColor: "#3b82f6",
   },
   newChatBtn: {
     padding: "0.5rem 0.875rem",
