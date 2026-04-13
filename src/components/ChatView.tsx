@@ -5,6 +5,7 @@ import { useAiPreferences } from "@/hooks/useAiPreferences";
 import { useCookingLog } from "@/hooks/useCookingLog";
 import { useRecipes } from "@/hooks/useRecipes";
 import { useSettings } from "@/hooks/useSettings";
+import { Markdown } from "@/lib/markdown";
 import { extractPreference } from "@/lib/preference-extractor";
 import { extractRecipe } from "@/lib/recipe-extractor";
 import { useState, useEffect, useRef, useCallback, useReducer } from "react";
@@ -404,7 +405,7 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
                   {msg.role === "assistant" ? (
                   <div style={styles.asstMessageColumn}>
                   <div style={styles.asstBubble}>
-                    <span style={styles.msgText}>{msg.content}</span>
+                    <Markdown content={msg.content} />
                     {msg.content === "" && isStreaming && (
                       <span style={styles.typing}>●●●</span>
                     )}
