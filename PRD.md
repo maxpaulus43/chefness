@@ -353,25 +353,33 @@ AI context about recent meals.
 
 #### Acceptance Criteria
 
-- [ ] A new `CookingLogEntry` entity is created with fields: `id`, `title`,
+- [x] A new `CookingLogEntry` entity is created with fields: `id`, `title`,
       `date` (ISO string), `rating` (`"up"` | `"down"` | `null`),
       `comment` (string, optional), `recipeId` (string, optional — links to
       a saved recipe if one exists), `createdAt`, `updatedAt`.
-- [ ] The cooking log follows the same storage pattern as recipes:
+- [x] The cooking log follows the same storage pattern as recipes:
       Zod schema → storage repository → tRPC router → hook → component.
-- [ ] localStorage key: `chefness:cooking-log`.
-- [ ] The History tab shows entries grouped by date or in a flat
-      reverse-chronological list.
-- [ ] The last 7 days of cooking log entries are automatically injected into
+- [x] localStorage key: `chefness:cooking-log`.
+- [x] The History tab shows entries in a flat reverse-chronological list.
+- [x] The last 7 days of cooking log entries are automatically injected into
       the AI's system prompt for new chat sessions.
-- [ ] System prompt injection format:
+- [x] System prompt injection format uses `Intl.DateTimeFormat` for day names:
       ```
       Recent cooking history (last 7 days):
       - Monday: Chicken stir-fry (👍) "Used extra soy sauce"
       - Saturday: Pasta carbonara (👎) "Too salty"
       ```
-- [ ] Empty state in History tab: "No cooking history yet. Chat with your
+- [x] Empty state in History tab: "No cooking history yet. Chat with your
       guru, cook something great, and log it here!"
+
+> **Implementation notes:**
+> - "I Cooked This!" title is auto-populated from the first non-empty line of
+>   the assistant message, stripped of Markdown formatting (resolves open
+>   question #4). No LLM call required.
+> - Rating (👍/👎 toggle) and comments are inline on history cards — no
+>   separate detail/edit sub-view.
+> - System prompt injection uses `Intl.DateTimeFormat` for human-readable day
+>   names (e.g., "Monday").
 
 ### 5.4 Dietary Restrictions & Preferences
 
@@ -393,32 +401,47 @@ every AI session's system prompt. Additionally, the AI can detect and
 
 #### Acceptance Criteria
 
-- [ ] A "Dietary Restrictions" section appears in Settings (below AI
+- [x] A "Dietary Restrictions" section appears in Settings (below AI
       Configuration).
-- [ ] Predefined restriction options are displayed as toggleable chips/tags.
-- [ ] A freeform "Other restrictions" text field is available.
-- [ ] Restrictions are stored in localStorage under
-      `chefness:settings:dietary-restrictions`.
-- [ ] An "AI Memory" section appears in Settings showing saved permanent
+- [x] Predefined restriction options are displayed as toggleable chips/tags.
+      Options: vegetarian, vegan, gluten-free, dairy-free, nut-free, halal,
+      kosher, pescatarian, low-carb, keto.
+- [x] A freeform "Other restrictions" text field is available.
+- [x] Restrictions are stored as part of the settings singleton in localStorage
+      under `chefness:settings` (deviation from original plan — see §9).
+- [x] An "AI Memory" section appears in Settings showing saved permanent
       preferences.
-- [ ] Each preference is displayed with a delete button.
-- [ ] Preferences are stored in localStorage under
+- [x] Each preference is displayed with a delete button.
+- [x] Preferences are stored in localStorage under
       `chefness:ai-preferences`.
-- [ ] System prompt injection format for restrictions:
+- [x] System prompt injection format for restrictions:
       ```
       Dietary restrictions: vegetarian, nut-free
       Other dietary notes: "Low sodium preferred"
       ```
-- [ ] System prompt injection format for preferences:
+- [x] System prompt injection format for preferences:
       ```
       Things to remember about this user:
       - Hates cilantro
       - Prefers spicy food
       - Has a cast iron skillet and an Instant Pot
       ```
-- [ ] The AI memory save flow: AI detects a saveable preference → AI asks
-      "Would you like me to remember that you [preference]?" → User confirms
-      → Preference is saved to storage and included in future prompts.
+- [x] The AI memory save flow: AI detects a saveable preference → AI suggests
+      remembering via system prompt instructions → "Save to Memory" button on
+      assistant messages → Preference is saved to storage and included in
+      future prompts. Users can also manually add preferences in Settings.
+
+> **Implementation notes:**
+> - Dietary restrictions are stored as part of the existing settings singleton
+>   (`chefness:settings`) with `dietaryRestrictions: string[]` and
+>   `otherDietaryNotes: string` fields, rather than a separate localStorage
+>   key. Simpler — one source of truth.
+> - AI Memory uses `callWithTools` with `save_preference` tool (same pattern as
+>   recipe extraction in Phase 2).
+> - Both manual add (in Settings > AI Memory section) and AI-detected
+>   preferences are supported (resolves open question #5).
+> - The system prompt instructs the AI to proactively suggest remembering
+>   preferences when it detects something worth saving.
 
 ### 5.5 Conversation Persistence & Multiple Sessions
 
@@ -479,34 +502,42 @@ src/
   ReloadPrompt.tsx              PWA service worker update prompt
   components/
     BottomNavBar.tsx             Bottom nav with 4 tabs (Chat, Recipes, History, Settings), active state, Tab type export
-    ChatView.tsx                 Chat UI: message list, input, meal type/size pills, empty states, error handling, streaming display, Save Recipe button
+    ChatView.tsx                 Chat UI: message list, input, meal type/size pills, empty states, error handling, streaming display, Save Recipe button, "I Cooked This!" button (Phase 3), "Save to Memory" button (Phase 4)
+    HistoryView.tsx              History tab: reverse-chronological cooking log list with inline rating, comment, delete (Phase 3)
     HomePage.tsx                 Tab content switching + recipe tab navigation (list/detail/edit via selectedRecipeId + recipeViewMode state)
     RecipeDetailView.tsx         Full recipe display with ingredients, steps, back/edit/delete/copy buttons (Phase 2)
     RecipeEditView.tsx           Edit form for recipes — title, description, ingredients, steps as textareas (Phase 2)
     RecipeListView.tsx           Recipe card list for Recipes tab, with empty/loading/error states (Phase 2)
-    SettingsView.tsx             AI Configuration: provider/model dropdowns (from @clinebot/llms registry), API key input
+    SettingsView.tsx             AI Configuration, Dietary Restrictions (chips + freeform), AI Memory (preference list + add/delete)
   hooks/
-    useChat.ts                  Chat state management, LLM streaming via fetch(), system prompt construction, offline detection, soft recipe formatting guideline
+    useAiPreferences.ts         AI preferences CRUD hook (Phase 4)
+    useChat.ts                  Chat state management, LLM streaming via fetch(), system prompt construction with meal type/size, recent history, dietary restrictions, AI preferences
     useClipboard.ts             Reusable clipboard hook: copyToClipboard, copied (2s timer), error (Phase 2)
+    useCookingLog.ts            Cooking log CRUD hook with recentEntries (last 7 days) convenience getter (Phase 3)
     useRecipes.ts               Recipe CRUD with createRecipeAsync/updateRecipeAsync for reliable awaitable mutations
-    useSettings.ts              Settings singleton CRUD via tRPC, convenience getters (isConfigured, llmProvider, etc.)
+    useSettings.ts              Settings singleton CRUD via tRPC, convenience getters (isConfigured, llmProvider, dietaryRestrictions, etc.)
   lib/
     llm-stream.ts               Browser-compatible LLM streaming + non-streaming tool/function calling client. Supports OpenAI-compatible and Anthropic native APIs.
+    preference-extractor.ts     Preference extraction via callWithTools with save_preference tool (Phase 4)
     recipe-extractor.ts         Thin wrapper around callWithTools with save_recipe tool definition (Phase 2)
     recipe-markdown.ts          Pure function: recipeToMarkdown(recipe) — converts Recipe to Markdown text (Phase 2)
     uuid.ts                     UUID generator with crypto.randomUUID() fallback for older iOS Safari (Phase 2)
   storage/
+    ai-preferences.ts           AI preferences localStorage repository (key: 'chefness:ai-preferences') (Phase 4)
+    cooking-log.ts              Cooking log localStorage repository (key: 'chefness:cooking-log') (Phase 3)
     settings.ts                 Settings repository singleton (storageKey: 'chefness:settings')
     recipes.ts                  Recipe repository (pre-existing)
     interface.ts                StorageRepository interface (pre-existing)
     local-storage.ts            localStorage implementation (pre-existing)
   trpc/
-    router.ts                   Updated with settings sub-router (get + update)
+    router.ts                   Updated with settings, recipe, cookingLog, and aiPreference sub-routers
     client.ts                   tRPC client setup (pre-existing)
     index.ts                    tRPC exports (pre-existing)
     provider.tsx                tRPC + React Query provider wrapper (pre-existing)
   types/
-    settings.ts                 Settings Zod schemas (settingsSchema, createSettingsInput, updateSettingsInput)
+    ai-preference.ts            AiPreference, CreateAiPreferenceInput, UpdateAiPreferenceInput Zod schemas (Phase 4)
+    cooking-log.ts              CookingLogEntry, CreateCookingLogInput, UpdateCookingLogInput Zod schemas (Phase 3)
+    settings.ts                 Settings Zod schemas (settingsSchema with dietaryRestrictions + otherDietaryNotes, createSettingsInput, updateSettingsInput)
     recipe.ts                   Recipe Zod schemas (pre-existing)
 ```
 
@@ -573,14 +604,22 @@ A clear checklist of everything included in v1:
 - [x] **Recipe Edit & Delete** — edit form with pre-populated fields, delete with confirmation
 - [x] **Share Recipe as Markdown** — copy-to-clipboard with `navigator.clipboard.writeText`
 
-### ❌ Not in MVP or Phase 2
+### ✅ Phase 3 (Complete)
+
+- [x] **Cooking Log** — "I Cooked This!" button in Chat, auto-populated title from first line
+- [x] **History Tab** — Reverse-chronological cooking log list with inline rating (👍/👎) and comments
+- [x] **AI History Context** — Last 7 days of cooking history injected into system prompt
+
+### ✅ Phase 4 (Complete)
+
+- [x] **Dietary Restrictions** — Toggleable chips in Settings + freeform "Other" field, injected into system prompt
+- [x] **AI Memory** — Saved permanent preferences with auto-detect from chat + manual add in Settings
+- [x] **Preferences Management** — View and delete saved preferences in Settings > AI Memory section
+
+### ❌ Not in MVP, Phase 2, Phase 3, or Phase 4
 
 - Conversation persistence (lost on refresh)
 - Multiple chat sessions
-- Cooking log / "I cooked this!"
-- History tab content
-- Dietary restrictions in Settings
-- AI Memory / permanent preferences
 - Any backend server or user accounts
 
 ---
@@ -602,18 +641,24 @@ edit, and delete flows plus copy-to-clipboard sharing.
 4. ~~**Recipe Edit & Delete** — Modify or remove saved recipes~~
 5. ~~**Share Recipe as Markdown** (§5.2) — Copy to clipboard~~
 
-### Phase 3 — Cooking History
+### Phase 3 — Cooking History ✅ Complete
 
-6. **Cooking Log** (§5.3) — "I cooked this!" action in chat
-7. **History Tab** — Chronological cooking log display
-8. **Rating & Comments** — Thumbs up/down + freeform notes on log entries
-9. **AI History Context** — Inject last 7 days of history into system prompt
+All 4 Phase 3 items have been implemented. The History tab is now fully functional
+with cooking log entries, inline rating/comments, and AI context injection.
 
-### Phase 4 — Personalization
+6. ~~**Cooking Log** (§5.3) — "I cooked this!" action in chat~~
+7. ~~**History Tab** — Chronological cooking log display~~
+8. ~~**Rating & Comments** — Thumbs up/down + freeform notes on log entries~~
+9. ~~**AI History Context** — Inject last 7 days of history into system prompt~~
 
-10. **Dietary Restrictions** (§5.4) — Settings UI + system prompt injection
-11. **AI Memory** (§5.4) — Detect, ask permission, save permanent preferences
-12. **Preferences Management** — View/edit/delete saved preferences in Settings
+### Phase 4 — Personalization ✅ Complete
+
+All 3 Phase 4 items have been implemented. Dietary restrictions and AI Memory are
+fully functional in Settings, with both AI-detected and manual preference saving.
+
+10. ~~**Dietary Restrictions** (§5.4) — Settings UI + system prompt injection~~
+11. ~~**AI Memory** (§5.4) — Detect, suggest saving, and persist permanent preferences~~
+12. ~~**Preferences Management** — View/delete saved preferences in Settings~~
 
 ### Phase 5 — Conversation Management
 
@@ -718,6 +763,78 @@ now fully functional with save, list, detail, edit, delete, and share flows.
 - Fire-and-forget `mutate` variants are still available for cases that don't need the result.
 - `createRecipeAsync` was introduced as a bug fix for proper error handling on iOS Safari where the non-async `mutate` callback timing was unreliable.
 
+### Phase 3 Status: ✅ Complete
+
+All Phase 3 (Cooking History) features from §8 have been implemented. The History
+tab is now fully functional with cooking log entries, inline rating/comments, and
+AI context injection.
+
+| Component | Location | Description |
+| --- | --- | --- |
+| CookingLogEntry types | `src/types/cooking-log.ts` | ✅ Zod schemas: `CookingLogEntry`, `CreateCookingLogInput`, `UpdateCookingLogInput`. |
+| Cooking log storage | `src/storage/cooking-log.ts` | ✅ localStorage repository (key: `chefness:cooking-log`). |
+| Cooking log tRPC router | `src/trpc/router.ts` | ✅ Added `cookingLog` sub-router with list, getById, create, update, delete procedures. |
+| Cooking log hook | `src/hooks/useCookingLog.ts` | ✅ CRUD hook with `recentEntries` convenience getter (filters to last 7 days). |
+| "I Cooked This!" button | `src/components/ChatView.tsx` | ✅ Added alongside Save Recipe button. Uses first-line title extraction (no LLM call). |
+| History tab | `src/components/HistoryView.tsx` | ✅ Reverse-chronological list with title, date, inline rating (👍/👎 toggle), comment add/edit, and delete. |
+| AI history context | `src/hooks/useChat.ts` | ✅ `buildSystemPrompt` injects last 7 days as "Recent cooking history" section. Uses `Intl.DateTimeFormat` for day names. |
+| History tab integration | `src/components/HomePage.tsx` | ✅ Replaced history empty state with `<HistoryView />`. |
+
+#### Phase 3 Architectural Decisions
+
+#### i) Cooking log entity
+
+- Full CRUD following the same pattern as recipes: Zod schema → storage repository → tRPC router → hook → component.
+- `recentEntries` getter in the hook filters to the last 7 days for system prompt injection.
+- The cooking log is a separate entity from recipes — a log entry may optionally link to a recipe via `recipeId`, but cooking logs exist independently.
+
+#### j) History tab navigation
+
+- Simple flat list, no detail/edit sub-views (unlike Recipes which has list/detail/edit modes).
+- Rating (👍/👎 toggle) and comments are inline on history cards — edited in-place without navigating away.
+- This is intentionally simpler than the Recipe tab's navigation model because cooking log entries are lightweight.
+
+### Phase 4 Status: ✅ Complete
+
+All Phase 4 (Personalization) features from §8 have been implemented. Dietary
+restrictions and AI Memory are fully functional in Settings, with both AI-detected
+and manual preference saving.
+
+| Component | Location | Description |
+| --- | --- | --- |
+| Dietary restrictions fields | `src/types/settings.ts` | ✅ Added `dietaryRestrictions: string[]` and `otherDietaryNotes: string` to `settingsSchema`. |
+| Settings storage update | `src/storage/settings.ts` | ✅ Updated `applyUpdate` for new dietary fields. |
+| Settings hook update | `src/hooks/useSettings.ts` | ✅ Added `dietaryRestrictions` and `otherDietaryNotes` getters. |
+| Dietary Restrictions UI | `src/components/SettingsView.tsx` | ✅ "Dietary Restrictions" section with toggleable chips (10 options) + freeform "Other" field. |
+| AiPreference types | `src/types/ai-preference.ts` | ✅ Zod schemas: `AiPreference`, `CreateAiPreferenceInput`, `UpdateAiPreferenceInput`. |
+| AI preferences storage | `src/storage/ai-preferences.ts` | ✅ localStorage repository (key: `chefness:ai-preferences`). |
+| AI preferences tRPC router | `src/trpc/router.ts` | ✅ Added `aiPreference` sub-router. |
+| AI preferences hook | `src/hooks/useAiPreferences.ts` | ✅ CRUD hook for AI preferences. |
+| AI Memory UI | `src/components/SettingsView.tsx` | ✅ "AI Memory" section with saved preferences, delete buttons, + manual "Add preference" input. |
+| Preference extractor | `src/lib/preference-extractor.ts` | ✅ Uses `callWithTools` with `save_preference` tool (same pattern as recipe extraction). |
+| "Save to Memory" button | `src/components/ChatView.tsx` | ✅ Added on assistant messages for AI-detected preferences. |
+| System prompt update | `src/hooks/useChat.ts` | ✅ Injects dietary restrictions, other notes, AI preferences, and memory detection instruction into system prompt. |
+
+#### Phase 4 Architectural Decisions
+
+#### k) Dietary restrictions in settings singleton
+
+- Stored as part of the existing settings entity (`chefness:settings`) with `dietaryRestrictions: string[]` and `otherDietaryNotes: string` fields.
+- Deviates from the original plan which specified a separate localStorage key (`chefness:settings:dietary-restrictions`).
+- **Rationale:** Simpler — one entity to manage, one source of truth.
+
+#### l) AI preference extraction
+
+- Uses the same `callWithTools` pattern as recipe extraction (decision e).
+- `save_preference` tool has a single `preference` string parameter.
+- `src/lib/preference-extractor.ts` is a thin wrapper analogous to `recipe-extractor.ts`.
+
+#### m) AI memory detection
+
+- System prompt instructs the AI to proactively suggest remembering preferences when it detects something worth saving.
+- Users can also manually add preferences in the Settings > AI Memory section.
+- This dual approach (AI-detected + manual) gives users maximum control.
+
 ### Deviations from Original Plan
 
 | Area | Original Plan | Actual Implementation | Reason |
@@ -727,6 +844,8 @@ now fully functional with save, list, detail, edit, delete, and share flows.
 | Settings storage key | Multiple keys (`chefness:settings:llm-provider`, etc.) | Single key (`chefness:settings`) storing full settings object | Simpler singleton pattern via `LocalStorageRepository` |
 | Provider list | Potentially curated subset | All providers from `getAllProviders()` | Maximizes user choice; user enters their own API key |
 | Recipe extraction | Regex-based detection + heuristic parser | User-triggered LLM extraction via native tool calling | More reliable; user controls what to save; LLM understands its own output |
+| Dietary restrictions storage | Separate key `chefness:settings:dietary-restrictions` | Part of settings singleton (`chefness:settings`) | Simpler; one entity to manage |
+| AI Memory save flow | AI-only detection | AI detection + manual add in Settings | More user control; resolves open question #5 |
 
 ---
 
@@ -737,6 +856,6 @@ now fully functional with save, list, detail, edit, delete, and share flows.
 | 1 | Which `@clinebot/llms` providers/models should be available by default? Do we show all supported providers or a curated subset? | LLM-1, LLM-2 | ✅ **Resolved** — All providers from `getAllProviders()` are shown. The user selects their provider and enters their own API key. |
 | 2 | Should the API key be stored as plaintext in localStorage or lightly obfuscated? | LLM-3 | ✅ **Resolved** — Plaintext in localStorage (same as all other settings). No obfuscation for MVP. Acceptable given the single-user, no-server architecture. |
 | 3 | What heuristic or mechanism detects that an AI response contains a recipe vs. general conversation? Options: (a) structured output / tool call from the LLM, (b) regex-based detection, (c) a follow-up LLM call to classify. | SR-1 | ✅ **Resolved** — No auto-detection. User taps "Save Recipe" on any assistant message. The app uses native LLM tool/function calling (`callWithTools` with a `save_recipe` tool definition) to extract structured recipe data. This avoids fragile regex heuristics and gives provider-enforced structured output. |
-| 4 | Should the "I cooked this!" action auto-populate the title from the recipe, or let the user name it? | HL-2 | Open — Phase 3 |
-| 5 | For AI Memory (DR-3), should the AI proactively suggest saving preferences, or should there also be a manual "Remember this" button the user can press? | DR-3 | Open — Phase 4 |
+| 4 | Should the "I cooked this!" action auto-populate the title from the recipe, or let the user name it? | HL-2 | ✅ **Resolved** — Auto-populated from the first non-empty line of the assistant message, stripped of Markdown formatting. Editable later in the History tab. |
+| 5 | For AI Memory (DR-3), should the AI proactively suggest saving preferences, or should there also be a manual "Remember this" button the user can press? | DR-3 | ✅ **Resolved** — Both. The AI proactively suggests remembering preferences via system prompt instructions, AND users can manually add preferences in the Settings > AI Memory section. |
 | 6 | Is there a maximum number of chat sessions to retain before auto-pruning old ones? localStorage has a ~5–10MB limit. | CP-2 | Open — Phase 5 |
