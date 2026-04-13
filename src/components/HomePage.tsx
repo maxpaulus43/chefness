@@ -6,7 +6,19 @@ import { RecipeEditView } from "@/components/RecipeEditView";
 import { RecipeListView } from "@/components/RecipeListView";
 import { SettingsView } from "@/components/SettingsView";
 import { useOpenRouterOAuth } from "@/hooks/useOpenRouterOAuth";
-import { useState, useCallback } from "react";
+import { useState, useCallback, type ReactNode } from "react";
+
+// ---------------------------------------------------------------------------
+// TabPanel — CSS display toggling to keep children mounted across tab switches
+// ---------------------------------------------------------------------------
+
+function TabPanel({ active, children }: { active: boolean; children: ReactNode }) {
+  return (
+    <div style={{ display: active ? "flex" : "none", flexDirection: "column", flex: 1, minHeight: 0, overflowY: "auto" }}>
+      {children}
+    </div>
+  );
+}
 
 type RecipeViewMode = "list" | "detail" | "edit";
 
@@ -70,12 +82,18 @@ export function HomePage() {
   return (
     <div style={styles.root}>
       <div style={styles.content}>
-        {activeTab === "chat" && (
+        <TabPanel active={activeTab === "chat"}>
           <ChatView onNavigateToSettings={navigateToSettings} />
-        )}
-        {activeTab === "recipes" && renderRecipesTab()}
-        {activeTab === "history" && <HistoryView />}
-        {activeTab === "settings" && <SettingsView />}
+        </TabPanel>
+        <TabPanel active={activeTab === "recipes"}>
+          {renderRecipesTab()}
+        </TabPanel>
+        <TabPanel active={activeTab === "history"}>
+          <HistoryView />
+        </TabPanel>
+        <TabPanel active={activeTab === "settings"}>
+          <SettingsView />
+        </TabPanel>
       </div>
       <BottomNavBar activeTab={activeTab} onTabChange={setActiveTab} />
     </div>
@@ -90,7 +108,9 @@ const styles: Record<string, React.CSSProperties> = {
   },
   content: {
     flex: 1,
-    overflowY: "auto",
+    display: "flex",
+    flexDirection: "column",
+    minHeight: 0,
     paddingBottom: 56,
   },
 };
