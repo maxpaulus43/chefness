@@ -45,6 +45,7 @@ export const settingsRepository: SettingsRepository = new IndexedDBRepository<
       ...(patch.llmProvider !== undefined && { llmProvider: patch.llmProvider }),
       ...(patch.llmModel !== undefined && { llmModel: patch.llmModel }),
       ...(patch.llmApiKey !== undefined && { llmApiKey: patch.llmApiKey }),
+      ...(patch.openRouterOAuthKey !== undefined && { openRouterOAuthKey: patch.openRouterOAuthKey }),
       ...(patch.dietaryRestrictions !== undefined && { dietaryRestrictions: patch.dietaryRestrictions }),
       ...(patch.otherDietaryNotes !== undefined && { otherDietaryNotes: patch.otherDietaryNotes }),
       updatedAt: new Date().toISOString(),

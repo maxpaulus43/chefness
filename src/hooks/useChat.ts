@@ -151,7 +151,7 @@ function friendlyError(err: unknown): string {
 // ---------------------------------------------------------------------------
 
 export function useChat() {
-  const { llmProvider, llmModel, llmApiKey, isConfigured, dietaryRestrictions, otherDietaryNotes } = useSettings();
+  const { llmProvider, llmModel, llmApiKey, openRouterOAuthKey, isConfigured, dietaryRestrictions, otherDietaryNotes } = useSettings();
   const { recentEntries } = useCookingLog();
   const { preferences: aiPreferences } = useAiPreferences();
   const { sessions, updateSession, createSessionAsync } = useChatSessions();
@@ -268,10 +268,23 @@ export function useChat() {
       try {
         const systemPrompt = buildSystemPrompt(mealType, mealSize, recentEntries, dietaryRestrictions, otherDietaryNotes, preferenceTexts);
 
+        // Determine effective provider/model/key — prefer manual config, fall back to OpenRouter OAuth
+        let effectiveProvider = llmProvider;
+        let effectiveModel = llmModel;
+        let effectiveApiKey = llmApiKey;
+
+        if (!llmApiKey && openRouterOAuthKey) {
+          effectiveProvider = "openrouter";
+          effectiveApiKey = openRouterOAuthKey;
+          if (!effectiveModel) {
+            effectiveModel = "openai/gpt-5.2";
+          }
+        }
+
         const finalText = await streamChat({
-          providerId: llmProvider,
-          modelId: llmModel,
-          apiKey: llmApiKey,
+          providerId: effectiveProvider,
+          modelId: effectiveModel,
+          apiKey: effectiveApiKey,
           systemPrompt,
           messages: history,
           signal: controller.signal,
@@ -317,7 +330,7 @@ export function useChat() {
         setIsStreaming(false);
       }
     },
-    [messages, mealType, mealSize, recentEntries, llmProvider, llmModel, llmApiKey, isConfigured, dietaryRestrictions, otherDietaryNotes, preferenceTexts, currentSessionId, createSessionAsync, persistMessages],
+    [messages, mealType, mealSize, recentEntries, llmProvider, llmModel, llmApiKey, openRouterOAuthKey, isConfigured, dietaryRestrictions, otherDietaryNotes, preferenceTexts, currentSessionId, createSessionAsync, persistMessages],
   );
 
   // -------------------------------------------------------------------------

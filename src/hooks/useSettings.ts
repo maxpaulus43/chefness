@@ -24,6 +24,7 @@ export function useSettings() {
     llmProvider: "",
     llmModel: "",
     llmApiKey: "",
+    openRouterOAuthKey: "",
     dietaryRestrictions: [] as string[],
     otherDietaryNotes: "",
     createdAt: "",
@@ -62,10 +63,15 @@ export function useSettings() {
     /** Convenience getter: the current freeform dietary notes. */
     otherDietaryNotes: settings.otherDietaryNotes,
 
-    /** `true` when provider, model, and API key are all non-empty. */
+    /** Convenience getter: the OpenRouter OAuth API key. */
+    openRouterOAuthKey: settings.openRouterOAuthKey,
+
+    /** `true` when the user has connected via OpenRouter OAuth. */
+    isOpenRouterConnected: settings.openRouterOAuthKey !== "",
+
+    /** `true` when the user can chat — either manual config or OAuth key. */
     isConfigured:
-      settings.llmProvider !== "" &&
-      settings.llmModel !== "" &&
-      settings.llmApiKey !== "",
+      (settings.llmProvider !== "" && settings.llmModel !== "" && settings.llmApiKey !== "") ||
+      settings.openRouterOAuthKey !== "",
   } as const;
 }
