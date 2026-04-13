@@ -1,5 +1,6 @@
 import { useSettings } from "@/hooks/useSettings";
 import { useAiPreferences } from "@/hooks/useAiPreferences";
+import { useOpenRouterOAuth } from "@/hooks/useOpenRouterOAuth";
 import {
   getAllProviders,
   getModelsForProvider,
@@ -30,8 +31,12 @@ export function SettingsView() {
     llmApiKey,
     dietaryRestrictions,
     otherDietaryNotes,
+    openRouterOAuthKey,
+    isOpenRouterConnected,
     updateSettings,
   } = useSettings();
+
+  const { startOAuth, isProcessingCallback, oauthError } = useOpenRouterOAuth();
 
   const {
     preferences: aiPreferences,
@@ -46,9 +51,16 @@ export function SettingsView() {
   const [loadingProviders, setLoadingProviders] = useState(true);
   const [loadingModels, setLoadingModels] = useState(false);
 
+  // OpenRouter model list (fetched when connected).
+  const [openRouterModels, setOpenRouterModels] = useState<[string, ModelInfo][]>([]);
+  const [loadingOpenRouterModels, setLoadingOpenRouterModels] = useState(false);
+
   // AI Memory: inline "add preference" form state.
   const [showAddPreference, setShowAddPreference] = useState(false);
   const [newPreferenceText, setNewPreferenceText] = useState("");
+
+  // Local state for the OpenRouter model picker.
+  const [selectedOpenRouterModel, setSelectedOpenRouterModel] = useState(llmModel);
 
   // Local state so the UI reacts synchronously to user selection instead
   // of waiting for the async tRPC mutation round-trip.
@@ -113,6 +125,53 @@ export function SettingsView() {
       cancelled = true;
     };
   }, [selectedProvider]);
+
+  // Sync OpenRouter model picker with persisted llmModel.
+  useEffect(() => {
+    setSelectedOpenRouterModel(llmModel);
+  }, [llmModel]);
+
+  // Fetch OpenRouter models when connected.
+  useEffect(() => {
+    if (!isOpenRouterConnected) {
+      setOpenRouterModels([]);
+      return;
+    }
+    let cancelled = false;
+    setLoadingOpenRouterModels(true);
+    void getModelsForProvider("openrouter").then((result) => {
+      if (!cancelled) {
+        const sorted = Object.entries(result).sort(([, a], [, b]) =>
+          (a.name ?? a.id).localeCompare(b.name ?? b.id),
+        );
+        setOpenRouterModels(sorted);
+        setLoadingOpenRouterModels(false);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpenRouterConnected]);
+
+  const handleOpenRouterModelChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newModel = e.target.value;
+    setSelectedOpenRouterModel(newModel);
+    updateSettings({ llmModel: newModel });
+  };
+
+  const handleDisconnectOpenRouter = () => {
+    updateSettings({ openRouterOAuthKey: "" });
+  };
+
+  /** Whether the existing AI Configuration section should appear muted. */
+  const isManualConfigMuted = isOpenRouterConnected && !llmApiKey;
+
+  const maskedOAuthKey =
+    openRouterOAuthKey.length >= 4
+      ? `••••••${openRouterOAuthKey.slice(-4)}`
+      : openRouterOAuthKey.length > 0
+        ? "••••••"
+        : "";
 
   const handleProviderChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newProvider = e.target.value;
@@ -197,7 +256,75 @@ export function SettingsView() {
   return (
     <div style={styles.container}>
       <h1 style={styles.header}>Settings</h1>
+
+      {/* ── OpenRouter Quick Setup ── */}
       <section style={styles.section}>
+        <h2 style={styles.sectionTitle}>OpenRouter</h2>
+
+        {isOpenRouterConnected ? (
+          <>
+            <p style={styles.openRouterConnected}>✓ Connected to OpenRouter</p>
+            <p style={styles.maskedKey}>API key: {maskedOAuthKey}</p>
+
+            {/* Model picker */}
+            <div style={styles.field}>
+              <label htmlFor="openrouter-model" style={styles.label}>
+                Model
+              </label>
+              <select
+                id="openrouter-model"
+                value={selectedOpenRouterModel}
+                onChange={handleOpenRouterModelChange}
+                disabled={loadingOpenRouterModels}
+                style={styles.select}
+              >
+                <option value="">
+                  {loadingOpenRouterModels ? "Loading models…" : "Select a model"}
+                </option>
+                {openRouterModels.map(([id, info]) => (
+                  <option key={id} value={id}>
+                    {info.name ?? id}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleDisconnectOpenRouter}
+              style={styles.disconnectButton}
+            >
+              Disconnect
+            </button>
+          </>
+        ) : (
+          <>
+            <p style={styles.sectionDescription}>
+              Sign in with your OpenRouter account to use 300+ AI models without an API key.
+            </p>
+
+            {isProcessingCallback ? (
+              <p style={styles.openRouterProcessing}>Connecting to OpenRouter…</p>
+            ) : (
+              <button
+                type="button"
+                onClick={() => void startOAuth()}
+                style={styles.openRouterSignInButton}
+              >
+                Sign in with OpenRouter
+              </button>
+            )}
+
+            {oauthError && <p style={styles.openRouterError}>{oauthError}</p>}
+          </>
+        )}
+      </section>
+
+      {/* ── Separator ── */}
+      <div style={styles.separator}>— or configure a provider directly —</div>
+
+      {/* ── Manual AI Configuration ── */}
+      <section style={{ ...styles.section, ...(isManualConfigMuted ? styles.mutedSection : {}) }}>
         <h2 style={styles.sectionTitle}>AI Configuration</h2>
         {renderProviderField(selectedProvider, sortedProviders, loadingProviders, handleProviderChange)}
         {renderModelField(selectedProvider, selectedModel, modelEntries, loadingModels, handleModelChange)}
@@ -572,5 +699,53 @@ const styles: Record<string, React.CSSProperties> = {
     border: "1px solid #d1d5db",
     borderRadius: 8,
     cursor: "pointer",
+  },
+  openRouterSignInButton: {
+    padding: "0.75rem 1.5rem",
+    fontSize: "1rem",
+    fontWeight: 600,
+    color: "#fff",
+    backgroundColor: "#f97316",
+    border: "none",
+    borderRadius: 8,
+    cursor: "pointer",
+    width: "100%",
+  },
+  openRouterConnected: {
+    fontSize: "0.9375rem",
+    fontWeight: 600,
+    color: "#16a34a",
+    margin: "0 0 0.25rem",
+  },
+  openRouterProcessing: {
+    fontSize: "0.875rem",
+    color: "#f97316",
+    fontWeight: 500,
+    margin: "0 0 0.5rem",
+  },
+  openRouterError: {
+    fontSize: "0.8125rem",
+    color: "#dc2626",
+    margin: "0.5rem 0 0",
+    lineHeight: 1.5,
+  },
+  disconnectButton: {
+    padding: "0.5rem 1rem",
+    fontSize: "0.875rem",
+    fontWeight: 500,
+    color: "#dc2626",
+    backgroundColor: "#fef2f2",
+    border: "1px solid #fecaca",
+    borderRadius: 8,
+    cursor: "pointer",
+  },
+  separator: {
+    textAlign: "center" as const,
+    fontSize: "0.8125rem",
+    color: "#9ca3af",
+    margin: "0 0 2rem",
+  },
+  mutedSection: {
+    opacity: 0.5,
   },
 };
