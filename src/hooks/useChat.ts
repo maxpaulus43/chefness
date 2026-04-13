@@ -20,7 +20,9 @@
  */
 import { useState, useRef, useCallback } from "react";
 import { useSettings } from "@/hooks/useSettings";
+import { useCookingLog } from "@/hooks/useCookingLog";
 import { streamChat } from "@/lib/llm-stream";
+import type { CookingLogEntry } from "@/types/cooking-log";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -42,9 +44,30 @@ export type MealSize = "1" | "2" | "4" | "6+";
 // System prompt construction (PRD §4.1)
 // ---------------------------------------------------------------------------
 
+function formatCookingLogEntry(entry: CookingLogEntry): string {
+  const dayName = new Intl.DateTimeFormat("en-US", { weekday: "long" }).format(
+    new Date(entry.date + "T00:00:00"),
+  );
+
+  let line = `- ${dayName}: ${entry.title}`;
+
+  if (entry.rating === "up") {
+    line += " (👍)";
+  } else if (entry.rating === "down") {
+    line += " (👎)";
+  }
+
+  if (entry.comment) {
+    line += ` "${entry.comment}"`;
+  }
+
+  return line;
+}
+
 function buildSystemPrompt(
   mealType: MealType | null,
   mealSize: MealSize | null,
+  recentHistory: CookingLogEntry[],
 ): string {
   const parts: string[] = [
     `You are Chefness, a friendly and knowledgeable AI cooking guru. You help users
@@ -59,6 +82,11 @@ answer cooking-related questions.`,
   if (mealSize) {
     const sizeLabel = mealSize === "6+" ? "6 or more" : mealSize;
     parts.push(`The user is cooking for ${sizeLabel} people.`);
+  }
+
+  if (recentHistory.length > 0) {
+    const lines = recentHistory.map(formatCookingLogEntry);
+    parts.push(`Recent cooking history (last 7 days):\n${lines.join("\n")}`);
   }
 
   parts.push(
@@ -95,6 +123,7 @@ function friendlyError(err: unknown): string {
 
 export function useChat() {
   const { llmProvider, llmModel, llmApiKey, isConfigured } = useSettings();
+  const { recentEntries } = useCookingLog();
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
@@ -126,7 +155,7 @@ export function useChat() {
       abortRef.current = controller;
 
       try {
-        const systemPrompt = buildSystemPrompt(mealType, mealSize);
+        const systemPrompt = buildSystemPrompt(mealType, mealSize, recentEntries);
 
         const finalText = await streamChat({
           providerId: llmProvider,
@@ -175,7 +204,7 @@ export function useChat() {
         setIsStreaming(false);
       }
     },
-    [messages, mealType, mealSize, llmProvider, llmModel, llmApiKey, isConfigured],
+    [messages, mealType, mealSize, recentEntries, llmProvider, llmModel, llmApiKey, isConfigured],
   );
 
   const clearChat = useCallback(() => {
