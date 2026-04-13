@@ -415,7 +415,7 @@ const styles: Record<string, React.CSSProperties> = {
   select: {
     width: "100%",
     padding: "0.625rem 0.75rem",
-    fontSize: "0.9375rem",
+    fontSize: "1rem",
     border: "1px solid #d1d5db",
     borderRadius: 8,
     backgroundColor: "#fff",
@@ -431,7 +431,7 @@ const styles: Record<string, React.CSSProperties> = {
   input: {
     flex: 1,
     padding: "0.625rem 0.75rem",
-    fontSize: "0.9375rem",
+    fontSize: "1rem",
     border: "1px solid #d1d5db",
     borderRadius: 8,
     backgroundColor: "#fff",

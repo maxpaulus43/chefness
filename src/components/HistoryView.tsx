@@ -375,7 +375,7 @@ const styles: Record<string, React.CSSProperties> = {
     width: "100%",
     boxSizing: "border-box" as const,
     padding: "0.5rem",
-    fontSize: "0.875rem",
+    fontSize: "1rem",
     fontFamily: "inherit",
     border: "1px solid #d1d5db",
     borderRadius: 8,

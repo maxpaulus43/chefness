@@ -274,12 +274,6 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  useEffect(() => {
-    if (messages.length === 0 && isConfigured) {
-      inputRef.current?.focus();
-    }
-  }, [messages.length, isConfigured]);
-
   const handleSend = useCallback(() => {
     const text = inputValue.trim();
     if (!text || isStreaming) return;
@@ -407,22 +401,16 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
                   key={i}
                   style={msg.role === "user" ? styles.userRow : styles.asstRow}
                 >
-                  <div
-                    style={
-                      msg.role === "user"
-                        ? styles.userBubble
-                        : styles.asstBubble
-                    }
-                  >
+                  {msg.role === "assistant" ? (
+                  <div style={styles.asstMessageColumn}>
+                  <div style={styles.asstBubble}>
                     <span style={styles.msgText}>{msg.content}</span>
-                    {msg.role === "assistant" &&
-                      msg.content === "" &&
-                      isStreaming && (
-                        <span style={styles.typing}>●●●</span>
-                      )}
+                    {msg.content === "" && isStreaming && (
+                      <span style={styles.typing}>●●●</span>
+                    )}
                   </div>
                   {showActionBtns && (
-                    <div style={styles.saveRow}>
+                    <div style={styles.actionRow}>
                       {action.save === "idle" && (
                         <button
                           type="button"
@@ -543,6 +531,12 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
                         </div>
                       )}
                     </div>
+                  )}
+                  </div>
+                  ) : (
+                  <div style={styles.userBubble}>
+                    <span style={styles.msgText}>{msg.content}</span>
+                  </div>
                   )}
                 </div>
               );
@@ -788,6 +782,13 @@ const styles: Record<string, React.CSSProperties> = {
   },
   userRow: { display: "flex", justifyContent: "flex-end" },
   asstRow: { display: "flex", justifyContent: "flex-start" },
+  asstMessageColumn: {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "flex-start",
+    maxWidth: "80%",
+    gap: "0.375rem",
+  },
   userBubble: {
     maxWidth: "80%",
     padding: "0.625rem 0.875rem",
@@ -799,7 +800,6 @@ const styles: Record<string, React.CSSProperties> = {
     wordBreak: "break-word" as const,
   },
   asstBubble: {
-    maxWidth: "80%",
     padding: "0.625rem 0.875rem",
     borderRadius: "16px 16px 16px 4px",
     backgroundColor: "#f3f4f6",
@@ -943,7 +943,7 @@ const styles: Record<string, React.CSSProperties> = {
   textInput: {
     flex: 1,
     padding: "0.625rem 0.875rem",
-    fontSize: "0.9375rem",
+    fontSize: "1rem",
     border: "1px solid #d1d5db",
     borderRadius: 10,
     backgroundColor: "#fff",
@@ -967,14 +967,14 @@ const styles: Record<string, React.CSSProperties> = {
   },
   sendBtnDisabled: { opacity: 0.5, cursor: "not-allowed" },
 
-  // Save Recipe button styles
-  saveRow: {
-    marginTop: "0.25rem",
+  // Action buttons row (below assistant bubble)
+  actionRow: {
     display: "flex",
-    alignItems: "center",
-    gap: "0.5rem",
     flexWrap: "wrap" as const,
+    gap: "0.375rem",
+    alignItems: "center",
   },
+  // Save Recipe button styles
   saveBtn: {
     padding: "0.375rem 0.75rem",
     fontSize: "0.8125rem",
