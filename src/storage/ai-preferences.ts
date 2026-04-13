@@ -1,7 +1,7 @@
 /**
  * AI preference repository — the single source of truth for AI preference persistence.
  *
- * Currently backed by `LocalStorageRepository`. To migrate to a real
+ * Currently backed by `IndexedDBRepository`. To migrate to a real
  * backend, replace the implementation here (e.g. instantiate an
  * `HttpAiPreferenceRepository`) and re-export it. The rest of the app —
  * including every tRPC procedure — stays untouched because it only
@@ -13,7 +13,7 @@ import type {
   CreateAiPreferenceInput,
   UpdateAiPreferenceInput,
 } from "@/types/ai-preference";
-import { LocalStorageRepository } from "@/storage/local-storage";
+import { IndexedDBRepository } from "@/storage/indexed-db";
 import { generateUUID } from "@/lib/uuid";
 
 /** Concrete type alias so consumers don't need to spell out the generics. */
@@ -24,12 +24,12 @@ export type AiPreferenceRepository = StorageRepository<
 >;
 
 export const aiPreferenceRepository: AiPreferenceRepository =
-  new LocalStorageRepository<
+  new IndexedDBRepository<
     AiPreference,
     CreateAiPreferenceInput,
     UpdateAiPreferenceInput
   >({
-    storageKey: "chefness:ai-preferences",
+    storeName: "ai-preferences",
 
     buildEntity: (data) => {
       const now = new Date().toISOString();

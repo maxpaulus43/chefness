@@ -1,7 +1,7 @@
 /**
  * Chat session repository — the single source of truth for chat session persistence.
  *
- * Currently backed by `LocalStorageRepository`. To migrate to a real
+ * Currently backed by `IndexedDBRepository`. To migrate to a real
  * backend, replace the implementation here (e.g. instantiate an
  * `HttpChatSessionRepository`) and re-export it. The rest of the app —
  * including every tRPC procedure — stays untouched because it only
@@ -13,7 +13,7 @@ import type {
   CreateChatSessionInput,
   UpdateChatSessionInput,
 } from "@/types/chat-session";
-import { LocalStorageRepository } from "@/storage/local-storage";
+import { IndexedDBRepository } from "@/storage/indexed-db";
 import { generateUUID } from "@/lib/uuid";
 
 /** Concrete type alias so consumers don't need to spell out the generics. */
@@ -24,12 +24,12 @@ export type ChatSessionRepository = StorageRepository<
 >;
 
 export const chatSessionRepository: ChatSessionRepository =
-  new LocalStorageRepository<
+  new IndexedDBRepository<
     ChatSession,
     CreateChatSessionInput,
     UpdateChatSessionInput
   >({
-    storageKey: "chefness:chat-sessions",
+    storeName: "chat-sessions",
 
     buildEntity: (data) => {
       const now = new Date().toISOString();

@@ -1,7 +1,7 @@
 /**
  * Settings repository — the single source of truth for settings persistence.
  *
- * Currently backed by `LocalStorageRepository`. To migrate to a real
+ * Currently backed by `IndexedDBRepository`. To migrate to a real
  * backend, replace the implementation here (e.g. instantiate an
  * `HttpSettingsRepository`) and re-export it. The rest of the app —
  * including every tRPC procedure — stays untouched because it only
@@ -9,7 +9,7 @@
  */
 import type { StorageRepository } from "@/storage/interface";
 import type { Settings, CreateSettingsInput, UpdateSettingsInput } from "@/types/settings";
-import { LocalStorageRepository } from "@/storage/local-storage";
+import { IndexedDBRepository } from "@/storage/indexed-db";
 
 /** Concrete type alias so consumers don't need to spell out the generics. */
 export type SettingsRepository = StorageRepository<
@@ -21,12 +21,12 @@ export type SettingsRepository = StorageRepository<
 /** Fixed singleton ID — there is only ever one settings entity. */
 export const SETTINGS_SINGLETON_ID = "user-settings";
 
-export const settingsRepository: SettingsRepository = new LocalStorageRepository<
+export const settingsRepository: SettingsRepository = new IndexedDBRepository<
   Settings,
   CreateSettingsInput,
   UpdateSettingsInput
 >({
-  storageKey: "chefness:settings",
+  storeName: "settings",
 
   buildEntity: (data) => {
     const now = new Date().toISOString();

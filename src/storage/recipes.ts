@@ -1,7 +1,7 @@
 /**
  * Recipe repository — the single source of truth for recipe persistence.
  *
- * Currently backed by `LocalStorageRepository`. To migrate to a real
+ * Currently backed by `IndexedDBRepository`. To migrate to a real
  * backend, replace the implementation here (e.g. instantiate an
  * `HttpRecipeRepository`) and re-export it. The rest of the app —
  * including every tRPC procedure — stays untouched because it only
@@ -9,7 +9,7 @@
  */
 import type { StorageRepository } from "@/storage/interface";
 import type { Recipe, CreateRecipeInput, UpdateRecipeInput } from "@/types/recipe";
-import { LocalStorageRepository } from "@/storage/local-storage";
+import { IndexedDBRepository } from "@/storage/indexed-db";
 import { generateUUID } from "@/lib/uuid";
 
 /** Concrete type alias so consumers don't need to spell out the generics. */
@@ -19,12 +19,12 @@ export type RecipeRepository = StorageRepository<
   UpdateRecipeInput
 >;
 
-export const recipeRepository: RecipeRepository = new LocalStorageRepository<
+export const recipeRepository: RecipeRepository = new IndexedDBRepository<
   Recipe,
   CreateRecipeInput,
   UpdateRecipeInput
 >({
-  storageKey: "chefness:recipes",
+  storeName: "recipes",
 
   buildEntity: (data) => {
     const now = new Date().toISOString();

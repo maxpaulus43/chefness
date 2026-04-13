@@ -1,7 +1,7 @@
 /**
  * Cooking log repository — the single source of truth for cooking log persistence.
  *
- * Currently backed by `LocalStorageRepository`. To migrate to a real
+ * Currently backed by `IndexedDBRepository`. To migrate to a real
  * backend, replace the implementation here (e.g. instantiate an
  * `HttpCookingLogRepository`) and re-export it. The rest of the app —
  * including every tRPC procedure — stays untouched because it only
@@ -13,7 +13,7 @@ import type {
   CreateCookingLogInput,
   UpdateCookingLogInput,
 } from "@/types/cooking-log";
-import { LocalStorageRepository } from "@/storage/local-storage";
+import { IndexedDBRepository } from "@/storage/indexed-db";
 import { generateUUID } from "@/lib/uuid";
 
 /** Concrete type alias so consumers don't need to spell out the generics. */
@@ -24,12 +24,12 @@ export type CookingLogRepository = StorageRepository<
 >;
 
 export const cookingLogRepository: CookingLogRepository =
-  new LocalStorageRepository<
+  new IndexedDBRepository<
     CookingLogEntry,
     CreateCookingLogInput,
     UpdateCookingLogInput
   >({
-    storageKey: "chefness:cooking-log",
+    storeName: "cooking-log",
 
     buildEntity: (data) => {
       const now = new Date().toISOString();
