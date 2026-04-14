@@ -6,7 +6,31 @@
  * all of that lives here.
  */
 import { trpc } from "@/trpc/client";
-import type { UpdateSettingsInput } from "@/types/settings";
+import type { Settings, UpdateSettingsInput } from "@/types/settings";
+
+/**
+ * Stable fallback used while the settings singleton hasn't been fetched yet.
+ *
+ * Defined at module scope so every render sees the **same object reference**.
+ * This prevents infinite-loop re-renders caused by `useEffect` deps that
+ * compare by reference (e.g. the `dietaryRestrictions` array in SettingsView).
+ *
+ * Typed as `Settings` so the compiler will error if a new field is added to
+ * the schema without being given a default here.
+ */
+const EMPTY_RESTRICTIONS: string[] = [];
+
+const DEFAULT_SETTINGS: Settings = {
+  id: "user-settings",
+  llmProvider: "",
+  llmModel: "",
+  llmApiKey: "",
+  openRouterOAuthKey: "",
+  dietaryRestrictions: EMPTY_RESTRICTIONS,
+  otherDietaryNotes: "",
+  createdAt: "",
+  updatedAt: "",
+};
 
 export function useSettings() {
   const utils = trpc.useUtils();
@@ -19,17 +43,7 @@ export function useSettings() {
     },
   });
 
-  const settings = getQuery.data ?? {
-    id: "user-settings",
-    llmProvider: "",
-    llmModel: "",
-    llmApiKey: "",
-    openRouterOAuthKey: "",
-    dietaryRestrictions: [] as string[],
-    otherDietaryNotes: "",
-    createdAt: "",
-    updatedAt: "",
-  };
+  const settings = getQuery.data ?? DEFAULT_SETTINGS;
 
   // Resolve effective LLM credentials — prefer manual config, fall back to OpenRouter OAuth
   const effectiveProvider = settings.llmApiKey
