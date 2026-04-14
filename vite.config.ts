@@ -11,6 +11,12 @@ export default defineConfig({
     workbox: {
       globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
       navigateFallback: "index.html",
+      navigateFallbackDenylist: [
+        // Do not serve cached index.html for OAuth callback navigations.
+        // Prevents iOS Safari "response served by service worker has
+        // redirections" error when returning from OpenRouter with ?code=.
+        /[?&]code=/,
+      ],
     },
     devOptions: {
       enabled: true,

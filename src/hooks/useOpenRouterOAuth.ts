@@ -39,7 +39,18 @@ export function useOpenRouterOAuth() {
     sessionStorage.setItem(SESSION_KEY, verifier);
 
     const callbackUrl = window.location.origin + window.location.pathname;
-    window.location.href = buildAuthUrl(callbackUrl, challenge);
+    const authUrl = buildAuthUrl(callbackUrl, challenge);
+
+    // Use a temporary <a> click instead of setting window.location.href.
+    // On iOS Safari, programmatic location changes route through the service
+    // worker's fetch handler, which can cause "a response served by service
+    // worker has redirections" errors for cross-origin navigations.
+    const a = document.createElement("a");
+    a.href = authUrl;
+    a.rel = "noreferrer";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   }, []);
 
   // ------------------------------------------------------------------
