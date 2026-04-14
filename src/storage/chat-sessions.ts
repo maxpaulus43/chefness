@@ -35,7 +35,9 @@ export const chatSessionRepository: ChatSessionRepository =
       const now = new Date().toISOString();
       return {
         id: generateUUID(),
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- defensive: Zod defaults may not have been applied yet
         title: data.title ?? "New conversation",
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- defensive: Zod defaults may not have been applied yet
         messages: data.messages ?? [],
         mealType: data.mealType ?? null,
         mealSize: data.mealSize ?? null,

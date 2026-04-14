@@ -42,7 +42,7 @@ function openDatabase(): Promise<IDBDatabase> {
       }
     };
     request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
+    request.onerror = () => reject(request.error ?? new Error("Failed to open IndexedDB"));
   });
 }
 
@@ -50,7 +50,7 @@ let dbPromise: Promise<IDBDatabase> | null = null;
 
 /** Return the shared `IDBDatabase` instance (opened lazily on first call). */
 export function getDB(): Promise<IDBDatabase> {
-  if (!dbPromise) dbPromise = openDatabase();
+  dbPromise ??= openDatabase();
   return dbPromise;
 }
 
@@ -98,7 +98,7 @@ export class IndexedDBRepository<
       const store = tx.objectStore(this.storeName);
       const request = store.getAll();
       request.onsuccess = () => resolve(request.result as TEntity[]);
-      request.onerror = () => reject(request.error);
+      request.onerror = () => reject(request.error ?? new Error("Failed to get all entities"));
     });
   }
 
@@ -110,7 +110,7 @@ export class IndexedDBRepository<
       const request = store.get(id);
       request.onsuccess = () =>
         resolve((request.result as TEntity | undefined) ?? undefined);
-      request.onerror = () => reject(request.error);
+      request.onerror = () => reject(request.error ?? new Error("Failed to get entity by ID"));
     });
   }
 
@@ -122,7 +122,7 @@ export class IndexedDBRepository<
       const store = tx.objectStore(this.storeName);
       const request = store.put(entity);
       request.onsuccess = () => resolve(entity);
-      request.onerror = () => reject(request.error);
+      request.onerror = () => reject(request.error ?? new Error("Failed to create entity"));
     });
   }
 
@@ -142,10 +142,10 @@ export class IndexedDBRepository<
         const updated = this.applyUpdate(existing, data);
         const putRequest = store.put(updated);
         putRequest.onsuccess = () => resolve(updated);
-        putRequest.onerror = () => reject(putRequest.error);
+        putRequest.onerror = () => reject(putRequest.error ?? new Error("Failed to put updated entity"));
       };
 
-      getRequest.onerror = () => reject(getRequest.error);
+      getRequest.onerror = () => reject(getRequest.error ?? new Error("Failed to get entity for update"));
     });
   }
 
@@ -163,10 +163,10 @@ export class IndexedDBRepository<
         }
         const deleteRequest = store.delete(id);
         deleteRequest.onsuccess = () => resolve(true);
-        deleteRequest.onerror = () => reject(deleteRequest.error);
+        deleteRequest.onerror = () => reject(deleteRequest.error ?? new Error("Failed to delete entity"));
       };
 
-      getRequest.onerror = () => reject(getRequest.error);
+      getRequest.onerror = () => reject(getRequest.error ?? new Error("Failed to get entity for deletion"));
     });
   }
 }

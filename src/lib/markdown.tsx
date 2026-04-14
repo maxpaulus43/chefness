@@ -88,7 +88,7 @@ function parseBlocks(content: string): Block[] {
     }
 
     // Heading
-    const headingMatch = line.match(/^(#{1,3})\s+(.+)/);
+    const headingMatch = /^(#{1,3})\s+(.+)/.exec(line);
     if (headingMatch) {
       blocks.push({ type: "heading", level: headingMatch[1]!.length, content: headingMatch[2]! });
       i++;

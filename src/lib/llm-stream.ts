@@ -55,6 +55,7 @@ async function* parseSSE(
   const decoder = new TextDecoder();
   let buffer = "";
 
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- standard infinite loop pattern
   while (true) {
     if (signal?.aborted) return;
     const { done, value } = await reader.read();
@@ -131,7 +132,7 @@ async function streamOpenAI(
     for await (const payload of parseSSE(reader, signal)) {
       try {
         const json = JSON.parse(payload) as {
-          choices?: Array<{ delta?: { content?: string } }>;
+          choices?: { delta?: { content?: string } }[];
         };
         const token = json.choices?.[0]?.delta?.content;
         if (token) {
@@ -296,13 +297,13 @@ async function callWithToolsOpenAI(
   }
 
   const json = (await response.json()) as {
-    choices?: Array<{
+    choices?: {
       message?: {
-        tool_calls?: Array<{
+        tool_calls?: {
           function?: { name?: string; arguments?: string };
-        }>;
+        }[];
       };
-    }>;
+    }[];
   };
 
   const toolCall = json.choices?.[0]?.message?.tool_calls?.[0];
@@ -377,11 +378,11 @@ async function callWithToolsAnthropic(
   }
 
   const json = (await response.json()) as {
-    content?: Array<{
+    content?: {
       type?: string;
       name?: string;
       input?: Record<string, unknown>;
-    }>;
+    }[];
   };
 
   const toolUseBlock = json.content?.find((b) => b.type === "tool_use");
@@ -424,6 +425,7 @@ export async function callWithTools(
     model: modelId,
     apiKey,
   });
+  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- empty string should also fall through
   const baseUrl = config.baseUrl || providerInfo?.baseUrl;
 
   if (!baseUrl) {
@@ -475,6 +477,7 @@ export async function streamChat(options: StreamOptions): Promise<string> {
   // browser build's internal lookup table filters those out. Fall back to
   // the provider registry's baseUrl when that happens.
   const config = toProviderConfig({ provider: providerId, model: modelId, apiKey });
+  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- empty string should also fall through
   const baseUrl = config.baseUrl || providerInfo?.baseUrl;
 
   if (!baseUrl) {

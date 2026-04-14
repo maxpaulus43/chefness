@@ -199,7 +199,9 @@ export function useChat() {
         memorySaved: m.memorySaved,
       })),
     );
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- runtime data from IndexedDB may be null despite type assertion
     setMealType((mostRecent.mealType as MealType) ?? null);
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- runtime data from IndexedDB may be null despite type assertion
     setMealSize((mostRecent.mealSize as MealSize) ?? null);
   }, [sessions]);
 
@@ -414,7 +416,9 @@ export function useChat() {
           memorySaved: m.memorySaved,
         })),
       );
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- runtime data from IndexedDB may be null despite type assertion
       setMealType((session.mealType as MealType) ?? null);
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- runtime data from IndexedDB may be null despite type assertion
       setMealSize((session.mealSize as MealSize) ?? null);
     },
     [sessions],

@@ -13,7 +13,7 @@
 import { getDB } from "@/storage/indexed-db";
 
 /** Mapping from localStorage key → IndexedDB object store name. */
-const MIGRATION_MAP: ReadonlyArray<{ localStorageKey: string; storeName: string }> = [
+const MIGRATION_MAP: readonly { localStorageKey: string; storeName: string }[] = [
   { localStorageKey: "chefness:recipes", storeName: "recipes" },
   { localStorageKey: "chefness:settings", storeName: "settings" },
   { localStorageKey: "chefness:cooking-log", storeName: "cooking-log" },
@@ -23,18 +23,18 @@ const MIGRATION_MAP: ReadonlyArray<{ localStorageKey: string; storeName: string 
 
 export async function migrateFromLocalStorage(): Promise<void> {
   // Collect entries that actually need migration.
-  const pending: Array<{
+  const pending: {
     localStorageKey: string;
     storeName: string;
-    entities: Array<{ id: string }>;
-  }> = [];
+    entities: { id: string }[];
+  }[] = [];
 
   for (const { localStorageKey, storeName } of MIGRATION_MAP) {
     const raw = localStorage.getItem(localStorageKey);
     if (!raw) continue;
 
     try {
-      const entities = JSON.parse(raw) as Array<{ id: string }>;
+      const entities = JSON.parse(raw) as { id: string }[];
       if (Array.isArray(entities) && entities.length > 0) {
         pending.push({ localStorageKey, storeName, entities });
       } else {
@@ -64,8 +64,8 @@ export async function migrateFromLocalStorage(): Promise<void> {
         localStorage.removeItem(localStorageKey);
         resolve();
       };
-      tx.onerror = () => reject(tx.error);
-      tx.onabort = () => reject(tx.error);
+      tx.onerror = () => reject(tx.error ?? new Error("Migration transaction failed"));
+      tx.onabort = () => reject(tx.error ?? new Error("Migration transaction aborted"));
     });
   }
 }

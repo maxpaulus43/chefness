@@ -25,6 +25,7 @@ export function useClipboard() {
       timeoutRef.current = null;
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- clipboard API may be unavailable in insecure contexts
     if (!navigator.clipboard) {
       setError("Clipboard not available in this browser.");
       return false;

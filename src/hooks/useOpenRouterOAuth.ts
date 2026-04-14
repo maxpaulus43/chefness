@@ -56,6 +56,7 @@ export function useOpenRouterOAuth() {
   // ------------------------------------------------------------------
   // On mount: detect ?code= param and exchange it
   // ------------------------------------------------------------------
+  /* eslint-disable react-hooks/set-state-in-effect -- intentional: OAuth callback side-effect sets error/processing state */
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const code = params.get("code");
@@ -89,6 +90,7 @@ export function useOpenRouterOAuth() {
         setIsProcessingCallback(false);
       });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps -- intentional mount-only
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   return {
     /** Kick off the OpenRouter OAuth PKCE flow. */

@@ -32,6 +32,7 @@ export function RecipeEditView({
   const recipe = recipes.find((r) => r.id === recipeId);
 
   // Populate local state when recipe data becomes available.
+  /* eslint-disable react-hooks/set-state-in-effect -- intentional: syncing local form state from fetched data */
   useEffect(() => {
     if (recipe) {
       setTitle(recipe.title);
@@ -40,6 +41,7 @@ export function RecipeEditView({
       setStepsText(recipe.steps.join("\n"));
     }
   }, [recipe]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   if (isLoading) {
     return (

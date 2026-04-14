@@ -206,7 +206,7 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
   const handleSaveRecipe = useCallback(
     async (index: number) => {
       const msg = messages[index];
-      if (!msg || msg.role !== "assistant") return;
+      if (msg?.role !== "assistant") return;
 
       dispatch({ type: "SAVE_START", index });
 
@@ -236,7 +236,7 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
   const handleLogCook = useCallback(
     async (index: number) => {
       const msg = messages[index];
-      if (!msg || msg.role !== "assistant") return;
+      if (msg?.role !== "assistant") return;
 
       dispatch({ type: "LOG_START", index });
 
@@ -265,7 +265,7 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
   const handleSaveMemory = useCallback(
     async (index: number) => {
       const msg = messages[index];
-      if (!msg || msg.role !== "assistant") return;
+      if (msg?.role !== "assistant") return;
 
       dispatch({ type: "MEMORY_START", index });
 
