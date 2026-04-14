@@ -170,9 +170,13 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
 
   const [inputValue, setInputValue] = useState("");
   const [showSessionList, setShowSessionList] = useState(false);
+  const [showScrollToBottom, setShowScrollToBottom] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messageAreaRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const lastUserMessageRef = useRef<string>("");
+  const isNearBottomRef = useRef(true);
+  const prevMessageCountRef = useRef(0);
 
   // Per-message action state (save recipe + cooking log)
   const [actionStates, dispatch] = useReducer(
@@ -303,9 +307,56 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
     dispatch({ type: "MEMORY_RETRY", index });
   }, []);
 
+  // Smart auto-scroll: only scroll to bottom when the user is already near the bottom.
+  const SCROLL_THRESHOLD = 150;
+
+  const checkIfNearBottom = useCallback(() => {
+    const el = messageAreaRef.current;
+    if (!el) return true;
+    return el.scrollTop + el.clientHeight >= el.scrollHeight - SCROLL_THRESHOLD;
+  }, []);
+
+  const scrollToBottom = useCallback((behavior: ScrollBehavior = "smooth") => {
+    messagesEndRef.current?.scrollIntoView({ behavior });
+  }, []);
+
+  const handleMessageAreaScroll = useCallback(() => {
+    const nearBottom = checkIfNearBottom();
+    isNearBottomRef.current = nearBottom;
+    setShowScrollToBottom(!nearBottom && isStreaming);
+  }, [checkIfNearBottom, isStreaming]);
+
+  // When streaming ends, hide the scroll-to-bottom button
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    if (!isStreaming) {
+      setShowScrollToBottom(false);
+    }
+  }, [isStreaming]);
+
+  useEffect(() => {
+    const currentCount = messages.length;
+    const prevCount = prevMessageCountRef.current;
+    prevMessageCountRef.current = currentCount;
+
+    // A new message was added (user sent a message or new assistant response started)
+    // — always scroll to bottom for that.
+    if (currentCount > prevCount) {
+      isNearBottomRef.current = true;
+      scrollToBottom();
+      return;
+    }
+
+    // Streaming token update — only auto-scroll if user is near the bottom.
+    if (isNearBottomRef.current) {
+      scrollToBottom();
+    }
+  }, [messages, scrollToBottom]);
+
+  const handleScrollToBottomClick = useCallback(() => {
+    isNearBottomRef.current = true;
+    setShowScrollToBottom(false);
+    scrollToBottom("smooth");
+  }, [scrollToBottom]);
 
   const handleSend = useCallback(() => {
     const text = inputValue.trim();
@@ -417,7 +468,7 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
           />
         </div>
       ) : (
-      <div style={styles.messageArea}>
+      <div ref={messageAreaRef} onScroll={handleMessageAreaScroll} style={styles.messageArea}>
         {!hasMessages ? renderEmptyState(handleSuggestionTap) : (
           <div style={styles.messageList}>
             {messages.map((msg, i) => {
@@ -578,6 +629,17 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
           </div>
         )}
       </div>
+      )}
+
+      {showScrollToBottom && (
+        <button
+          type="button"
+          onClick={handleScrollToBottomClick}
+          style={styles.scrollToBottomBtn}
+          aria-label="Scroll to bottom"
+        >
+          ↓ Scroll to bottom
+        </button>
       )}
 
       {!showSessionList && error && renderErrorBanner(error, handleRetry)}
@@ -751,6 +813,7 @@ const styles: Record<string, React.CSSProperties> = {
     flexDirection: "column",
     height: "100%",
     minWidth: 0,
+    position: "relative" as const,
   },
   header: {
     display: "flex",
@@ -1097,6 +1160,26 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: "0.8125rem",
     fontWeight: 500,
     color: "#16a34a",
+  },
+
+  // "↓ Scroll to bottom" floating button
+  scrollToBottomBtn: {
+    position: "absolute" as const,
+    bottom: 120,
+    left: "50%",
+    transform: "translateX(-50%)",
+    padding: "0.5rem 1rem",
+    fontSize: "0.8125rem",
+    fontWeight: 600,
+    color: "#374151",
+    backgroundColor: "#fff",
+    border: "1px solid #d1d5db",
+    borderRadius: 20,
+    boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
+    cursor: "pointer",
+    zIndex: 10,
+    whiteSpace: "nowrap" as const,
+    minHeight: 36,
   },
 };
 
