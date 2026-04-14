@@ -1,6 +1,7 @@
 import { useChatSessions } from "@/hooks/useChatSessions";
 import type { ChatSession } from "@/types/chat-session";
 import { useCallback } from "react";
+import DeleteButton from "./DeleteButton";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -129,24 +130,9 @@ export function ChatSessionList({
                                     </span>
                                 )}
                             </div>
-                            <div
-                                style={styles.deleteBtn}
-                                role="button"
-                                tabIndex={0}
-                                aria-label={`Delete "${session.title}"`}
-                                onClick={(e) => handleDelete(e, session)}
-                                onKeyDown={(e) => {
-                                    if (e.key === "Enter" || e.key === " ") {
-                                        e.preventDefault();
-                                        handleDelete(
-                                            e as unknown as React.MouseEvent,
-                                            session,
-                                        );
-                                    }
-                                }}
-                            >
-                                ×
-                            </div>
+                            <DeleteButton
+                                onDelete={(e) => handleDelete(e, session)}
+                            />
                         </button>
                     );
                 })}
