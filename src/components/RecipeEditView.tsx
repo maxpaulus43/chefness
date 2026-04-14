@@ -195,6 +195,7 @@ const styles: Record<string, React.CSSProperties> = {
   container: {
     padding: "1.5rem 1rem 2rem",
     maxWidth: 600,
+    width: "100%",
     margin: "0 auto",
     minWidth: 0,
   },
