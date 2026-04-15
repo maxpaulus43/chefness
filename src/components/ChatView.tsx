@@ -386,7 +386,16 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
 
     const scrollToBottom = useCallback(
         (behavior: ScrollBehavior = "smooth") => {
-            messagesEndRef.current?.scrollIntoView({ behavior });
+            if (behavior === "instant") {
+                // During streaming, set scrollTop directly for reliable,
+                // immediate scrolling that keeps up with rapid token delivery.
+                const el = messageAreaRef.current;
+                if (el) {
+                    el.scrollTop = el.scrollHeight;
+                }
+            } else {
+                messagesEndRef.current?.scrollIntoView({ behavior });
+            }
         },
         [],
     );
@@ -418,8 +427,10 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
         }
 
         // Streaming token update — only auto-scroll if user is near the bottom.
+        // Use "instant" (scrollTop) instead of smooth scrollIntoView so rapid
+        // token delivery (e.g. from OpenRouter) doesn't outrun the animation.
         if (isNearBottomRef.current) {
-            scrollToBottom();
+            scrollToBottom("instant");
         }
     }, [messages, scrollToBottom]);
 
