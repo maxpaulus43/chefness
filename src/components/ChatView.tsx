@@ -216,7 +216,6 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
 
     const [inputValue, setInputValue] = useState("");
     const [showSessionList, setShowSessionList] = useState(false);
-    const [showScrollToBottom, setShowScrollToBottom] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const messageAreaRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
@@ -401,17 +400,8 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
     );
 
     const handleMessageAreaScroll = useCallback(() => {
-        const nearBottom = checkIfNearBottom();
-        isNearBottomRef.current = nearBottom;
-        setShowScrollToBottom(!nearBottom && isStreaming);
-    }, [checkIfNearBottom, isStreaming]);
-
-    // When streaming ends, hide the scroll-to-bottom button
-    useEffect(() => {
-        if (!isStreaming) {
-            setShowScrollToBottom(false);
-        }
-    }, [isStreaming]);
+        isNearBottomRef.current = checkIfNearBottom();
+    }, [checkIfNearBottom]);
 
     useEffect(() => {
         const currentCount = messages.length;
@@ -433,12 +423,6 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
             scrollToBottom("instant");
         }
     }, [messages, scrollToBottom]);
-
-    const handleScrollToBottomClick = useCallback(() => {
-        isNearBottomRef.current = true;
-        setShowScrollToBottom(false);
-        scrollToBottom("smooth");
-    }, [scrollToBottom]);
 
     const handleSend = useCallback(() => {
         const text = inputValue.trim();
@@ -834,17 +818,6 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
                 </div>
             )}
 
-            {showScrollToBottom && (
-                <button
-                    type="button"
-                    onClick={handleScrollToBottomClick}
-                    style={styles.scrollToBottomBtn}
-                    aria-label="Scroll to bottom"
-                >
-                    ↓ Scroll to bottom
-                </button>
-            )}
-
             {!showSessionList && error && renderErrorBanner(error, handleRetry)}
 
             {!showSessionList &&
@@ -1023,7 +996,6 @@ const styles: Record<string, React.CSSProperties> = {
         flexDirection: "column",
         height: "100%",
         minWidth: 0,
-        position: "relative" as const,
     },
     header: {
         display: "flex",
@@ -1372,23 +1344,4 @@ const styles: Record<string, React.CSSProperties> = {
         color: "#16a34a",
     },
 
-    // "↓ Scroll to bottom" floating button
-    scrollToBottomBtn: {
-        position: "absolute" as const,
-        bottom: 120,
-        left: "50%",
-        transform: "translateX(-50%)",
-        padding: "0.5rem 1rem",
-        fontSize: "0.8125rem",
-        fontWeight: 600,
-        color: "#374151",
-        backgroundColor: "#fff",
-        border: "1px solid #d1d5db",
-        borderRadius: 20,
-        boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
-        cursor: "pointer",
-        zIndex: 10,
-        whiteSpace: "nowrap" as const,
-        minHeight: 36,
-    },
 };
