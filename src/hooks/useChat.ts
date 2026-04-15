@@ -40,7 +40,6 @@ export interface ChatMessage {
   content: string;
   /** Persisted action flags — only relevant for assistant messages. */
   savedRecipeId?: string;  // ID of saved recipe, or empty/undefined = not saved
-  cookLogged?: boolean;
   memorySaved?: boolean;
 }
 
@@ -195,7 +194,6 @@ export function useChat() {
         role: m.role,
         content: m.content,
         savedRecipeId: m.savedRecipeId,
-        cookLogged: m.cookLogged,
         memorySaved: m.memorySaved,
       })),
     );
@@ -217,7 +215,6 @@ export function useChat() {
         content: m.content,
         timestamp: new Date().toISOString(),
         savedRecipeId: m.savedRecipeId ?? "",
-        cookLogged: m.cookLogged ?? false,
         memorySaved: m.memorySaved ?? false,
       })),
     [],
@@ -248,7 +245,7 @@ export function useChat() {
    * session so the flag survives tab switches and reloads.
    */
   const setMessageFlag = useCallback(
-    (index: number, flag: "savedRecipeId" | "cookLogged" | "memorySaved", value?: string | boolean) => {
+    (index: number, flag: "savedRecipeId" | "memorySaved", value?: string | boolean) => {
       setMessages((prev) => {
         const next = [...prev];
         const msg = next[index];
@@ -266,7 +263,6 @@ export function useChat() {
             content: m.content,
             timestamp: new Date().toISOString(),
             savedRecipeId: m.savedRecipeId ?? "",
-            cookLogged: m.cookLogged ?? false,
             memorySaved: m.memorySaved ?? false,
           })) as ChatSessionMessage[];
           updateSession({
@@ -412,7 +408,6 @@ export function useChat() {
           role: m.role,
           content: m.content,
           savedRecipeId: m.savedRecipeId,
-          cookLogged: m.cookLogged,
           memorySaved: m.memorySaved,
         })),
       );

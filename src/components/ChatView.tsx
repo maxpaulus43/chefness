@@ -2,7 +2,6 @@ import { ChatSessionList } from "@/components/ChatSessionList";
 import { useChat } from "@/hooks/useChat";
 import type { MealType, MealSize } from "@/hooks/useChat";
 import { useAiPreferences } from "@/hooks/useAiPreferences";
-import { useCookingLog } from "@/hooks/useCookingLog";
 import { useRecipes } from "@/hooks/useRecipes";
 import { useSettings } from "@/hooks/useSettings";
 import { Markdown } from "@/lib/markdown";
@@ -13,14 +12,11 @@ import { useState, useEffect, useRef, useCallback, useReducer } from "react";
 // ---------------------------------------------------------------------------
 // Per-message action state — reducer ---------------------------------------------------------------------------
 type SaveStatus = "idle" | "extracting" | "saved" | "error";
-type LogStatus = "idle" | "logging" | "logged" | "error";
 type MemoryStatus = "idle" | "extracting" | "saved" | "error";
 
 interface MessageActionState {
     save: SaveStatus;
     saveError: string | null;
-    log: LogStatus;
-    logError: string | null;
     memory: MemoryStatus;
     memoryError: string | null;
 }
@@ -28,8 +24,6 @@ interface MessageActionState {
 const defaultActionState: MessageActionState = {
     save: "idle",
     saveError: null,
-    log: "idle",
-    logError: null,
     memory: "idle",
     memoryError: null,
 };
@@ -41,10 +35,6 @@ type MessageAction =
     | { type: "SAVE_OK"; index: number }
     | { type: "SAVE_ERR"; index: number; error: string }
     | { type: "SAVE_RETRY"; index: number }
-    | { type: "LOG_START"; index: number }
-    | { type: "LOG_OK"; index: number }
-    | { type: "LOG_ERR"; index: number; error: string }
-    | { type: "LOG_RETRY"; index: number }
     | { type: "MEMORY_START"; index: number }
     | { type: "MEMORY_OK"; index: number }
     | { type: "MEMORY_ERR"; index: number; error: string }
@@ -87,27 +77,6 @@ function messageActionsReducer(
                 ...state,
                 [action.index]: { ...prev, save: "idle", saveError: null },
             };
-        case "LOG_START":
-            return {
-                ...state,
-                [action.index]: { ...prev, log: "logging", logError: null },
-            };
-        case "LOG_OK":
-            return { ...state, [action.index]: { ...prev, log: "logged" } };
-        case "LOG_ERR":
-            return {
-                ...state,
-                [action.index]: {
-                    ...prev,
-                    log: "error",
-                    logError: action.error,
-                },
-            };
-        case "LOG_RETRY":
-            return {
-                ...state,
-                [action.index]: { ...prev, log: "idle", logError: null },
-            };
         case "MEMORY_START":
             return {
                 ...state,
@@ -134,23 +103,6 @@ function messageActionsReducer(
                 [action.index]: { ...prev, memory: "idle", memoryError: null },
             };
     }
-}
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-/** Extract a human-readable title from the first non-empty line of an assistant message. */
-function extractTitleFromMessage(content: string): string {
-    const firstLine =
-        content.split("\n").find((line) => line.trim().length > 0) ??
-        "Untitled meal";
-    return (
-        firstLine
-            .replace(/^#+\s*/, "")
-            .replace(/\*\*/g, "")
-            .trim() || "Untitled meal"
-    );
 }
 
 // ---------------------------------------------------------------------------
@@ -209,7 +161,6 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
     } = useChat();
 
     const { recipes, createRecipeAsync } = useRecipes();
-    const { createEntryAsync } = useCookingLog();
     const { createPreferenceAsync } = useAiPreferences();
     const { effectiveProvider, effectiveModel, effectiveApiKey } =
         useSettings();
@@ -223,7 +174,7 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
     const isNearBottomRef = useRef(true);
     const prevMessageCountRef = useRef(0);
 
-    // Per-message action state (save recipe + cooking log)
+    // Per-message action state (save recipe + save to memory)
     const [actionStates, dispatch] = useReducer(
         messageActionsReducer,
         {} as MessageActionsState,
@@ -242,8 +193,6 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
                 initial[i] = {
                     save: recipeSaved ? "saved" : "idle",
                     saveError: null,
-                    log: msg.cookLogged ? "logged" : "idle",
-                    logError: null,
                     memory: msg.memorySaved ? "saved" : "idle",
                     memoryError: null,
                 };
@@ -290,35 +239,6 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
 
     const handleSaveRetry = useCallback((index: number) => {
         dispatch({ type: "SAVE_RETRY", index });
-    }, []);
-
-    const handleLogCook = useCallback(
-        async (index: number) => {
-            const msg = messages[index];
-            if (msg?.role !== "assistant") return;
-
-            dispatch({ type: "LOG_START", index });
-
-            try {
-                const title = extractTitleFromMessage(msg.content);
-                await createEntryAsync({
-                    title,
-                    date: new Date().toISOString().slice(0, 10),
-                    recipeId: null,
-                });
-                dispatch({ type: "LOG_OK", index });
-                setMessageFlag(index, "cookLogged");
-            } catch (err: unknown) {
-                const errMsg =
-                    err instanceof Error ? err.message : "Failed to log meal.";
-                dispatch({ type: "LOG_ERR", index, error: errMsg });
-            }
-        },
-        [messages, createEntryAsync, setMessageFlag],
-    );
-
-    const handleLogRetry = useCallback((index: number) => {
-        dispatch({ type: "LOG_RETRY", index });
     }, []);
 
     const handleSaveMemory = useCallback(
@@ -650,76 +570,6 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
                                                                     }
                                                                     onClick={() =>
                                                                         handleSaveRetry(
-                                                                            i,
-                                                                        )
-                                                                    }
-                                                                >
-                                                                    Try Again
-                                                                </button>
-                                                            </div>
-                                                        )}
-
-                                                        {action.log ===
-                                                            "idle" && (
-                                                            <button
-                                                                type="button"
-                                                                style={
-                                                                    styles.logBtn
-                                                                }
-                                                                onClick={() =>
-                                                                    void handleLogCook(
-                                                                        i,
-                                                                    )
-                                                                }
-                                                            >
-                                                                I Cooked This!
-                                                            </button>
-                                                        )}
-                                                        {action.log ===
-                                                            "logging" && (
-                                                            <button
-                                                                type="button"
-                                                                style={{
-                                                                    ...styles.logBtn,
-                                                                    ...styles.logBtnDisabled,
-                                                                }}
-                                                                disabled
-                                                            >
-                                                                Logging…
-                                                            </button>
-                                                        )}
-                                                        {action.log ===
-                                                            "logged" && (
-                                                            <span
-                                                                style={
-                                                                    styles.loggedLabel
-                                                                }
-                                                            >
-                                                                ✅ Logged!
-                                                            </span>
-                                                        )}
-                                                        {action.log ===
-                                                            "error" && (
-                                                            <div
-                                                                style={
-                                                                    styles.saveErrorRow
-                                                                }
-                                                            >
-                                                                <span
-                                                                    style={
-                                                                        styles.saveErrorText
-                                                                    }
-                                                                >
-                                                                    {action.logError ??
-                                                                        "Failed to log meal."}
-                                                                </span>
-                                                                <button
-                                                                    type="button"
-                                                                    style={
-                                                                        styles.saveRetryBtn
-                                                                    }
-                                                                    onClick={() =>
-                                                                        handleLogRetry(
                                                                             i,
                                                                         )
                                                                     }
@@ -1296,29 +1146,6 @@ const styles: Record<string, React.CSSProperties> = {
         cursor: "pointer",
         whiteSpace: "nowrap" as const,
         minHeight: 28,
-    },
-
-    // "I Cooked This!" button styles
-    logBtn: {
-        padding: "0.375rem 0.75rem",
-        fontSize: "0.8125rem",
-        fontWeight: 500,
-        color: "#ea580c",
-        backgroundColor: "#fff7ed",
-        border: "1px solid #fed7aa",
-        borderRadius: 8,
-        cursor: "pointer",
-        minHeight: 32,
-        whiteSpace: "nowrap" as const,
-    },
-    logBtnDisabled: {
-        opacity: 0.6,
-        cursor: "not-allowed",
-    },
-    loggedLabel: {
-        fontSize: "0.8125rem",
-        fontWeight: 500,
-        color: "#16a34a",
     },
 
     // "Save to Memory" button styles

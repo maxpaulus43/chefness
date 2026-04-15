@@ -1,6 +1,8 @@
 import { useRecipes } from "@/hooks/useRecipes";
+import { useCookingLog } from "@/hooks/useCookingLog";
 import { useClipboard } from "@/hooks/useClipboard";
 import { recipeToMarkdown } from "@/lib/recipe-markdown";
+import { useState } from "react";
 
 // ---------------------------------------------------------------------------
 // Props
@@ -22,7 +24,11 @@ export function RecipeDetailView({
   onEdit,
 }: RecipeDetailViewProps) {
   const { recipes, isLoading, error, deleteRecipe, isDeleting } = useRecipes();
+  const { createEntryAsync } = useCookingLog();
   const { copyToClipboard, copied, error: clipboardError } = useClipboard();
+
+  const [logStatus, setLogStatus] = useState<"idle" | "logging" | "logged" | "error">("idle");
+  const [logError, setLogError] = useState<string | null>(null);
 
   if (isLoading) {
     return (
@@ -77,6 +83,29 @@ export function RecipeDetailView({
     }
   };
 
+  const handleLogCook = async () => {
+    setLogStatus("logging");
+    setLogError(null);
+    try {
+      await createEntryAsync({
+        title: recipe.title,
+        date: new Date().toISOString().slice(0, 10),
+        recipeId: recipe.id,
+      });
+      setLogStatus("logged");
+    } catch (err: unknown) {
+      const errMsg =
+        err instanceof Error ? err.message : "Failed to log meal.";
+      setLogStatus("error");
+      setLogError(errMsg);
+    }
+  };
+
+  const handleLogRetry = () => {
+    setLogStatus("idle");
+    setLogError(null);
+  };
+
   return (
     <div style={styles.container}>
       <div style={styles.headerRow}>
@@ -84,6 +113,41 @@ export function RecipeDetailView({
           ← Back
         </button>
         <div style={styles.headerActions}>
+          {logStatus === "idle" && (
+            <button
+              type="button"
+              style={styles.logBtn}
+              onClick={() => void handleLogCook()}
+            >
+              I Cooked This!
+            </button>
+          )}
+          {logStatus === "logging" && (
+            <button
+              type="button"
+              style={{ ...styles.logBtn, ...styles.logBtnDisabled }}
+              disabled
+            >
+              Logging…
+            </button>
+          )}
+          {logStatus === "logged" && (
+            <span style={styles.loggedLabel}>✅ Logged!</span>
+          )}
+          {logStatus === "error" && (
+            <div style={styles.logErrorRow}>
+              <span style={styles.logErrorText}>
+                {logError ?? "Failed to log meal."}
+              </span>
+              <button
+                type="button"
+                style={styles.logRetryBtn}
+                onClick={handleLogRetry}
+              >
+                Try Again
+              </button>
+            </div>
+          )}
           <button
             type="button"
             style={copied ? styles.copyButtonCopied : styles.copyButton}
@@ -189,7 +253,9 @@ const styles: Record<string, React.CSSProperties> = {
   },
   headerActions: {
     display: "flex",
+    flexWrap: "wrap" as const,
     gap: "0.5rem",
+    alignItems: "center",
   },
   backButton: {
     padding: "0.5rem 0.875rem",
@@ -310,5 +376,52 @@ const styles: Record<string, React.CSSProperties> = {
     paddingLeft: "0.25rem",
     paddingBottom: "0.5rem",
     borderBottom: "1px solid #f3f4f6",
+  },
+
+  // "I Cooked This!" button styles
+  logBtn: {
+    padding: "0.5rem 0.875rem",
+    fontSize: "0.875rem",
+    fontWeight: 600,
+    color: "#ea580c",
+    backgroundColor: "#fff7ed",
+    border: "1px solid #fed7aa",
+    borderRadius: 8,
+    cursor: "pointer",
+    minHeight: 44,
+    whiteSpace: "nowrap" as const,
+  },
+  logBtnDisabled: {
+    opacity: 0.6,
+    cursor: "not-allowed",
+  },
+  loggedLabel: {
+    fontSize: "0.875rem",
+    fontWeight: 600,
+    color: "#16a34a",
+    padding: "0.5rem 0",
+  },
+  logErrorRow: {
+    display: "flex",
+    alignItems: "center",
+    gap: "0.375rem",
+    flexWrap: "wrap" as const,
+  },
+  logErrorText: {
+    fontSize: "0.8125rem",
+    color: "#dc2626",
+    lineHeight: 1.4,
+  },
+  logRetryBtn: {
+    padding: "0.25rem 0.625rem",
+    fontSize: "0.75rem",
+    fontWeight: 600,
+    color: "#dc2626",
+    backgroundColor: "#fef2f2",
+    border: "1px solid #fecaca",
+    borderRadius: 6,
+    cursor: "pointer",
+    whiteSpace: "nowrap" as const,
+    minHeight: 28,
   },
 };
