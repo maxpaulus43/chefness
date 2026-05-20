@@ -151,6 +151,7 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
         mealType,
         mealSize,
         sendMessage,
+        stopStreaming,
         clearChat,
         setMealType,
         setMealSize,
@@ -362,6 +363,19 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
         setInputValue("");
         void sendMessage(text);
     }, [inputValue, isStreaming, sendMessage]);
+
+    useEffect(() => {
+        if (!isStreaming) return;
+
+        const handleEscape = (e: KeyboardEvent) => {
+            if (e.key !== "Escape") return;
+            e.preventDefault();
+            stopStreaming();
+        };
+
+        window.addEventListener("keydown", handleEscape);
+        return () => window.removeEventListener("keydown", handleEscape);
+    }, [isStreaming, stopStreaming]);
 
     const handleSuggestionTap = useCallback(
         (text: string) => {
@@ -696,6 +710,7 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
                     setInputValue,
                     handleKeyDown,
                     handleSend,
+                    stopStreaming,
                     isStreaming,
                     mealType,
                     mealSize,
@@ -788,6 +803,7 @@ function renderInputArea(
     setInputValue: (v: string) => void,
     onKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void,
     onSend: () => void,
+    onStop: () => void,
     isStreaming: boolean,
     mealType: MealType | null,
     mealSize: MealSize | null,
@@ -795,7 +811,7 @@ function renderInputArea(
     onMealSize: (v: MealSize) => void,
     inputRef: React.RefObject<HTMLTextAreaElement | null>,
 ) {
-    const sendDisabled = isStreaming || !inputValue.trim();
+    const sendDisabled = !isStreaming && !inputValue.trim();
     return (
         <div style={styles.inputArea}>
             <div style={styles.pillRow}>
@@ -842,14 +858,16 @@ function renderInputArea(
                 />
                 <button
                     type="button"
-                    onClick={onSend}
+                    onClick={isStreaming ? onStop : onSend}
                     disabled={sendDisabled}
+                    aria-label={isStreaming ? "Stop streaming response" : "Send message"}
                     style={{
                         ...styles.sendBtn,
+                        ...(isStreaming ? styles.stopBtn : {}),
                         ...(sendDisabled ? styles.sendBtnDisabled : {}),
                     }}
                 >
-                    Send
+                    {isStreaming ? "Stop" : "Send"}
                 </button>
             </div>
         </div>
@@ -1117,6 +1135,9 @@ const styles: Record<string, React.CSSProperties> = {
         whiteSpace: "nowrap" as const,
         flexShrink: 0,
         minHeight: 44,
+    },
+    stopBtn: {
+        backgroundColor: "#dc2626",
     },
     sendBtnDisabled: { opacity: 0.5, cursor: "not-allowed" },
 

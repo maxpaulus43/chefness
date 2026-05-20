@@ -317,6 +317,8 @@ export function useChat() {
       const controller = new AbortController();
       abortRef.current = controller;
 
+      let latestAssistantText = "";
+
       try {
         const systemPrompt = buildSystemPrompt(mealType, mealSize, recentEntries, dietaryRestrictions, otherDietaryNotes, preferenceTexts);
 
@@ -328,6 +330,7 @@ export function useChat() {
           messages: history,
           signal: controller.signal,
           onToken: (_token, accumulated) => {
+            latestAssistantText = accumulated;
             setMessages((prev) => {
               const next = [...prev];
               const last = next[next.length - 1];
@@ -352,7 +355,16 @@ export function useChat() {
           persistMessages(sessionId, finalMessages, mealType, mealSize);
         }
       } catch (err: unknown) {
-        if (err instanceof DOMException && err.name === "AbortError") return;
+        if (err instanceof DOMException && err.name === "AbortError") {
+          const finalMessages: ChatMessage[] = latestAssistantText
+            ? [...history, { role: "assistant", content: latestAssistantText }]
+            : history;
+          setMessages(finalMessages);
+          if (sessionId) {
+            persistMessages(sessionId, finalMessages, mealType, mealSize);
+          }
+          return;
+        }
 
         setError(friendlyError(err));
 
@@ -371,6 +383,16 @@ export function useChat() {
     },
     [messages, mealType, mealSize, recentEntries, effectiveProvider, effectiveModel, effectiveApiKey, isConfigured, dietaryRestrictions, otherDietaryNotes, preferenceTexts, currentSessionId, createSessionAsync, persistMessages],
   );
+
+  // -------------------------------------------------------------------------
+  // stopStreaming — cancel the in-flight LLM response
+  // -------------------------------------------------------------------------
+
+  const stopStreaming = useCallback(() => {
+    abortRef.current?.abort();
+    abortRef.current = null;
+    setIsStreaming(false);
+  }, []);
 
   // -------------------------------------------------------------------------
   // clearChat — "New Chat" behavior
@@ -426,6 +448,7 @@ export function useChat() {
     mealType,
     mealSize,
     sendMessage,
+    stopStreaming,
     clearChat,
     setMealType,
     setMealSize,
