@@ -33,7 +33,6 @@ function TabPanel({
 }
 
 export function HomePage() {
-    console.log("Rendering HomePage");
     // Process OpenRouter OAuth callback (if redirected back with ?code=).
     // This must run inside TRPCProvider so useSettings() works.
     useOpenRouterOAuth();
