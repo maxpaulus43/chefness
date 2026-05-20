@@ -292,6 +292,7 @@ viewable in the Recipes tab.
 | **SR-5** | As a user, I can tap a recipe card to see the full recipe detail view. |
 | **SR-6** | As a user, I can delete a saved recipe. |
 | **SR-7** | As a user, I can edit a saved recipe (title, ingredients, steps). |
+| **SR-8** | As a user, I can describe a change to a saved recipe in natural language, preview the AI-updated recipe, and apply it when it looks right. |
 
 #### Acceptance Criteria
 
@@ -308,6 +309,11 @@ viewable in the Recipes tab.
       layout.
 - [x] Edit and delete use the existing `recipe.update` and `recipe.delete`
       tRPC procedures.
+- [x] Recipe detail includes an "AI Edit" panel where users can enter a
+      natural-language change request, generate a complete updated recipe
+      preview, and apply it via `recipe.update`.
+- [x] AI recipe edits use LLM tool/function calling to return structured
+      recipe fields and preserve unaffected recipe details where possible.
 - [x] Empty state in Recipes tab: "No saved recipes yet. Chat with your
       cooking guru and save recipes you like!"
 

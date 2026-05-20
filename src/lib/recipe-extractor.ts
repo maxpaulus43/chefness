@@ -7,7 +7,7 @@
  */
 import { callWithTools } from "@/lib/llm-stream";
 import type { StreamMessage, ToolDefinition } from "@/lib/llm-stream";
-import type { CreateRecipeInput } from "@/types/recipe";
+import type { CreateRecipeInput, Recipe } from "@/types/recipe";
 
 // ---------------------------------------------------------------------------
 // Tool definition
@@ -52,6 +52,15 @@ Rules:
 - If the conversation contains multiple recipes, save the most recent recipe being developed or refined.
 - Ignore unrelated chat. If no recipe can be reconstructed, call the tool with title 'No recipe found' and empty arrays.`;
 
+const EDIT_RECIPE_SYSTEM_PROMPT = `You are a recipe editing assistant. Given an existing saved recipe and a user's natural-language edit request, use the save_recipe tool to return the complete updated recipe.
+
+Rules:
+- Apply the requested change directly to the recipe.
+- Preserve any title, description, ingredients, and steps that are not affected by the request.
+- Return one complete recipe, not a summary, diff, or partial patch.
+- Keep ingredient quantities and cooking steps internally consistent after the edit.
+- If the request is impossible or unrelated to editing the recipe, return the original recipe as the complete recipe.`;
+
 // ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
@@ -66,6 +75,15 @@ export interface ExtractRecipeOptions {
 
 export interface ExtractRecipeFromConversationOptions {
   messages: Pick<StreamMessage, "role" | "content">[];
+  providerId: string;
+  modelId: string;
+  apiKey: string;
+  signal?: AbortSignal;
+}
+
+export interface EditRecipeWithPromptOptions {
+  recipe: Recipe;
+  instruction: string;
   providerId: string;
   modelId: string;
   apiKey: string;
@@ -120,6 +138,45 @@ export async function extractRecipeFromConversation(
   });
 
   return parseRecipeToolResult(result.arguments, "conversation");
+}
+
+/**
+ * Edit a saved recipe from a natural-language instruction.
+ *
+ * Returns a complete updated recipe suitable for previewing and applying.
+ */
+export async function editRecipeWithPrompt(
+  options: EditRecipeWithPromptOptions,
+): Promise<CreateRecipeInput> {
+  const { recipe, instruction, providerId, modelId, apiKey, signal } = options;
+
+  const result = await callWithTools({
+    providerId,
+    modelId,
+    apiKey,
+    systemPrompt: EDIT_RECIPE_SYSTEM_PROMPT,
+    messages: [
+      {
+        role: "user",
+        content: `Current recipe:\n${formatRecipeForEditing(recipe)}\n\nEdit request:\n${instruction}`,
+      },
+    ],
+    tools: [SAVE_RECIPE_TOOL],
+    signal,
+  });
+
+  return parseRecipeToolResult(result.arguments, "message");
+}
+
+function formatRecipeForEditing(recipe: Recipe): string {
+  return [
+    `Title: ${recipe.title}`,
+    `Description: ${recipe.description}`,
+    "Ingredients:",
+    ...recipe.ingredients.map((ingredient) => `- ${ingredient}`),
+    "Steps:",
+    ...recipe.steps.map((step, index) => `${index + 1}. ${step}`),
+  ].join("\n");
 }
 
 function parseRecipeToolResult(

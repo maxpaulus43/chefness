@@ -51,6 +51,9 @@ src/
     provider.tsx      <TRPCProvider> — wraps app with tRPC + React Query
   hooks/              Custom React hooks — all business logic lives here
     useRecipes.ts     Recipe CRUD operations, cache invalidation
+    useRecipeAiEditor.ts  AI recipe edit orchestration + preview/apply state
+  lib/                Pure client-side helpers for AI calls and formatting
+    recipe-extractor.ts  Tool-calling recipe extraction and natural-language recipe edits
   App.tsx             Root UI component (pure presentation)
   main.tsx            Entry point — renders providers around <App />
 ```
@@ -79,7 +82,7 @@ downward. No layer may skip a level or reach into a layer above it.
 | Layer       | May import from                                    |
 | ----------- | -------------------------------------------------- |
 | Components  | `src/hooks/`, `src/types/`                         |
-| Hooks       | `src/trpc/client.ts`, `src/types/`                 |
+| Hooks       | `src/trpc/client.ts`, `src/types/`, pure helpers from `src/lib/` when orchestrating AI/domain workflows |
 | tRPC Router | `src/trpc/index.ts`, `src/storage/`, `src/types/`  |
 | Storage     | `src/storage/interface.ts`, `src/types/`            |
 
@@ -296,6 +299,8 @@ Suppose you're adding a "Shopping List" feature:
    - Call the tRPC procedures.
    - Handle cache invalidation.
    - Return data + status + actions.
+   - For AI-assisted workflows, keep provider/settings/status orchestration in
+     the hook and delegate pure LLM tool-calling transforms to `src/lib/`.
 
 5. **Component** → use the hook in your component
    - Import `useShoppingLists`.
