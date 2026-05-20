@@ -151,6 +151,7 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
         mealType,
         mealSize,
         sendMessage,
+        editUserMessageAndRegenerate,
         stopStreaming,
         clearChat,
         setMealType,
@@ -168,6 +169,10 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
 
     const [inputValue, setInputValue] = useState("");
     const [showSessionList, setShowSessionList] = useState(false);
+    const [editingMessageIndex, setEditingMessageIndex] = useState<
+        number | null
+    >(null);
+    const [editingMessageValue, setEditingMessageValue] = useState("");
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const messageAreaRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -393,6 +398,8 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
             if (!confirmed) return;
         }
         clearChat();
+        setEditingMessageIndex(null);
+        setEditingMessageValue("");
         setShowSessionList(false);
     }, [messages.length, clearChat]);
 
@@ -403,6 +410,8 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
     const handleSelectSession = useCallback(
         (sessionId: string) => {
             loadSession(sessionId);
+            setEditingMessageIndex(null);
+            setEditingMessageValue("");
             setShowSessionList(false);
         },
         [loadSession],
@@ -432,6 +441,34 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
             void sendMessage(lastUserMessageRef.current);
         }
     }, [sendMessage]);
+
+    const handleStartEditMessage = useCallback((index: number, content: string) => {
+        setEditingMessageIndex(index);
+        setEditingMessageValue(content);
+    }, []);
+
+    const handleCancelEditMessage = useCallback(() => {
+        setEditingMessageIndex(null);
+        setEditingMessageValue("");
+    }, []);
+
+    const handleSaveEditedMessage = useCallback(
+        (index: number) => {
+            const text = editingMessageValue.trim();
+            if (!text) return;
+
+            const confirmed = window.confirm(
+                "Editing this message will remove all later replies and regenerate from here. Continue?",
+            );
+            if (!confirmed) return;
+
+            lastUserMessageRef.current = text;
+            setEditingMessageIndex(null);
+            setEditingMessageValue("");
+            void editUserMessageAndRegenerate(index, text);
+        },
+        [editingMessageValue, editUserMessageAndRegenerate],
+    );
 
     const handleMealTypeToggle = useCallback(
         (value: MealType) => {
@@ -686,11 +723,94 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
                                                     </div>
                                                 )}
                                             </div>
+                                        ) : editingMessageIndex === i ? (
+                                            <div style={styles.userEditBubble}>
+                                                <textarea
+                                                    value={editingMessageValue}
+                                                    onChange={(e) =>
+                                                        setEditingMessageValue(
+                                                            e.target.value,
+                                                        )
+                                                    }
+                                                    onKeyDown={(e) => {
+                                                        if (
+                                                            e.key ===
+                                                                "Escape" ||
+                                                            (e.key ===
+                                                                "Enter" &&
+                                                                !e.shiftKey)
+                                                        ) {
+                                                            e.preventDefault();
+                                                            if (
+                                                                e.key ===
+                                                                "Escape"
+                                                            ) {
+                                                                handleCancelEditMessage();
+                                                            } else {
+                                                                handleSaveEditedMessage(
+                                                                    i,
+                                                                );
+                                                            }
+                                                        }
+                                                    }}
+                                                    style={styles.userEditInput}
+                                                    rows={3}
+                                                    autoFocus
+                                                />
+                                                <div style={styles.userEditActions}>
+                                                    <button
+                                                        type="button"
+                                                        style={
+                                                            styles.userEditCancelBtn
+                                                        }
+                                                        onClick={
+                                                            handleCancelEditMessage
+                                                        }
+                                                    >
+                                                        Cancel
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        style={{
+                                                            ...styles.userEditSaveBtn,
+                                                            ...(!editingMessageValue.trim()
+                                                                ? styles.userEditSaveBtnDisabled
+                                                                : {}),
+                                                        }}
+                                                        disabled={
+                                                            !editingMessageValue.trim()
+                                                        }
+                                                        onClick={() =>
+                                                            handleSaveEditedMessage(
+                                                                i,
+                                                            )
+                                                        }
+                                                    >
+                                                        Save & Regenerate
+                                                    </button>
+                                                </div>
+                                            </div>
                                         ) : (
-                                            <div style={styles.userBubble}>
-                                                <span style={styles.msgText}>
-                                                    {msg.content}
-                                                </span>
+                                            <div style={styles.userMessageColumn}>
+                                                <div style={styles.userBubble}>
+                                                    <span style={styles.msgText}>
+                                                        {msg.content}
+                                                    </span>
+                                                </div>
+                                                {!isStreaming && (
+                                                    <button
+                                                        type="button"
+                                                        style={styles.editMessageBtn}
+                                                        onClick={() =>
+                                                            handleStartEditMessage(
+                                                                i,
+                                                                msg.content,
+                                                            )
+                                                        }
+                                                    >
+                                                        Edit
+                                                    </button>
+                                                )}
                                             </div>
                                         )}
                                     </div>
@@ -948,6 +1068,13 @@ const styles: Record<string, React.CSSProperties> = {
     },
     userRow: { display: "flex", justifyContent: "flex-end" },
     asstRow: { display: "flex", justifyContent: "flex-start" },
+    userMessageColumn: {
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "flex-end",
+        maxWidth: "80%",
+        gap: "0.25rem",
+    },
     asstMessageColumn: {
         display: "flex",
         flexDirection: "column",
@@ -956,7 +1083,6 @@ const styles: Record<string, React.CSSProperties> = {
         gap: "0.375rem",
     },
     userBubble: {
-        maxWidth: "80%",
         padding: "0.625rem 0.875rem",
         borderRadius: "16px 16px 4px 16px",
         backgroundColor: "#3b82f6",
@@ -964,6 +1090,72 @@ const styles: Record<string, React.CSSProperties> = {
         fontSize: "0.9375rem",
         lineHeight: 1.45,
         wordBreak: "break-word" as const,
+    },
+    editMessageBtn: {
+        padding: "0.125rem 0.375rem",
+        fontSize: "0.75rem",
+        fontWeight: 500,
+        color: "#6b7280",
+        backgroundColor: "transparent",
+        border: "none",
+        borderRadius: 6,
+        cursor: "pointer",
+        minHeight: 26,
+    },
+    userEditBubble: {
+        display: "flex",
+        flexDirection: "column",
+        gap: "0.5rem",
+        width: "min(80%, 520px)",
+        padding: "0.625rem",
+        borderRadius: "16px 16px 4px 16px",
+        backgroundColor: "#eff6ff",
+        border: "1px solid #bfdbfe",
+    },
+    userEditInput: {
+        width: "100%",
+        minHeight: 88,
+        padding: "0.5rem 0.625rem",
+        fontSize: "0.9375rem",
+        lineHeight: 1.45,
+        color: "#111827",
+        backgroundColor: "#fff",
+        border: "1px solid #93c5fd",
+        borderRadius: 10,
+        resize: "vertical" as const,
+        boxSizing: "border-box" as const,
+        fontFamily: "inherit",
+    },
+    userEditActions: {
+        display: "flex",
+        justifyContent: "flex-end",
+        gap: "0.375rem",
+    },
+    userEditCancelBtn: {
+        padding: "0.375rem 0.75rem",
+        fontSize: "0.8125rem",
+        fontWeight: 600,
+        color: "#374151",
+        backgroundColor: "#fff",
+        border: "1px solid #d1d5db",
+        borderRadius: 8,
+        cursor: "pointer",
+        minHeight: 34,
+    },
+    userEditSaveBtn: {
+        padding: "0.375rem 0.75rem",
+        fontSize: "0.8125rem",
+        fontWeight: 600,
+        color: "#fff",
+        backgroundColor: "#3b82f6",
+        border: "none",
+        borderRadius: 8,
+        cursor: "pointer",
+        minHeight: 34,
+    },
+    userEditSaveBtnDisabled: {
+        opacity: 0.5,
+        cursor: "not-allowed",
     },
     asstBubble: {
         padding: "0.625rem 0.875rem",

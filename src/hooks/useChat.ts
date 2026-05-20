@@ -280,8 +280,8 @@ export function useChat() {
   // sendMessage
   // -------------------------------------------------------------------------
 
-  const sendMessage = useCallback(
-    async (text: string) => {
+  const sendMessageFromHistory = useCallback(
+    async (baseMessages: ChatMessage[], text: string) => {
       if (!navigator.onLine) {
         setError("You are offline. Chat requires an internet connection.");
         return;
@@ -293,7 +293,7 @@ export function useChat() {
 
       setError(null);
       const userMsg: ChatMessage = { role: "user", content: text };
-      const history = [...messages, userMsg];
+      const history = [...baseMessages, userMsg];
       setMessages([...history, { role: "assistant", content: "" }]);
       setIsStreaming(true);
 
@@ -368,20 +368,39 @@ export function useChat() {
 
         setError(friendlyError(err));
 
-        // Remove empty assistant placeholder on error.
-        setMessages((prev) => {
-          const last = prev[prev.length - 1];
-          if (last?.role === "assistant" && last.content === "") {
-            return prev.slice(0, -1);
-          }
-          return prev;
-        });
+        // Remove empty assistant placeholder on error, keeping the user's
+        // edited/sent message as the new reset point.
+        setMessages(history);
+        if (sessionId) {
+          persistMessages(sessionId, history, mealType, mealSize);
+        }
       } finally {
         abortRef.current = null;
         setIsStreaming(false);
       }
     },
-    [messages, mealType, mealSize, recentEntries, effectiveProvider, effectiveModel, effectiveApiKey, isConfigured, dietaryRestrictions, otherDietaryNotes, preferenceTexts, currentSessionId, createSessionAsync, persistMessages],
+    [mealType, mealSize, recentEntries, effectiveProvider, effectiveModel, effectiveApiKey, isConfigured, dietaryRestrictions, otherDietaryNotes, preferenceTexts, currentSessionId, createSessionAsync, persistMessages],
+  );
+
+  const sendMessage = useCallback(
+    async (text: string) => {
+      await sendMessageFromHistory(messages, text);
+    },
+    [messages, sendMessageFromHistory],
+  );
+
+  const editUserMessageAndRegenerate = useCallback(
+    async (index: number, content: string) => {
+      const text = content.trim();
+      const msg = messages[index];
+      if (isStreaming || !text || msg?.role !== "user") return;
+
+      // Re-send from the conversation state immediately before the edited
+      // message. sendMessageFromHistory appends the edited user message and
+      // creates a fresh assistant response, discarding everything after it.
+      await sendMessageFromHistory(messages.slice(0, index), text);
+    },
+    [messages, isStreaming, sendMessageFromHistory],
   );
 
   // -------------------------------------------------------------------------
@@ -448,6 +467,7 @@ export function useChat() {
     mealType,
     mealSize,
     sendMessage,
+    editUserMessageAndRegenerate,
     stopStreaming,
     clearChat,
     setMealType,
