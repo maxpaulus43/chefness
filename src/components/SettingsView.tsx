@@ -7,7 +7,7 @@ import {
   type ProviderInfo,
   type ModelInfo,
 } from "@clinebot/llms";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 /** Predefined dietary restriction labels shown as toggleable chips. */
 const PREDEFINED_RESTRICTIONS = [
@@ -22,6 +22,8 @@ const PREDEFINED_RESTRICTIONS = [
   "low-carb",
   "keto",
 ] as const;
+
+const OPENROUTER_DEFAULT_MODEL = "openai/gpt-oss-120b:free";
 
 export function SettingsView() {
   const {
@@ -61,6 +63,7 @@ export function SettingsView() {
 
   // Local state for the OpenRouter model picker.
   const [selectedOpenRouterModel, setSelectedOpenRouterModel] = useState(llmModel);
+  const hasAppliedOpenRouterDefault = useRef(false);
 
   // Local state so the UI reacts synchronously to user selection instead
   // of waiting for the async tRPC mutation round-trip.
@@ -126,10 +129,26 @@ export function SettingsView() {
     };
   }, [selectedProvider]);
 
+  // Default newly connected OpenRouter accounts to the free GPT OSS model.
+  useEffect(() => {
+    if (!isOpenRouterConnected) {
+      hasAppliedOpenRouterDefault.current = false;
+      return;
+    }
+
+    if (llmModel || hasAppliedOpenRouterDefault.current) return;
+
+    hasAppliedOpenRouterDefault.current = true;
+    setSelectedOpenRouterModel(OPENROUTER_DEFAULT_MODEL);
+    updateSettings({ llmModel: OPENROUTER_DEFAULT_MODEL });
+  }, [isOpenRouterConnected, llmModel, updateSettings]);
+
   // Sync OpenRouter model picker with persisted llmModel.
   useEffect(() => {
-    setSelectedOpenRouterModel(llmModel);
-  }, [llmModel]);
+    setSelectedOpenRouterModel(
+      llmModel || (isOpenRouterConnected ? OPENROUTER_DEFAULT_MODEL : ""),
+    );
+  }, [isOpenRouterConnected, llmModel]);
 
   // Fetch OpenRouter models when connected.
   useEffect(() => {
