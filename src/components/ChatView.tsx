@@ -6,7 +6,7 @@ import { useRecipes } from "@/hooks/useRecipes";
 import { useSettings } from "@/hooks/useSettings";
 import { Markdown } from "@/lib/markdown";
 import { extractPreference } from "@/lib/preference-extractor";
-import { extractRecipe } from "@/lib/recipe-extractor";
+import { extractRecipeFromConversation } from "@/lib/recipe-extractor";
 import { useState, useEffect, useRef, useCallback, useReducer } from "react";
 
 // ---------------------------------------------------------------------------
@@ -210,8 +210,19 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
             dispatch({ type: "SAVE_START", index });
 
             try {
-                const recipe = await extractRecipe({
-                    messageContent: msg.content,
+                // Save the current recipe state, not just this one assistant
+                // bubble. Users often refine a recipe over several turns
+                // ("make it vegetarian", "halve the salt", etc.), so give the
+                // extractor enough recent context to reconstruct the latest
+                // complete version.
+                const snippetStart = Math.max(0, index - 11);
+                const conversationMessages = messages
+                    .slice(snippetStart, index + 1)
+                    .filter((m) => m.content.trim() !== "")
+                    .map((m) => ({ role: m.role, content: m.content }));
+
+                const recipe = await extractRecipeFromConversation({
+                    messages: conversationMessages,
                     providerId: effectiveProvider,
                     modelId: effectiveModel,
                     apiKey: effectiveApiKey,
@@ -531,7 +542,7 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
                                                                     )
                                                                 }
                                                             >
-                                                                Save Recipe
+                                                                Save Current Recipe
                                                             </button>
                                                         )}
                                                         {action.save ===
