@@ -317,6 +317,36 @@ viewable in the Recipes tab.
 - [x] Empty state in Recipes tab: "No saved recipes yet. Chat with your
       cooking guru and save recipes you like!"
 
+### 5.1.1 Import Recipes from URL
+
+#### Description
+
+Users can paste a public recipe URL into Chat. Chefness detects the URL,
+extracts schema.org JSON-LD recipe data through a tiny stateless Cloudflare
+Worker endpoint, saves the recipe to the existing recipe collection, and reports
+success or a clear extraction error in chat.
+
+#### Acceptance Criteria
+
+- [x] Chat detects a message containing one recipe URL.
+- [x] URL-only/import-only messages auto-save the extracted original recipe.
+- [x] URL + extra user instructions are treated as conversational recipe
+      context, not immediate save requests.
+- [x] URL-only/import-only imports require internet connectivity but do not
+      require LLM provider configuration.
+- [x] URL + extra user instructions require LLM provider configuration so the
+      assistant can reason over requested edits/recommendations.
+- [x] Browser code calls a same-origin `extractRecipeFromUrl(...)` helper rather
+      than fetching third-party sites directly.
+- [x] A stateless Cloudflare Worker endpoint, `POST /api/extract-recipe-url`,
+      fetches the URL server-side and extracts JSON-LD `Recipe` data only.
+- [x] If no JSON-LD recipe is found, Chat shows: `Site doesn't support extraction.`
+- [x] Successfully extracted URL-only/import-only recipes are saved through
+      existing recipe storage.
+- [x] Conversational URL recipe context is persisted invisibly with the chat
+      session so the existing "Save Current Recipe" flow can save the latest
+      edited recipe after follow-up conversation.
+
 ### 5.2 Share Recipes
 
 #### Description
@@ -526,6 +556,7 @@ src/
     llm-stream.ts               Browser-compatible LLM streaming + non-streaming tool/function calling client. Supports OpenAI-compatible and Anthropic native APIs.
     preference-extractor.ts     Preference extraction via callWithTools with save_preference tool (Phase 4)
     recipe-extractor.ts         Thin wrapper around callWithTools with save_recipe tool definition (Phase 2)
+    recipe-url-extractor.ts     Client helper that calls the same-origin Worker recipe URL extraction endpoint
     recipe-markdown.ts          Pure function: recipeToMarkdown(recipe) — converts Recipe to Markdown text (Phase 2)
     uuid.ts                     UUID generator with crypto.randomUUID() fallback for older iOS Safari (Phase 2)
   storage/
@@ -540,6 +571,7 @@ src/
     client.ts                   tRPC client setup (pre-existing)
     index.ts                    tRPC exports (pre-existing)
     provider.tsx                tRPC + React Query provider wrapper (pre-existing)
+  worker.ts                     Cloudflare Worker entry point: static asset fallback plus stateless `/api/extract-recipe-url` JSON-LD extraction endpoint
   types/
     ai-preference.ts            AiPreference, CreateAiPreferenceInput, UpdateAiPreferenceInput Zod schemas (Phase 4)
     cooking-log.ts              CookingLogEntry, CreateCookingLogInput, UpdateCookingLogInput Zod schemas (Phase 3)

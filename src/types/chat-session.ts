@@ -5,6 +5,10 @@ const chatMessageSchema = z.object({
   role: z.enum(["user", "assistant"]),
   content: z.string(),
   timestamp: z.string(), // ISO string
+  // Hidden context used for URL-imported recipes. Not rendered as chat text,
+  // but persisted so later "Save Current Recipe" extraction can reconstruct
+  // the recipe plus conversational edits.
+  importedRecipeContext: z.string().optional().default(""),
   // Per-message action flags — only relevant for assistant messages
   savedRecipeId: z.string().optional().default(""),  // empty = not saved
   memorySaved: z.boolean().optional().default(false),

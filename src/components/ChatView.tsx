@@ -225,7 +225,12 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
                 const conversationMessages = messages
                     .slice(snippetStart, index + 1)
                     .filter((m) => m.content.trim() !== "")
-                    .map((m) => ({ role: m.role, content: m.content }));
+                    .map((m) => ({
+                        role: m.role,
+                        content: m.importedRecipeContext
+                            ? `${m.content}\n\nHidden Chefness recipe URL context:\n${m.importedRecipeContext}`
+                            : m.content,
+                    }));
 
                 const recipe = await extractRecipeFromConversation({
                     messages: conversationMessages,
@@ -488,28 +493,8 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
         [setMealSize],
     );
 
-    // -- Not configured -------------------------------------------------------
-    if (!isConfigured) {
-        return (
-            <div style={styles.root}>
-                {renderHeader(handleNewChat, false)}
-                <div style={styles.centeredContent}>
-                    <p style={styles.setupText}>
-                        Set up your AI provider in Settings to start chatting.
-                    </p>
-                    <button
-                        type="button"
-                        onClick={onNavigateToSettings}
-                        style={styles.goToSettingsButton}
-                    >
-                        Go to Settings
-                    </button>
-                </div>
-            </div>
-        );
-    }
-
-    // -- Configured -----------------------------------------------------------
+    // The input remains available when the LLM is not configured so users can
+    // still paste recipe URLs for non-AI JSON-LD import.
     const hasMessages = messages.length > 0;
 
     return (
@@ -534,7 +519,11 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
                     style={styles.messageArea}
                 >
                     {!hasMessages ? (
-                        renderEmptyState(handleSuggestionTap)
+                        renderEmptyState(
+                            handleSuggestionTap,
+                            isConfigured,
+                            onNavigateToSettings,
+                        )
                     ) : (
                         <div style={styles.messageList}>
                             {messages.map((msg, i) => {
@@ -887,9 +876,28 @@ function renderHeader(
     );
 }
 
-function renderEmptyState(onTap: (text: string) => void) {
+function renderEmptyState(
+    onTap: (text: string) => void,
+    isConfigured: boolean,
+    onNavigateToSettings: () => void,
+) {
     return (
         <div style={styles.emptyState}>
+            {!isConfigured && (
+                <div style={styles.setupCard}>
+                    <p style={styles.setupText}>
+                        Set up your AI provider in Settings to chat, or paste a
+                        recipe link below to import it.
+                    </p>
+                    <button
+                        type="button"
+                        onClick={onNavigateToSettings}
+                        style={styles.goToSettingsButton}
+                    >
+                        Go to Settings
+                    </button>
+                </div>
+            )}
             <p style={styles.welcomeText}>What would you like to cook?</p>
             <div style={styles.suggestionsWrap}>
                 {SUGGESTIONS.map((text) => (
@@ -1208,14 +1216,17 @@ const styles: Record<string, React.CSSProperties> = {
         whiteSpace: "nowrap" as const,
         minHeight: 44,
     },
-    centeredContent: {
-        flex: 1,
+    setupCard: {
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-        justifyContent: "center",
-        padding: "2rem 1rem",
-        gap: "1rem",
+        gap: "0.75rem",
+        padding: "1rem",
+        border: "1px solid #bfdbfe",
+        borderRadius: 12,
+        backgroundColor: "#eff6ff",
+        maxWidth: 360,
+        marginBottom: "1rem",
     },
     setupText: {
         fontSize: "1rem",

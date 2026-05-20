@@ -1,6 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "chefness",
+  "main": "src/worker.ts",
   "compatibility_date": "2026-04-13",
   "observability": {
     "enabled": true

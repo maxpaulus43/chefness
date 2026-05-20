@@ -26,7 +26,10 @@ import { useSettings } from "@/hooks/useSettings";
 import { useCookingLog } from "@/hooks/useCookingLog";
 import { useAiPreferences } from "@/hooks/useAiPreferences";
 import { useChatSessions } from "@/hooks/useChatSessions";
+import { useRecipes } from "@/hooks/useRecipes";
 import { streamChat } from "@/lib/llm-stream";
+import { extractRecipeFromUrl } from "@/lib/recipe-url-extractor";
+import type { ExtractedRecipeFromUrl } from "@/lib/recipe-url-extractor";
 import type { CookingLogEntry } from "@/types/cooking-log";
 import type { ChatSessionMessage } from "@/types/chat-session";
 
@@ -41,6 +44,8 @@ export interface ChatMessage {
   /** Persisted action flags — only relevant for assistant messages. */
   savedRecipeId?: string;  // ID of saved recipe, or empty/undefined = not saved
   memorySaved?: boolean;
+  /** Hidden imported recipe context for URL-based recipe conversations. */
+  importedRecipeContext?: string;
 }
 
 /** Supported meal type values. */
@@ -149,6 +154,87 @@ function friendlyError(err: unknown): string {
   return err.message;
 }
 
+function importError(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  return "Could not extract recipe from that site.";
+}
+
+interface RecipeUrlMessage {
+  url: string;
+  mode: "auto-save" | "conversation-context";
+}
+
+function getRecipeUrlMessage(text: string): RecipeUrlMessage | null {
+  const trimmed = text.trim();
+  const matches = trimmed.match(/https?:\/\/[^\s<>"']+/gi) ?? [];
+  if (matches.length !== 1) return null;
+
+  const rawUrl = matches[0].replace(/[),.;!?]+$/g, "");
+
+  let url: string;
+  try {
+    url = new URL(rawUrl).toString();
+  } catch {
+    return null;
+  }
+
+  const remainingText = trimmed
+    .replace(matches[0], " ")
+    .replace(rawUrl, " ")
+    .replace(/[\s:,.!?;()[\]-]+/g, " ")
+    .trim()
+    .toLowerCase();
+
+  if (!remainingText) return { url, mode: "auto-save" };
+
+  const fillerWords = new Set([
+    "add",
+    "extract",
+    "from",
+    "import",
+    "link",
+    "please",
+    "recipe",
+    "save",
+    "the",
+    "this",
+    "url",
+  ]);
+  const meaningfulWords = remainingText
+    .split(/\s+/)
+    .filter((word) => word && !fillerWords.has(word));
+
+  return {
+    url,
+    mode: meaningfulWords.length === 0 ? "auto-save" : "conversation-context",
+  };
+}
+
+function formatImportedRecipeContext(extracted: ExtractedRecipeFromUrl): string {
+  return [
+    `Recipe imported from ${extracted.sourceName} (${extracted.sourceUrl}):`,
+    `Title: ${extracted.recipe.title}`,
+    `Description: ${extracted.recipe.description}`,
+    "Ingredients:",
+    ...extracted.recipe.ingredients.map((ingredient) => `- ${ingredient}`),
+    "Steps:",
+    ...extracted.recipe.steps.map((step, index) => `${index + 1}. ${step}`),
+  ].join("\n");
+}
+
+function messageContentForModel(message: ChatMessage): string {
+  if (!message.importedRecipeContext) return message.content;
+
+  return [
+    message.content,
+    "",
+    "Hidden Chefness context from the recipe URL in this message:",
+    message.importedRecipeContext,
+    "",
+    "Use this imported recipe as the concrete recipe being discussed. If the user asks for substitutions, modifications, or recommendations, apply them to this recipe.",
+  ].join("\n");
+}
+
 // ---------------------------------------------------------------------------
 // Hook
 // ---------------------------------------------------------------------------
@@ -158,6 +244,7 @@ export function useChat() {
   const { recentEntries } = useCookingLog();
   const { preferences: aiPreferences } = useAiPreferences();
   const { sessions, updateSession, createSessionAsync } = useChatSessions();
+  const { createRecipeAsync } = useRecipes();
 
   /** Preference texts for the system prompt — stable across renders. */
   const preferenceTexts = aiPreferences.map((p) => p.text);
@@ -193,6 +280,7 @@ export function useChat() {
       mostRecent.messages.map((m) => ({
         role: m.role,
         content: m.content,
+        importedRecipeContext: m.importedRecipeContext,
         savedRecipeId: m.savedRecipeId,
         memorySaved: m.memorySaved,
       })),
@@ -214,6 +302,7 @@ export function useChat() {
         role: m.role,
         content: m.content,
         timestamp: new Date().toISOString(),
+        importedRecipeContext: m.importedRecipeContext ?? "",
         savedRecipeId: m.savedRecipeId ?? "",
         memorySaved: m.memorySaved ?? false,
       })),
@@ -262,6 +351,7 @@ export function useChat() {
             role: m.role,
             content: m.content,
             timestamp: new Date().toISOString(),
+            importedRecipeContext: m.importedRecipeContext ?? "",
             savedRecipeId: m.savedRecipeId ?? "",
             memorySaved: m.memorySaved ?? false,
           })) as ChatSessionMessage[];
@@ -286,14 +376,20 @@ export function useChat() {
         setError("You are offline. Chat requires an internet connection.");
         return;
       }
-      if (!isConfigured) {
+
+      const recipeUrlMessage = getRecipeUrlMessage(text);
+      if (!recipeUrlMessage && !isConfigured) {
         setError("LLM is not configured. Please set provider, model, and API key in Settings.");
+        return;
+      }
+      if (recipeUrlMessage?.mode === "conversation-context" && !isConfigured) {
+        setError("Set up your AI provider to modify or discuss recipes from links. Paste only the URL to import the original recipe.");
         return;
       }
 
       setError(null);
       const userMsg: ChatMessage = { role: "user", content: text };
-      const history = [...baseMessages, userMsg];
+      let history = [...baseMessages, userMsg];
       setMessages([...history, { role: "assistant", content: "" }]);
       setIsStreaming(true);
 
@@ -317,6 +413,84 @@ export function useChat() {
       const controller = new AbortController();
       abortRef.current = controller;
 
+      if (recipeUrlMessage?.mode === "auto-save") {
+        try {
+          const extracted = await extractRecipeFromUrl({
+            url: recipeUrlMessage.url,
+            signal: controller.signal,
+          });
+          const saved = await createRecipeAsync(extracted.recipe);
+          const finalMessages: ChatMessage[] = [
+            ...history,
+            {
+              role: "assistant",
+              content: `Imported and saved “${saved.title}”.`,
+              savedRecipeId: saved.id,
+            },
+          ];
+          setMessages(finalMessages);
+          if (sessionId) {
+            persistMessages(sessionId, finalMessages, mealType, mealSize);
+          }
+        } catch (err: unknown) {
+          if (err instanceof DOMException && err.name === "AbortError") {
+            setMessages(history);
+            if (sessionId) {
+              persistMessages(sessionId, history, mealType, mealSize);
+            }
+            return;
+          }
+
+          const finalMessages: ChatMessage[] = [
+            ...history,
+            { role: "assistant", content: importError(err) },
+          ];
+          setMessages(finalMessages);
+          if (sessionId) {
+            persistMessages(sessionId, finalMessages, mealType, mealSize);
+          }
+        } finally {
+          abortRef.current = null;
+          setIsStreaming(false);
+        }
+        return;
+      }
+
+      if (recipeUrlMessage?.mode === "conversation-context") {
+        try {
+          const extracted = await extractRecipeFromUrl({
+            url: recipeUrlMessage.url,
+            signal: controller.signal,
+          });
+          const importedRecipeContext = formatImportedRecipeContext(extracted);
+          history = [
+            ...baseMessages,
+            { ...userMsg, importedRecipeContext },
+          ];
+          setMessages([...history, { role: "assistant", content: "" }]);
+        } catch (err: unknown) {
+          if (err instanceof DOMException && err.name === "AbortError") {
+            setMessages(history);
+            if (sessionId) {
+              persistMessages(sessionId, history, mealType, mealSize);
+            }
+            return;
+          }
+
+          const finalMessages: ChatMessage[] = [
+            ...history,
+            { role: "assistant", content: importError(err) },
+          ];
+          setMessages(finalMessages);
+          if (sessionId) {
+            persistMessages(sessionId, finalMessages, mealType, mealSize);
+          }
+          abortRef.current = null;
+          setIsStreaming(false);
+          return;
+        }
+      }
+
       let latestAssistantText = "";
 
       try {
@@ -327,7 +501,10 @@ export function useChat() {
           modelId: effectiveModel,
           apiKey: effectiveApiKey,
           systemPrompt,
-          messages: history,
+          messages: history.map((m) => ({
+            role: m.role,
+            content: messageContentForModel(m),
+          })),
           signal: controller.signal,
           onToken: (_token, accumulated) => {
             latestAssistantText = accumulated;
@@ -379,7 +556,7 @@ export function useChat() {
         setIsStreaming(false);
       }
     },
-    [mealType, mealSize, recentEntries, effectiveProvider, effectiveModel, effectiveApiKey, isConfigured, dietaryRestrictions, otherDietaryNotes, preferenceTexts, currentSessionId, createSessionAsync, persistMessages],
+    [mealType, mealSize, recentEntries, effectiveProvider, effectiveModel, effectiveApiKey, isConfigured, dietaryRestrictions, otherDietaryNotes, preferenceTexts, currentSessionId, createSessionAsync, createRecipeAsync, persistMessages],
   );
 
   const sendMessage = useCallback(
@@ -448,6 +625,7 @@ export function useChat() {
         session.messages.map((m) => ({
           role: m.role,
           content: m.content,
+          importedRecipeContext: m.importedRecipeContext,
           savedRecipeId: m.savedRecipeId,
           memorySaved: m.memorySaved,
         })),

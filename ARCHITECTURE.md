@@ -8,11 +8,16 @@ task has the full context without needing to reverse-engineer it from code.
 
 ## 1. Project overview
 
-Chefness is a **fully client-side** cooking app (PWA, offline-first). There is
-**no separate backend server**. All data operations run in-browser via tRPC with
-localStorage as the current persistence layer. The architecture is designed so
-that localStorage can be swapped for a real remote backend without changing any
-UI code.
+Chefness is a **client-side-first** cooking app (PWA, offline-first). There is
+**no separate application backend for user data**. All data operations run
+in-browser via tRPC with localStorage/IndexedDB-style client persistence. The
+architecture is designed so that local persistence can be swapped for a real
+remote backend without changing any UI code.
+
+Exception: the app may include tiny stateless Cloudflare Worker API endpoints
+for browser-impossible network tasks, such as fetching third-party recipe pages
+that block CORS. These endpoints must not store user data and must return only
+small, sanitized JSON responses.
 
 ### Tech stack
 
@@ -52,8 +57,11 @@ src/
   hooks/              Custom React hooks — all business logic lives here
     useRecipes.ts     Recipe CRUD operations, cache invalidation
     useRecipeAiEditor.ts  AI recipe edit orchestration + preview/apply state
+    useChat.ts      Chat state, LLM streaming, session persistence, and chat URL import orchestration
   lib/                Pure client-side helpers for AI calls and formatting
     recipe-extractor.ts  Tool-calling recipe extraction and natural-language recipe edits
+    recipe-url-extractor.ts  Client helper for same-origin Worker recipe URL extraction
+  worker.ts           Stateless Cloudflare Worker API endpoints + static asset fallback
   App.tsx             Root UI component (pure presentation)
   main.tsx            Entry point — renders providers around <App />
 ```
@@ -208,14 +216,46 @@ inside `buildEntity` — the tRPC router just passes user input through.
 
 ---
 
-## 7. Rule: tRPC is the RPC boundary
+## 7. Rule: tRPC is the app data RPC boundary
 
 ### In-browser operation
 
-tRPC runs entirely in the browser. There is no HTTP server. The client uses
-`unstable_localLink` from `@trpc/client` to call the router directly in the
-same JS context. The tRPC instance is initialized with
+tRPC runs entirely in the browser for Chefness app data. There is no HTTP server
+for recipes, settings, cooking log entries, preferences, or chat sessions. The
+client uses `unstable_localLink` from `@trpc/client` to call the router directly
+in the same JS context. The tRPC instance is initialized with
 `allowOutsideOfServer: true` and `isServer: false`.
+
+### Stateless Worker endpoints
+
+`src/worker.ts` is the Cloudflare Worker entry point configured by
+`wrangler.jsonc`. It handles small `/api/*` endpoints that cannot be implemented
+reliably in browser JavaScript, then falls back to `env.ASSETS.fetch(request)`
+for the static PWA.
+
+Current endpoint:
+
+- `POST /api/extract-recipe-url` — fetches a public recipe URL server-side,
+  extracts schema.org JSON-LD `Recipe` data, and returns normalized recipe JSON.
+
+Chat URL imports are orchestrated in `useChat`: a URL-only/import-only user
+message bypasses the LLM path, calls `src/lib/recipe-url-extractor.ts`, saves via
+the existing recipe hook, and appends a local assistant success/error message.
+When a URL appears inside a broader conversational instruction, `useChat`
+extracts the recipe, stores formatted recipe data as hidden
+`importedRecipeContext` on the visible user message, sends that context to the
+LLM, and persists it in the chat session so later "Save Current Recipe"
+extraction can reconstruct the edited recipe.
+
+Worker endpoint rules:
+
+- No user data persistence.
+- No database, KV, Durable Object, or queue usage unless explicitly documented.
+- Dependency-free or minimal dependencies only.
+- Validate URLs and reject localhost/private-network targets where practical.
+- Time out remote fetches and cap response size.
+- Never proxy arbitrary remote HTML back to the browser; return sanitized JSON
+  or a small error payload.
 
 ### Procedure conventions
 
