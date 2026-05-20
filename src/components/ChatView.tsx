@@ -169,7 +169,7 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
     const [showSessionList, setShowSessionList] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const messageAreaRef = useRef<HTMLDivElement>(null);
-    const inputRef = useRef<HTMLInputElement>(null);
+    const inputRef = useRef<HTMLTextAreaElement>(null);
     const lastUserMessageRef = useRef<string>("");
     const isNearBottomRef = useRef(true);
     const prevMessageCountRef = useRef(0);
@@ -383,8 +383,17 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
         [loadSession],
     );
 
+    useEffect(() => {
+        const input = inputRef.current;
+        if (!input) return;
+
+        input.style.height = "auto";
+        const maxHeight = Number.parseFloat(getComputedStyle(input).maxHeight);
+        input.style.height = `${Math.min(input.scrollHeight, maxHeight)}px`;
+    }, [inputValue]);
+
     const handleKeyDown = useCallback(
-        (e: React.KeyboardEvent<HTMLInputElement>) => {
+        (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
             if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
                 handleSend();
@@ -766,14 +775,14 @@ function renderErrorBanner(error: string, onRetry: () => void) {
 function renderInputArea(
     inputValue: string,
     setInputValue: (v: string) => void,
-    onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void,
+    onKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void,
     onSend: () => void,
     isStreaming: boolean,
     mealType: MealType | null,
     mealSize: MealSize | null,
     onMealType: (v: MealType) => void,
     onMealSize: (v: MealSize) => void,
-    inputRef: React.RefObject<HTMLInputElement | null>,
+    inputRef: React.RefObject<HTMLTextAreaElement | null>,
 ) {
     const sendDisabled = isStreaming || !inputValue.trim();
     return (
@@ -810,15 +819,15 @@ function renderInputArea(
                 ))}
             </div>
             <div style={styles.inputRow}>
-                <input
+                <textarea
                     ref={inputRef}
-                    type="text"
                     value={inputValue}
                     onChange={(e) => setInputValue(e.target.value)}
                     onKeyDown={onKeyDown}
                     placeholder="Ask your cooking guru…"
                     style={styles.textInput}
                     disabled={isStreaming}
+                    rows={1}
                 />
                 <button
                     type="button"
@@ -1067,18 +1076,23 @@ const styles: Record<string, React.CSSProperties> = {
         backgroundColor: "#3b82f6",
         borderColor: "#3b82f6",
     },
-    inputRow: { display: "flex", gap: "0.5rem", alignItems: "center" },
+    inputRow: { display: "flex", gap: "0.5rem", alignItems: "flex-end" },
     textInput: {
         flex: 1,
         padding: "0.625rem 0.875rem",
         fontSize: "1rem",
+        lineHeight: 1.5,
         border: "1px solid #d1d5db",
         borderRadius: 10,
         backgroundColor: "#fff",
         color: "#111827",
         minWidth: 0,
         minHeight: 44,
+        maxHeight: "calc(1.5em * 6 + 1.25rem)",
+        overflowY: "auto" as const,
+        resize: "none" as const,
         boxSizing: "border-box" as const,
+        fontFamily: "inherit",
     },
     sendBtn: {
         padding: "0.625rem 1rem",
@@ -1170,5 +1184,4 @@ const styles: Record<string, React.CSSProperties> = {
         fontWeight: 500,
         color: "#16a34a",
     },
-
 };
