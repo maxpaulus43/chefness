@@ -66,13 +66,18 @@ export function RecipeListView({ onSelectRecipe }: RecipeListViewProps) {
 
     return (
         <div style={styles.container}>
-            <h1 style={styles.header}>Recipes</h1>
+            <div style={styles.headerRow}>
+                <h1 style={styles.header}>Recipes</h1>
+                <span style={styles.recipeCount}>
+                    {recipes.length} saved
+                </span>
+            </div>
             <div style={styles.controls}>
                 <label style={styles.searchLabel}>
-                    <span style={styles.controlLabel}>Search recipes</span>
+                    <span style={styles.visuallyHidden}>Search recipes</span>
                     <input
                         aria-label="Search recipes"
-                        placeholder="Search by title, description, or ingredient"
+                        placeholder="Search recipes"
                         style={styles.searchInput}
                         type="search"
                         value={searchQuery}
@@ -80,7 +85,7 @@ export function RecipeListView({ onSelectRecipe }: RecipeListViewProps) {
                     />
                 </label>
                 <label style={styles.sortLabel}>
-                    <span style={styles.controlLabel}>Sort by</span>
+                    <span style={styles.visuallyHidden}>Sort recipes</span>
                     <select
                         aria-label="Sort recipes"
                         style={styles.sortSelect}
@@ -99,32 +104,37 @@ export function RecipeListView({ onSelectRecipe }: RecipeListViewProps) {
             {visibleRecipes.length === 0 ? (
                 <p style={styles.noResultsText}>No recipes match your search.</p>
             ) : (
-                <div style={styles.list}>
+                <ul style={styles.list}>
                     {visibleRecipes.map((recipe: Recipe) => (
-                        <div style={styles.cardContainer} key={recipe.id}>
+                        <li style={styles.cardContainer} key={recipe.id}>
                             <button
                                 style={styles.card}
                                 type="button"
                                 onClick={() => onSelectRecipe(recipe.id)}
                             >
-                                <span style={styles.cardTitle}>
-                                    {recipe.title}
-                                </span>
-                                {recipe.description && (
-                                    <span style={styles.cardDescription}>
-                                        {truncate(
-                                            recipe.description,
-                                            DESCRIPTION_MAX_LENGTH,
-                                        )}
+                                <span style={styles.cardContent}>
+                                    <span style={styles.cardTitle}>
+                                        {recipe.title}
                                     </span>
-                                )}
+                                    {recipe.description && (
+                                        <span style={styles.cardDescription}>
+                                            {truncate(
+                                                recipe.description,
+                                                DESCRIPTION_MAX_LENGTH,
+                                            )}
+                                        </span>
+                                    )}
+                                </span>
+                                <span aria-hidden="true" style={styles.cardChevron}>
+                                    ›
+                                </span>
                             </button>
                             <DeleteButton
                                 onDelete={() => deleteRecipe(recipe.id)}
                             />
-                        </div>
+                        </li>
                     ))}
-                </div>
+                </ul>
             )}
         </div>
     );
@@ -150,95 +160,141 @@ const styles: Record<string, React.CSSProperties> = {
         margin: "0 auto",
         minWidth: 0,
     },
+    headerRow: {
+        display: "flex",
+        alignItems: "baseline",
+        justifyContent: "space-between",
+        gap: "1rem",
+        margin: "0 0 0.75rem",
+    },
     header: {
         fontFamily: fonts.serif,
         fontSize: "2rem",
         fontWeight: 600,
         letterSpacing: "-0.01em",
-        margin: "0 0 1rem",
+        margin: 0,
         color: colors.espresso,
     },
-    controls: {
-        display: "flex",
-        gap: "0.75rem",
-        alignItems: "flex-end",
-        marginBottom: "1rem",
-        flexWrap: "wrap" as const,
-    },
-    searchLabel: {
-        display: "flex",
-        flex: "1 1 260px",
-        flexDirection: "column",
-        gap: "0.375rem",
-    },
-    sortLabel: {
-        display: "flex",
-        flex: "0 1 180px",
-        flexDirection: "column",
-        gap: "0.375rem",
-    },
-    controlLabel: {
-        color: colors.stone700,
+    recipeCount: {
+        color: colors.stone500,
+        flexShrink: 0,
         fontSize: "0.8125rem",
         fontWeight: 600,
     },
-    searchInput: {
+    controls: {
+        display: "flex",
+        gap: "0.5rem",
+        alignItems: "center",
+        marginBottom: "0.875rem",
+        padding: "0.375rem",
+        backgroundColor: colors.glass,
         border: `1px solid ${colors.glassBorder}`,
+        borderRadius: radii.lg,
+        boxShadow: shadows.glass,
+    },
+    searchLabel: {
+        flex: "1 1 auto",
+        minWidth: 0,
+    },
+    sortLabel: {
+        flex: "0 0 128px",
+        minWidth: 0,
+    },
+    visuallyHidden: {
+        border: 0,
+        clip: "rect(0 0 0 0)",
+        height: 1,
+        margin: -1,
+        overflow: "hidden",
+        padding: 0,
+        position: "absolute" as const,
+        whiteSpace: "nowrap" as const,
+        width: 1,
+    },
+    searchInput: {
+        border: 0,
         borderRadius: radii.md,
         boxSizing: "border-box" as const,
-        backgroundColor: colors.white,
+        backgroundColor: colors.glassStrong,
         color: colors.espresso,
-        fontSize: "0.9375rem",
-        padding: "0.625rem 0.75rem",
+        fontSize: "0.875rem",
+        minHeight: 40,
+        outline: "none",
+        padding: "0.5625rem 0.75rem",
         width: "100%",
     },
     sortSelect: {
-        border: `1px solid ${colors.glassBorder}`,
+        border: 0,
         borderRadius: radii.md,
         boxSizing: "border-box" as const,
-        backgroundColor: colors.white,
+        backgroundColor: colors.saffronTint,
         color: colors.espresso,
-        fontSize: "0.9375rem",
-        padding: "0.625rem 0.75rem",
+        cursor: "pointer",
+        fontSize: "0.8125rem",
+        fontWeight: 700,
+        minHeight: 40,
+        outline: "none",
+        padding: "0.5625rem 0.5rem",
         width: "100%",
     },
     list: {
         display: "flex",
         flexDirection: "column",
-        gap: "0.75rem",
+        gap: "0.625rem",
+        listStyle: "none",
+        margin: 0,
+        padding: 0,
     },
     cardContainer: {
         display: "flex",
-        alignItems: "center",
-        gap: "0.5rem",
-        backgroundColor: colors.glass,
+        alignItems: "stretch",
+        gap: "0.375rem",
+        backgroundColor: colors.glassStrong,
         border: `1px solid ${colors.glassBorder}`,
         boxShadow: shadows.glass,
-        padding: "0.875rem 1rem",
+        padding: "0.375rem",
         borderRadius: radii.lg,
-        minHeight: 44,
         width: "100%",
-        cursor: "pointer",
+        boxSizing: "border-box" as const,
     },
     card: {
         display: "flex",
-        flexDirection: "column",
-        borderRadius: radii.lg,
+        alignItems: "center",
+        gap: "0.75rem",
+        flex: "1 1 auto",
+        minWidth: 0,
+        border: "none",
+        borderRadius: radii.md,
         backgroundColor: "transparent",
+        cursor: "pointer",
+        padding: "0.75rem",
         textAlign: "left" as const,
         boxSizing: "border-box" as const,
     },
+    cardContent: {
+        display: "flex",
+        flexDirection: "column",
+        gap: "0.25rem",
+        flex: "1 1 auto",
+        minWidth: 0,
+    },
     cardTitle: {
         fontSize: "1rem",
-        fontWeight: 600,
+        fontWeight: 700,
         color: colors.espresso,
-        lineHeight: 1.4,
+        lineHeight: 1.25,
     },
     cardDescription: {
-        fontSize: "0.875rem",
+        fontSize: "0.8125rem",
         fontWeight: 400,
         color: colors.stone600,
-        lineHeight: 1.4,
+        lineHeight: 1.35,
+    },
+    cardChevron: {
+        color: colors.stone400,
+        flexShrink: 0,
+        fontSize: "1.5rem",
+        lineHeight: 1,
     },
     centered: {
         display: "flex",
