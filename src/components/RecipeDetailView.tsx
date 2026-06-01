@@ -148,20 +148,30 @@ export function RecipeDetailView({
           <Icon name="arrowLeft" size={16} strokeWidth={2.5} />
           Back
         </button>
-        <div style={styles.headerActions}>
+      </div>
+
+      <h1 style={styles.title}>{recipe.title}</h1>
+
+      {recipe.description && (
+        <p style={styles.description}>{recipe.description}</p>
+      )}
+
+      <section style={styles.actionPanel} aria-label="Recipe actions">
+        <div style={styles.primaryActionRow}>
           {logStatus === "idle" && (
             <button
               type="button"
-              style={styles.logBtn}
+              style={styles.primaryLogBtn}
               onClick={() => void handleLogCook()}
             >
+              <Icon name="check" size={16} strokeWidth={3} />
               I Cooked This!
             </button>
           )}
           {logStatus === "logging" && (
             <button
               type="button"
-              style={{ ...styles.logBtn, ...styles.logBtnDisabled }}
+              style={{ ...styles.primaryLogBtn, ...styles.logBtnDisabled }}
               disabled
             >
               Logging…
@@ -187,6 +197,9 @@ export function RecipeDetailView({
               </button>
             </div>
           )}
+        </div>
+
+        <div style={styles.actionGrid}>
           <button
             type="button"
             style={copied ? styles.copyButtonCopied : styles.copyButton}
@@ -211,6 +224,7 @@ export function RecipeDetailView({
             type="button"
             style={showAiEdit ? styles.aiEditButtonActive : styles.aiEditButton}
             onClick={handleToggleAiEdit}
+            aria-pressed={showAiEdit}
           >
             <Icon name="sparkles" size={15} />
             AI Edit
@@ -221,10 +235,17 @@ export function RecipeDetailView({
             onClick={handleDelete}
             disabled={isDeleting}
           >
-            {isDeleting ? "Deleting…" : "Delete"}
+            {isDeleting ? (
+              "Deleting…"
+            ) : (
+              <>
+                <Icon name="trash" size={15} />
+                Delete
+              </>
+            )}
           </button>
         </div>
-      </div>
+      </section>
 
       {clipboardError && (
         <p style={styles.clipboardError}>{clipboardError}</p>
@@ -339,12 +360,6 @@ export function RecipeDetailView({
         </section>
       )}
 
-      <h1 style={styles.title}>{recipe.title}</h1>
-
-      {recipe.description && (
-        <p style={styles.description}>{recipe.description}</p>
-      )}
-
       {recipe.ingredients.length > 0 && (
         <section style={styles.section}>
           <h2 style={styles.sectionTitle}>Ingredients</h2>
@@ -412,16 +427,10 @@ const styles: Record<string, React.CSSProperties> = {
   },
   headerRow: {
     display: "flex",
-    justifyContent: "space-between",
+    justifyContent: "flex-start",
     alignItems: "center",
-    marginBottom: "1.25rem",
+    marginBottom: "1rem",
     gap: "0.5rem",
-  },
-  headerActions: {
-    display: "flex",
-    flexWrap: "wrap" as const,
-    gap: "0.5rem",
-    alignItems: "center",
   },
   backButton: {
     display: "inline-flex",
@@ -437,6 +446,22 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: radii.sm,
     cursor: "pointer",
     minHeight: 44,
+  },
+  actionPanel: {
+    backgroundColor: colors.glass,
+    border: `1px solid ${colors.glassBorder}`,
+    borderRadius: radii.lg,
+    boxShadow: shadows.glass,
+    padding: "0.75rem",
+    margin: "0 0 1.5rem",
+  },
+  primaryActionRow: {
+    marginBottom: "0.625rem",
+  },
+  actionGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+    gap: "0.5rem",
   },
   copyButton: {
     display: "inline-flex",
@@ -454,6 +479,7 @@ const styles: Record<string, React.CSSProperties> = {
     cursor: "pointer",
     minHeight: 44,
     whiteSpace: "nowrap" as const,
+    width: "100%",
   },
   copyButtonCopied: {
     display: "inline-flex",
@@ -470,6 +496,7 @@ const styles: Record<string, React.CSSProperties> = {
     cursor: "pointer",
     minHeight: 44,
     whiteSpace: "nowrap" as const,
+    width: "100%",
   },
   clipboardError: {
     fontSize: "0.8125rem",
@@ -633,6 +660,10 @@ const styles: Record<string, React.CSSProperties> = {
     lineHeight: 1.5,
   },
   editButton: {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "0.375rem",
     padding: "0.5rem 1rem",
     fontSize: "0.9375rem",
     fontWeight: 600,
@@ -642,6 +673,7 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: radii.sm,
     cursor: "pointer",
     minHeight: 44,
+    width: "100%",
   },
   aiEditButton: {
     display: "inline-flex",
@@ -657,6 +689,7 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: radii.sm,
     cursor: "pointer",
     minHeight: 44,
+    width: "100%",
   },
   aiEditButtonActive: {
     display: "inline-flex",
@@ -672,8 +705,13 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: radii.sm,
     cursor: "pointer",
     minHeight: 44,
+    width: "100%",
   },
   deleteButton: {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "0.375rem",
     padding: "0.5rem 1rem",
     fontSize: "0.9375rem",
     fontWeight: 600,
@@ -683,6 +721,7 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: radii.sm,
     cursor: "pointer",
     minHeight: 44,
+    width: "100%",
   },
   title: {
     fontFamily: fonts.serif,
@@ -697,7 +736,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: "1.0625rem",
     color: colors.stone600,
     lineHeight: 1.6,
-    margin: "0 0 1.5rem",
+    margin: "0 0 1rem",
   },
   section: {
     marginBottom: "1.75rem",
@@ -756,24 +795,52 @@ const styles: Record<string, React.CSSProperties> = {
     minHeight: 44,
     whiteSpace: "nowrap" as const,
   },
+  primaryLogBtn: {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "0.375rem",
+    width: "100%",
+    padding: "0.75rem 1rem",
+    fontSize: "1rem",
+    fontWeight: 700,
+    color: colors.white,
+    backgroundColor: colors.saffron,
+    border: `1px solid ${colors.saffron}`,
+    borderRadius: radii.md,
+    boxShadow: shadows.glassLg,
+    cursor: "pointer",
+    minHeight: 48,
+    whiteSpace: "nowrap" as const,
+  },
   logBtnDisabled: {
     opacity: 0.6,
     cursor: "not-allowed",
   },
   loggedLabel: {
-    display: "inline-flex",
+    display: "flex",
     alignItems: "center",
+    justifyContent: "center",
     gap: "0.25rem",
-    fontSize: "0.875rem",
-    fontWeight: 600,
+    fontSize: "1rem",
+    fontWeight: 700,
     color: colors.success,
-    padding: "0.5rem 0",
+    backgroundColor: colors.successTint,
+    border: `1px solid ${colors.successTintBorder}`,
+    borderRadius: radii.md,
+    padding: "0.75rem 1rem",
+    minHeight: 48,
   },
   logErrorRow: {
     display: "flex",
     alignItems: "center",
+    justifyContent: "space-between",
     gap: "0.375rem",
     flexWrap: "wrap" as const,
+    padding: "0.625rem 0.75rem",
+    backgroundColor: colors.dangerTint,
+    border: `1px solid ${colors.dangerTintBorder}`,
+    borderRadius: radii.md,
   },
   logErrorText: {
     fontSize: "0.8125rem",
