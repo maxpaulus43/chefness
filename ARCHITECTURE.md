@@ -62,6 +62,8 @@ src/
     recipe-extractor.ts  Tool-calling recipe extraction and natural-language recipe edits
     recipe-url-extractor.ts  Client helper for same-origin Worker recipe URL extraction
   worker.ts           Stateless Cloudflare Worker API endpoints + static asset fallback
+  theme.ts            Shared design tokens (colors, fonts, shadows, radii)
+  index.css           Global CSS — font imports, gradient background, grain, scrollbars
   App.tsx             Root UI component (pure presentation)
   main.tsx            Entry point — renders providers around <App />
 ```
@@ -149,6 +151,40 @@ function RecipeList() {
   });
 }
 ```
+
+---
+
+## 4a. Styling & theming
+
+Chefness styles components with **inline `React.CSSProperties` style objects**
+(a `const styles: Record<string, React.CSSProperties>` at the bottom of each
+component). There is **no Tailwind / CSS-in-JS library**; only `src/index.css`
+holds global rules (font imports, the cream gradient `body` background, the
+grain overlay, and custom scrollbars).
+
+**Design system — "warm kitchen glassmorphism".** All visual tokens live in a
+single source of truth at **`src/theme.ts`**, which exports:
+
+| Export    | Purpose                                                                 |
+| --------- | ----------------------------------------------------------------------- |
+| `colors`  | Palette — `cream`, `espresso` (text), `saffron` (primary accent), `rose`/`roseText` (destructive & "AI" accents), warm `stone*` neutrals, translucent `glass*` surfaces, and `*Tint`/status colors |
+| `fonts`   | `serif` (Fraunces — used for headings/titles) and `sans` (Inter — body) |
+| `shadows` | `glass`, `glassLg`, `glassXl` — soft layered card shadows                |
+| `radii`   | `sm`/`md`/`lg`/`xl`/`pill` corner radii                                  |
+
+**Conventions:**
+
+- Import tokens via `import { colors, fonts, shadows, radii } from "@/theme";`.
+  Never hardcode hex colors in component style objects — reference a token.
+- Screen titles (`<h1>`) and section headings use `fontFamily: fonts.serif`.
+- Card-like surfaces use `colors.glass` background, a `colors.glassBorder`
+  border, and a `shadows.glass*` shadow for the translucent "frosted" look.
+- Primary actions use `colors.saffron`; destructive actions use the
+  `danger`/`rose` tokens. Active chips/tabs are saffron-tinted.
+- The app shell (`HomePage`) is a centered `max-width: 480px` mobile column;
+  the bottom nav and chat header/composer use blurred translucent bars.
+
+When adding UI, extend `src/theme.ts` rather than introducing new ad-hoc colors.
 
 ---
 

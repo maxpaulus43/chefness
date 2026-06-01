@@ -4,6 +4,7 @@ import { HistoryView } from "@/components/HistoryView";
 import { SettingsView } from "@/components/SettingsView";
 import { useOpenRouterOAuth } from "@/hooks/useOpenRouterOAuth";
 import { useState, useCallback, type ReactNode } from "react";
+import { colors } from "@/theme";
 import RecipeView from "./RecipeView";
 
 // ---------------------------------------------------------------------------
@@ -69,12 +70,18 @@ const styles: Record<string, React.CSSProperties> = {
         height: "100vh",
         display: "flex",
         flexDirection: "column",
+        width: "100%",
+        maxWidth: 480,
+        margin: "0 auto",
+        position: "relative",
+        background: "transparent",
+        color: colors.espresso,
     },
     content: {
         flex: 1,
         display: "flex",
         flexDirection: "column",
         minHeight: 0,
-        paddingBottom: 56,
+        paddingBottom: 64,
     },
 };

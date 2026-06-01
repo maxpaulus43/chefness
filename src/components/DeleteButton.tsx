@@ -1,3 +1,5 @@
+import { colors } from "@/theme";
+
 export default function DeleteButton(props: {
     onDelete: (e: React.MouseEvent) => void;
 }) {
@@ -24,7 +26,7 @@ const styles: Record<string, React.CSSProperties> = {
     deleteBtn: {
         backgroundColor: "transparent",
         border: "none",
-        color: "#ef4444",
+        color: colors.roseText,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",

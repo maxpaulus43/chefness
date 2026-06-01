@@ -1,3 +1,4 @@
+import { colors, fonts, shadows, radii } from "@/theme";
 import { useCookingLog } from "@/hooks/useCookingLog";
 import type { CookingLogEntry } from "@/types/cooking-log";
 import { useState, useCallback } from "react";
@@ -258,10 +259,12 @@ const styles: Record<string, React.CSSProperties> = {
         minWidth: 0,
     },
     header: {
-        fontSize: "1.5rem",
-        fontWeight: 700,
+        fontFamily: fonts.serif,
+        fontSize: "2rem",
+        fontWeight: 600,
+        letterSpacing: "-0.01em",
         margin: "0 0 1rem",
-        color: "#111827",
+        color: colors.espresso,
     },
     list: {
         display: "flex",
@@ -272,9 +275,10 @@ const styles: Record<string, React.CSSProperties> = {
         display: "flex",
         gap: "0.5rem",
         padding: "0.875rem 1rem",
-        backgroundColor: "#fff",
-        border: "1px solid #e5e7eb",
-        borderRadius: 12,
+        backgroundColor: colors.glass,
+        border: `1px solid ${colors.glassBorder}`,
+        boxShadow: shadows.glass,
+        borderRadius: radii.lg,
         width: "100%",
         boxSizing: "border-box" as const,
     },
@@ -298,13 +302,13 @@ const styles: Record<string, React.CSSProperties> = {
     cardTitle: {
         fontSize: "1rem",
         fontWeight: 600,
-        color: "#111827",
+        color: colors.espresso,
         lineHeight: 1.4,
     },
     cardDate: {
         fontSize: "0.8125rem",
         fontWeight: 400,
-        color: "#6b7280",
+        color: colors.stone600,
         lineHeight: 1.4,
     },
     deleteButton: {
@@ -318,7 +322,7 @@ const styles: Record<string, React.CSSProperties> = {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        borderRadius: 8,
+        borderRadius: radii.sm,
         flexShrink: 0,
     },
     ratingRow: {
@@ -326,9 +330,9 @@ const styles: Record<string, React.CSSProperties> = {
         gap: "0.5rem",
     },
     ratingButton: {
-        background: "#f3f4f6",
-        border: "1px solid #e5e7eb",
-        borderRadius: 8,
+        background: colors.glass,
+        border: `1px solid ${colors.glassBorder}`,
+        borderRadius: radii.sm,
         cursor: "pointer",
         fontSize: "1.25rem",
         minWidth: 44,
@@ -340,12 +344,12 @@ const styles: Record<string, React.CSSProperties> = {
         transition: "background 0.15s, border-color 0.15s",
     },
     ratingUpActive: {
-        background: "#dcfce7",
-        borderColor: "#22c55e",
+        background: colors.successTint,
+        borderColor: colors.success,
     },
     ratingDownActive: {
-        background: "#fee2e2",
-        borderColor: "#ef4444",
+        background: colors.dangerTint,
+        borderColor: colors.danger,
     },
     commentSection: {
         display: "flex",
@@ -354,7 +358,7 @@ const styles: Record<string, React.CSSProperties> = {
     },
     commentText: {
         fontSize: "0.875rem",
-        color: "#374151",
+        color: colors.stone700,
         lineHeight: 1.5,
         margin: 0,
         whiteSpace: "pre-wrap" as const,
@@ -362,7 +366,7 @@ const styles: Record<string, React.CSSProperties> = {
     commentToggle: {
         background: "none",
         border: "none",
-        color: "#2563eb",
+        color: colors.saffron,
         cursor: "pointer",
         fontSize: "0.8125rem",
         fontWeight: 500,
@@ -384,8 +388,10 @@ const styles: Record<string, React.CSSProperties> = {
         padding: "0.5rem",
         fontSize: "1rem",
         fontFamily: "inherit",
-        border: "1px solid #d1d5db",
-        borderRadius: 8,
+        border: `1px solid ${colors.glassBorder}`,
+        borderRadius: radii.sm,
+        backgroundColor: colors.white,
+        color: colors.espresso,
         resize: "vertical" as const,
         lineHeight: 1.5,
         minHeight: 60,
@@ -395,10 +401,11 @@ const styles: Record<string, React.CSSProperties> = {
         gap: "0.5rem",
     },
     commentSaveButton: {
-        background: "#2563eb",
-        color: "#fff",
+        background: colors.saffron,
+        color: colors.white,
         border: "none",
-        borderRadius: 8,
+        borderRadius: radii.md,
+        boxShadow: shadows.glassLg,
         cursor: "pointer",
         fontSize: "0.8125rem",
         fontWeight: 600,
@@ -406,10 +413,11 @@ const styles: Record<string, React.CSSProperties> = {
         minHeight: 44,
     },
     commentCancelButton: {
-        background: "#f3f4f6",
-        color: "#374151",
-        border: "1px solid #e5e7eb",
-        borderRadius: 8,
+        background: colors.glass,
+        color: colors.stone700,
+        border: `1px solid ${colors.glassBorder}`,
+        boxShadow: shadows.glass,
+        borderRadius: radii.md,
         cursor: "pointer",
         fontSize: "0.8125rem",
         fontWeight: 500,
@@ -426,18 +434,18 @@ const styles: Record<string, React.CSSProperties> = {
     },
     loadingText: {
         textAlign: "center" as const,
-        color: "#6b7280",
+        color: colors.stone600,
         fontSize: "0.9375rem",
     },
     errorText: {
         textAlign: "center" as const,
-        color: "#dc2626",
+        color: colors.danger,
         fontSize: "0.9375rem",
         lineHeight: 1.5,
     },
     emptyText: {
         textAlign: "center" as const,
-        color: "#6b7280",
+        color: colors.stone600,
         fontSize: "0.9375rem",
         lineHeight: 1.5,
         maxWidth: 320,
