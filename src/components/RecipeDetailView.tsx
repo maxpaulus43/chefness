@@ -1,4 +1,5 @@
 import { colors, fonts, shadows, radii } from "@/theme";
+import { Icon } from "@/components/Icon";
 import { useRecipes } from "@/hooks/useRecipes";
 import { useRecipeAiEditor } from "@/hooks/useRecipeAiEditor";
 import { useCookingLog } from "@/hooks/useCookingLog";
@@ -55,7 +56,8 @@ export function RecipeDetailView({
     return (
       <div style={styles.container}>
         <button type="button" style={styles.backButton} onClick={onBack}>
-          ← Back
+          <Icon name="arrowLeft" size={16} strokeWidth={2.5} />
+          Back
         </button>
         <div style={styles.centered}>
           <p style={styles.errorText}>
@@ -72,7 +74,8 @@ export function RecipeDetailView({
     return (
       <div style={styles.container}>
         <button type="button" style={styles.backButton} onClick={onBack}>
-          ← Back
+          <Icon name="arrowLeft" size={16} strokeWidth={2.5} />
+          Back
         </button>
         <div style={styles.centered}>
           <p style={styles.notFoundText}>Recipe not found.</p>
@@ -142,7 +145,8 @@ export function RecipeDetailView({
     <div style={styles.container}>
       <div style={styles.headerRow}>
         <button type="button" style={styles.backButton} onClick={onBack}>
-          ← Back
+          <Icon name="arrowLeft" size={16} strokeWidth={2.5} />
+          Back
         </button>
         <div style={styles.headerActions}>
           {logStatus === "idle" && (
@@ -164,7 +168,10 @@ export function RecipeDetailView({
             </button>
           )}
           {logStatus === "logged" && (
-            <span style={styles.loggedLabel}>✅ Logged!</span>
+            <span style={styles.loggedLabel}>
+              <Icon name="check" size={14} strokeWidth={3} />
+              Logged!
+            </span>
           )}
           {logStatus === "error" && (
             <div style={styles.logErrorRow}>
@@ -185,7 +192,17 @@ export function RecipeDetailView({
             style={copied ? styles.copyButtonCopied : styles.copyButton}
             onClick={handleCopyMarkdown}
           >
-            {copied ? "✅ Copied!" : "📋 Copy"}
+            {copied ? (
+              <>
+                <Icon name="check" size={15} strokeWidth={3} />
+                Copied!
+              </>
+            ) : (
+              <>
+                <Icon name="clipboard" size={15} />
+                Copy
+              </>
+            )}
           </button>
           <button type="button" style={styles.editButton} onClick={onEdit}>
             Edit
@@ -195,7 +212,8 @@ export function RecipeDetailView({
             style={showAiEdit ? styles.aiEditButtonActive : styles.aiEditButton}
             onClick={handleToggleAiEdit}
           >
-            ✨ AI Edit
+            <Icon name="sparkles" size={15} />
+            AI Edit
           </button>
           <button
             type="button"
@@ -265,7 +283,10 @@ export function RecipeDetailView({
 
           {aiEditError && <p style={styles.aiEditError}>{aiEditError}</p>}
           {aiEditStatus === "applied" && (
-            <p style={styles.aiEditSuccess}>✅ Recipe updated!</p>
+            <p style={styles.aiEditSuccess}>
+              <Icon name="check" size={15} strokeWidth={3} />
+              Recipe updated!
+            </p>
           )}
 
           {draftRecipe && (
@@ -403,6 +424,10 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: "center",
   },
   backButton: {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "0.375rem",
     padding: "0.5rem 0.875rem",
     fontSize: "1rem",
     fontWeight: 600,
@@ -414,6 +439,10 @@ const styles: Record<string, React.CSSProperties> = {
     minHeight: 44,
   },
   copyButton: {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "0.375rem",
     padding: "0.5rem 0.875rem",
     fontSize: "0.875rem",
     fontWeight: 500,
@@ -427,6 +456,10 @@ const styles: Record<string, React.CSSProperties> = {
     whiteSpace: "nowrap" as const,
   },
   copyButtonCopied: {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "0.375rem",
     padding: "0.5rem 0.875rem",
     fontSize: "0.875rem",
     fontWeight: 500,
@@ -542,6 +575,9 @@ const styles: Record<string, React.CSSProperties> = {
     lineHeight: 1.4,
   },
   aiEditSuccess: {
+    display: "flex",
+    alignItems: "center",
+    gap: "0.375rem",
     fontSize: "0.875rem",
     color: colors.success,
     backgroundColor: colors.successTint,
@@ -608,6 +644,10 @@ const styles: Record<string, React.CSSProperties> = {
     minHeight: 44,
   },
   aiEditButton: {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "0.375rem",
     padding: "0.5rem 1rem",
     fontSize: "0.9375rem",
     fontWeight: 600,
@@ -619,6 +659,10 @@ const styles: Record<string, React.CSSProperties> = {
     minHeight: 44,
   },
   aiEditButtonActive: {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "0.375rem",
     padding: "0.5rem 1rem",
     fontSize: "0.9375rem",
     fontWeight: 600,
@@ -717,6 +761,9 @@ const styles: Record<string, React.CSSProperties> = {
     cursor: "not-allowed",
   },
   loggedLabel: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "0.25rem",
     fontSize: "0.875rem",
     fontWeight: 600,
     color: colors.success,

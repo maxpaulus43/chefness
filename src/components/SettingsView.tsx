@@ -1,4 +1,5 @@
 import { colors, fonts, shadows, radii } from "@/theme";
+import { Icon } from "@/components/Icon";
 import { useSettings } from "@/hooks/useSettings";
 import { useAiPreferences } from "@/hooks/useAiPreferences";
 import { useOpenRouterOAuth } from "@/hooks/useOpenRouterOAuth";
@@ -283,7 +284,10 @@ export function SettingsView() {
 
         {isOpenRouterConnected ? (
           <>
-            <p style={styles.openRouterConnected}>✓ Connected to OpenRouter</p>
+            <p style={styles.openRouterConnected}>
+              <Icon name="check" size={16} strokeWidth={3} />
+              Connected to OpenRouter
+            </p>
             <p style={styles.maskedKey}>API key: {maskedOAuthKey}</p>
 
             {/* Model picker */}
@@ -405,7 +409,7 @@ export function SettingsView() {
                   style={styles.deleteButton}
                   aria-label={`Delete preference: ${pref.text}`}
                 >
-                  ×
+                  <Icon name="trash" size={16} />
                 </button>
               </li>
             ))}
@@ -450,7 +454,8 @@ export function SettingsView() {
             onClick={() => setShowAddPreference(true)}
             style={styles.addPreferenceButton}
           >
-            + Add preference
+            <Icon name="plus" size={15} strokeWidth={2.5} />
+            Add preference
           </button>
         )}
       </section>
@@ -677,6 +682,9 @@ const styles: Record<string, React.CSSProperties> = {
     minWidth: 0,
   },
   deleteButton: {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
     background: "none",
     border: "none",
     fontSize: "1.25rem",
@@ -688,6 +696,9 @@ const styles: Record<string, React.CSSProperties> = {
     flexShrink: 0,
   },
   addPreferenceButton: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "0.25rem",
     background: "none",
     border: "none",
     fontSize: "0.875rem",
@@ -740,6 +751,9 @@ const styles: Record<string, React.CSSProperties> = {
     width: "100%",
   },
   openRouterConnected: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "0.375rem",
     fontSize: "0.9375rem",
     fontWeight: 600,
     color: colors.success,

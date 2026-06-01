@@ -1,4 +1,5 @@
 import { colors } from "@/theme";
+import { Icon } from "@/components/Icon";
 
 export default function DeleteButton(props: {
     onDelete: (e: React.MouseEvent) => void;
@@ -17,7 +18,7 @@ export default function DeleteButton(props: {
                 }
             }}
         >
-            ×
+            <Icon name="trash" size={18} />
         </button>
     );
 }

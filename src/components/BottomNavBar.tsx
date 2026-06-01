@@ -1,12 +1,13 @@
 import { colors, shadows } from "@/theme";
+import { Icon, type IconName } from "@/components/Icon";
 
 export type Tab = "chat" | "recipes" | "history" | "settings";
 
-const tabs: readonly { id: Tab; label: string; icon: string }[] = [
-  { id: "chat", label: "Chat", icon: "💬" },
-  { id: "recipes", label: "Recipes", icon: "📖" },
-  { id: "history", label: "History", icon: "🕑" },
-  { id: "settings", label: "Settings", icon: "⚙️" },
+const tabs: readonly { id: Tab; label: string; icon: IconName }[] = [
+  { id: "chat", label: "Chat", icon: "messageCircle" },
+  { id: "recipes", label: "Recipes", icon: "bookOpen" },
+  { id: "history", label: "History", icon: "clock" },
+  { id: "settings", label: "Settings", icon: "settings" },
 ] as const;
 
 interface BottomNavBarProps {
@@ -34,7 +35,7 @@ export function BottomNavBar({ activeTab, onTabChange }: BottomNavBarProps) {
                 style={{ ...styles.icon, opacity: isActive ? 1 : 0.7 }}
                 aria-hidden
               >
-                {icon}
+                <Icon name={icon} size={20} strokeWidth={2.25} />
               </span>
               <span style={styles.label}>{label}</span>
             </button>

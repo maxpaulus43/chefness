@@ -41,7 +41,7 @@ what you've cooked.**
 | **AI-powered** | A conversational LLM is the primary interaction model. The AI adapts to the user's context (dietary restrictions, recent meals, preferences). |
 | **Single-user** | No accounts, no server. Everything is local to the device. |
 | **Privacy-respecting** | Data stays on-device. The only network calls are to the user's chosen LLM provider using their own API key. |
-| **Warm & inviting visual design** | A "kitchen glassmorphism" aesthetic: a cream gradient background with subtle grain, Fraunces serif headings over Inter body text, a saffron/espresso/rose palette, and frosted translucent cards with soft shadows. Tokens are centralized in `src/theme.ts`. |
+| **Warm & inviting visual design** | A "kitchen glassmorphism" aesthetic: a cream gradient background with subtle grain, Fraunces serif headings over Inter body text, a saffron/espresso/rose palette, frosted translucent cards with soft shadows, and consistent inline SVG icons instead of platform-dependent emojis. Tokens are centralized in `src/theme.ts`. |
 
 ---
 

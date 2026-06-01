@@ -68,6 +68,11 @@ src/
   main.tsx            Entry point — renders providers around <App />
 ```
 
+Reusable presentational UI lives under `src/components/`. Shared UI glyphs use
+`src/components/Icon.tsx`, a small in-repo SVG icon set that inherits
+`currentColor` so controls can use theme-token colors without emoji rendering
+differences across platforms.
+
 ---
 
 ## 3. Layered architecture
@@ -181,6 +186,9 @@ single source of truth at **`src/theme.ts`**, which exports:
   border, and a `shadows.glass*` shadow for the translucent "frosted" look.
 - Primary actions use `colors.saffron`; destructive actions use the
   `danger`/`rose` tokens. Active chips/tabs are saffron-tinted.
+- Interactive glyphs use `<Icon />` from `src/components/Icon.tsx` instead of
+  emojis. Icons should be decorative (`aria-hidden`) when adjacent to visible
+  text, or paired with an `aria-label` on icon-only controls.
 - The app shell (`HomePage`) is a centered `max-width: 480px` mobile column;
   the bottom nav and chat header/composer use blurred translucent bars.
 

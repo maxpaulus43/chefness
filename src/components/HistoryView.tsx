@@ -1,4 +1,5 @@
 import { colors, fonts, shadows, radii } from "@/theme";
+import { Icon } from "@/components/Icon";
 import { useCookingLog } from "@/hooks/useCookingLog";
 import type { CookingLogEntry } from "@/types/cooking-log";
 import { useState, useCallback } from "react";
@@ -106,7 +107,7 @@ function EntryCard({
                         aria-label="Thumbs up"
                         aria-pressed={entry.rating === "up"}
                     >
-                        👍
+                        <Icon name="thumbsUp" size={18} strokeWidth={2.25} />
                     </button>
                     <button
                         type="button"
@@ -120,7 +121,7 @@ function EntryCard({
                         aria-label="Thumbs down"
                         aria-pressed={entry.rating === "down"}
                     >
-                        👎
+                        <Icon name="thumbsDown" size={18} strokeWidth={2.25} />
                     </button>
                 </div>
 

@@ -1,4 +1,5 @@
 import { ChatSessionList } from "@/components/ChatSessionList";
+import { Icon } from "@/components/Icon";
 import { useChat } from "@/hooks/useChat";
 import type { MealType, MealSize } from "@/hooks/useChat";
 import { useAiPreferences } from "@/hooks/useAiPreferences";
@@ -606,7 +607,12 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
                                                                     styles.savedLabel
                                                                 }
                                                             >
-                                                                ✅ Saved!
+                                                                <Icon
+                                                                    name="check"
+                                                                    size={14}
+                                                                    strokeWidth={3}
+                                                                />
+                                                                Saved!
                                                             </span>
                                                         )}
                                                         {action.save ===
@@ -653,8 +659,11 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
                                                                     )
                                                                 }
                                                             >
-                                                                🧠 Save to
-                                                                Memory
+                                                                <Icon
+                                                                    name="brain"
+                                                                    size={14}
+                                                                />
+                                                                Save to Memory
                                                             </button>
                                                         )}
                                                         {action.memory ===
@@ -677,7 +686,12 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
                                                                     styles.memorySavedLabel
                                                                 }
                                                             >
-                                                                ✅ Remembered!
+                                                                <Icon
+                                                                    name="check"
+                                                                    size={14}
+                                                                    strokeWidth={3}
+                                                                />
+                                                                Remembered!
                                                             </span>
                                                         )}
                                                         {action.memory ===
@@ -860,7 +874,7 @@ function renderHeader(
                             sessionListOpen ? "Hide sessions" : "Show sessions"
                         }
                     >
-                        💬
+                        <Icon name="messageCircle" size={18} strokeWidth={2.25} />
                     </button>
                 )}
                 {showNewChat && (
@@ -996,7 +1010,17 @@ function renderInputArea(
                         ...(sendDisabled ? styles.sendBtnDisabled : {}),
                     }}
                 >
-                    {isStreaming ? "Stop" : "Send"}
+                    {isStreaming ? (
+                        <>
+                            <Icon name="x" size={16} strokeWidth={2.5} />
+                            Stop
+                        </>
+                    ) : (
+                        <>
+                            <Icon name="send" size={16} strokeWidth={2.25} />
+                            Send
+                        </>
+                    )}
                 </button>
             </div>
         </div>
@@ -1352,6 +1376,10 @@ const styles: Record<string, React.CSSProperties> = {
         boxShadow: shadows.glass,
     },
     sendBtn: {
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: "0.375rem",
         padding: "0.75rem 1.25rem",
         fontSize: "0.9375rem",
         fontWeight: 600,
@@ -1396,6 +1424,9 @@ const styles: Record<string, React.CSSProperties> = {
         cursor: "not-allowed",
     },
     savedLabel: {
+        display: "inline-flex",
+        alignItems: "center",
+        gap: "0.25rem",
         fontSize: "0.8125rem",
         fontWeight: 600,
         color: colors.success,
@@ -1426,6 +1457,10 @@ const styles: Record<string, React.CSSProperties> = {
 
     // "Save to Memory" button styles
     memoryBtn: {
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: "0.25rem",
         padding: "0.5rem 0.875rem",
         fontSize: "0.8125rem",
         fontWeight: 500,
@@ -1443,6 +1478,9 @@ const styles: Record<string, React.CSSProperties> = {
         cursor: "not-allowed",
     },
     memorySavedLabel: {
+        display: "inline-flex",
+        alignItems: "center",
+        gap: "0.25rem",
         fontSize: "0.8125rem",
         fontWeight: 600,
         color: colors.success,

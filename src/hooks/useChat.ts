@@ -66,9 +66,9 @@ function formatCookingLogEntry(entry: CookingLogEntry): string {
   let line = `- ${dayName}: ${entry.title}`;
 
   if (entry.rating === "up") {
-    line += " (👍)";
+    line += " (liked)";
   } else if (entry.rating === "down") {
-    line += " (👎)";
+    line += " (disliked)";
   }
 
   if (entry.comment) {
