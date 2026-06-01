@@ -16,10 +16,16 @@ export function generateUUID(): string {
   const bytes = new Uint8Array(16);
   crypto.getRandomValues(bytes);
 
+  const byteSix = bytes[6];
+  const byteEight = bytes[8];
+  if (byteSix === undefined || byteEight === undefined) {
+    throw new Error("Failed to generate UUID bytes.");
+  }
+
   // Set version 4 (0100) in the high nibble of byte 6.
-  bytes[6] = (bytes[6]! & 0x0f) | 0x40;
+  bytes[6] = (byteSix & 0x0f) | 0x40;
   // Set variant 1 (10xx) in the high two bits of byte 8.
-  bytes[8] = (bytes[8]! & 0x3f) | 0x80;
+  bytes[8] = (byteEight & 0x3f) | 0x80;
 
   const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
 

@@ -5,6 +5,7 @@ import type { MealType, MealSize } from "@/hooks/useChat";
 import { useAiPreferences } from "@/hooks/useAiPreferences";
 import { useRecipes } from "@/hooks/useRecipes";
 import { useSettings } from "@/hooks/useSettings";
+import { useToast } from "@/hooks/useToast";
 import { Markdown } from "@/lib/markdown";
 import { extractPreference } from "@/lib/preference-extractor";
 import { extractRecipeFromConversation } from "@/lib/recipe-extractor";
@@ -171,6 +172,7 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
 
     const [inputValue, setInputValue] = useState("");
     const [showSessionList, setShowSessionList] = useState(false);
+    const toast = useToast();
     const [editingMessageIndex, setEditingMessageIndex] = useState<
         number | null
     >(null);
@@ -398,17 +400,28 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
     );
 
     const handleNewChat = useCallback(() => {
+        const startNewChat = () => {
+            clearChat();
+            setEditingMessageIndex(null);
+            setEditingMessageValue("");
+            setShowSessionList(false);
+        };
+
         if (messages.length > 0) {
-            const confirmed = window.confirm(
-                "Start a new conversation? The current chat will be saved.",
-            );
-            if (!confirmed) return;
+            void toast
+                .ask({
+                    title: "Start a new conversation?",
+                    message: "The current chat will be saved.",
+                    confirmLabel: "New chat",
+                    tone: "default",
+                })
+                .then((confirmed) => {
+                    if (confirmed) startNewChat();
+                });
+            return;
         }
-        clearChat();
-        setEditingMessageIndex(null);
-        setEditingMessageValue("");
-        setShowSessionList(false);
-    }, [messages.length, clearChat]);
+        startNewChat();
+    }, [messages.length, clearChat, toast]);
 
     const handleToggleSessionList = useCallback(() => {
         setShowSessionList((prev) => !prev);
@@ -464,17 +477,23 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
             const text = editingMessageValue.trim();
             if (!text) return;
 
-            const confirmed = window.confirm(
-                "Editing this message will remove all later replies and regenerate from here. Continue?",
-            );
-            if (!confirmed) return;
-
-            lastUserMessageRef.current = text;
-            setEditingMessageIndex(null);
-            setEditingMessageValue("");
-            void editUserMessageAndRegenerate(index, text);
+            void toast
+                .ask({
+                    title: "Regenerate from this message?",
+                    message:
+                        "Editing this message will remove all later replies.",
+                    confirmLabel: "Regenerate",
+                    tone: "default",
+                })
+                .then((confirmed) => {
+                    if (!confirmed) return;
+                    lastUserMessageRef.current = text;
+                    setEditingMessageIndex(null);
+                    setEditingMessageValue("");
+                    void editUserMessageAndRegenerate(index, text);
+                });
         },
-        [editingMessageValue, editUserMessageAndRegenerate],
+        [editingMessageValue, editUserMessageAndRegenerate, toast],
     );
 
     const handleMealTypeToggle = useCallback(

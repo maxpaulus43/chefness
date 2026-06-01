@@ -4,6 +4,7 @@ import {
     useRecipeSearch,
 } from "@/hooks/useRecipeSearch";
 import { useRecipes } from "@/hooks/useRecipes";
+import { useToast } from "@/hooks/useToast";
 import type { Recipe } from "@/types/recipe";
 import DeleteButton from "./DeleteButton";
 
@@ -27,6 +28,7 @@ interface RecipeListViewProps {
 
 export function RecipeListView({ onSelectRecipe }: RecipeListViewProps) {
     const { recipes, isLoading, error, deleteRecipe } = useRecipes();
+    const toast = useToast();
     const {
         searchQuery,
         setSearchQuery,
@@ -34,6 +36,19 @@ export function RecipeListView({ onSelectRecipe }: RecipeListViewProps) {
         setSortOption,
         visibleRecipes,
     } = useRecipeSearch(recipes);
+
+    const handleDeleteRecipe = (recipe: Recipe) => {
+        void toast
+            .ask({
+                title: `Delete "${recipe.title}"?`,
+                message: "This cannot be undone.",
+                confirmLabel: "Delete",
+                tone: "danger",
+            })
+            .then((confirmed) => {
+                if (confirmed) deleteRecipe(recipe.id);
+            });
+    };
 
     if (isLoading) {
         return (
@@ -130,7 +145,7 @@ export function RecipeListView({ onSelectRecipe }: RecipeListViewProps) {
                                 </span>
                             </button>
                             <DeleteButton
-                                onDelete={() => deleteRecipe(recipe.id)}
+                                onDelete={() => handleDeleteRecipe(recipe)}
                             />
                         </li>
                     ))}

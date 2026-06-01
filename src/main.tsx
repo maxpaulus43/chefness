@@ -1,5 +1,6 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import { ToastProvider } from "@/components/ToastProvider";
 import { TRPCProvider } from "@/trpc/provider";
 import { migrateFromLocalStorage } from "@/storage/migrate-from-localstorage";
 import App from "./App";
@@ -10,11 +11,18 @@ import "./index.css";
 // This is idempotent — a no-op when there's nothing to migrate.
 await migrateFromLocalStorage();
 
-createRoot(document.getElementById("root")!).render(
+const rootElement = document.getElementById("root");
+if (!rootElement) {
+  throw new Error("Missing root element.");
+}
+
+createRoot(rootElement).render(
   <StrictMode>
     <TRPCProvider>
-      <App />
-      <ReloadPrompt />
+      <ToastProvider>
+        <App />
+        <ReloadPrompt />
+      </ToastProvider>
     </TRPCProvider>
   </StrictMode>,
 );

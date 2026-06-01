@@ -4,6 +4,7 @@ import { useRecipes } from "@/hooks/useRecipes";
 import { useRecipeAiEditor } from "@/hooks/useRecipeAiEditor";
 import { useCookingLog } from "@/hooks/useCookingLog";
 import { useClipboard } from "@/hooks/useClipboard";
+import { useToast } from "@/hooks/useToast";
 import { recipeToMarkdown } from "@/lib/recipe-markdown";
 import { useState } from "react";
 
@@ -29,6 +30,7 @@ export function RecipeDetailView({
   const { recipes, isLoading, error, deleteRecipe, isDeleting } = useRecipes();
   const { createEntryAsync } = useCookingLog();
   const { copyToClipboard, copied, error: clipboardError } = useClipboard();
+  const toast = useToast();
   const {
     status: aiEditStatus,
     draftRecipe,
@@ -90,13 +92,16 @@ export function RecipeDetailView({
   };
 
   const handleDelete = () => {
-    const confirmed = window.confirm(
-      `Delete "${recipe.title}"? This cannot be undone.`,
-    );
-    if (confirmed) {
+    void toast.ask({
+      title: `Delete "${recipe.title}"?`,
+      message: "This cannot be undone.",
+      confirmLabel: "Delete",
+      tone: "danger",
+    }).then((confirmed) => {
+      if (!confirmed) return;
       deleteRecipe(recipeId);
       onBack();
-    }
+    });
   };
 
   const handleLogCook = async () => {

@@ -269,9 +269,10 @@ async function callWithToolsOpenAI(
     function: { name: t.name, description: t.description, parameters: t.parameters },
   }));
 
+  const onlyTool = tools[0];
   const toolChoice =
-    tools.length === 1
-      ? { type: "function" as const, function: { name: tools[0]!.name } }
+    tools.length === 1 && onlyTool
+      ? { type: "function" as const, function: { name: onlyTool.name } }
       : undefined;
 
   const url = `${baseUrl.replace(/\/+$/, "")}/chat/completions`;
@@ -344,9 +345,10 @@ async function callWithToolsAnthropic(
     input_schema: t.parameters,
   }));
 
+  const onlyTool = tools[0];
   const toolChoice =
-    tools.length === 1
-      ? { type: "tool" as const, name: tools[0]!.name }
+    tools.length === 1 && onlyTool
+      ? { type: "tool" as const, name: onlyTool.name }
       : undefined;
 
   const url = `${baseUrl.replace(/\/+$/, "")}/messages`;

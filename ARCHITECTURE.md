@@ -58,6 +58,9 @@ src/
     useRecipes.ts     Recipe CRUD operations, cache invalidation
     useRecipeAiEditor.ts  AI recipe edit orchestration + preview/apply state
     useChat.ts      Chat state, LLM streaming, session persistence, and chat URL import orchestration
+    useToast.ts     Access to global toast notifications and async confirmations
+  contexts/           React contexts shared by hooks/providers
+    toast-context.ts  Toast API types and context (`notify`, `ask`, `dismiss`)
   lib/                Pure client-side helpers for AI calls and formatting
     recipe-extractor.ts  Tool-calling recipe extraction and natural-language recipe edits
     recipe-url-extractor.ts  Client helper for same-origin Worker recipe URL extraction
@@ -72,6 +75,12 @@ Reusable presentational UI lives under `src/components/`. Shared UI glyphs use
 `src/components/Icon.tsx`, a small in-repo SVG icon set that inherits
 `currentColor` so controls can use theme-token colors without emoji rendering
 differences across platforms.
+
+Global feedback UI is provided by `src/components/ToastProvider.tsx`, mounted in
+`src/main.tsx` inside the tRPC provider. Components call `useToast()` and then
+`toast.notify(...)` for transient messages or `await toast.ask(...)` for custom
+confirmation prompts. Do not use native `window.alert`/`window.confirm` for app
+flows; the toast provider keeps confirmations styled, accessible, and reusable.
 
 ---
 

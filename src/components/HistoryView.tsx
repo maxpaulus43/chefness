@@ -1,6 +1,7 @@
 import { colors, fonts, shadows, radii } from "@/theme";
 import { Icon } from "@/components/Icon";
 import { useCookingLog } from "@/hooks/useCookingLog";
+import { useToast } from "@/hooks/useToast";
 import type { CookingLogEntry } from "@/types/cooking-log";
 import { useState, useCallback } from "react";
 import DeleteButton from "./DeleteButton";
@@ -51,6 +52,7 @@ function EntryCard({
 }: EntryCardProps) {
     const [isEditingComment, setIsEditingComment] = useState(false);
     const [commentDraft, setCommentDraft] = useState(entry.comment);
+    const toast = useToast();
 
     const handleToggleRating = useCallback(
         (value: "up" | "down") => {
@@ -75,12 +77,17 @@ function EntryCard({
     }, [entry.comment]);
 
     const handleDelete = useCallback(() => {
-        if (
-            window.confirm(`Delete "${entry.title}" from your cooking history?`)
-        ) {
-            onDelete(entry.id);
-        }
-    }, [entry.id, entry.title, onDelete]);
+        void toast
+            .ask({
+                title: `Delete "${entry.title}"?`,
+                message: "Remove this entry from your cooking history?",
+                confirmLabel: "Delete",
+                tone: "danger",
+            })
+            .then((confirmed) => {
+                if (confirmed) onDelete(entry.id);
+            });
+    }, [entry.id, entry.title, onDelete, toast]);
 
     return (
         <div style={styles.cardContainer}>

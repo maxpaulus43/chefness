@@ -546,6 +546,9 @@ src/
     RecipeEditView.tsx           Edit form for recipes — title, description, ingredients, steps as textareas (Phase 2)
     RecipeListView.tsx           Recipe card list for Recipes tab, with empty/loading/error states (Phase 2)
     SettingsView.tsx             AI Configuration, Dietary Restrictions (chips + freeform), AI Memory (preference list + add/delete)
+    ToastProvider.tsx            Global styled toast notifications and async confirmation prompts, replacing native browser dialogs
+  contexts/
+    toast-context.ts             Toast API context/types (`notify`, `ask`, `dismiss`)
   hooks/
     useAiPreferences.ts         AI preferences CRUD hook (Phase 4)
     useChat.ts                  Chat state management, LLM streaming via fetch(), system prompt construction with meal type/size, recent history, dietary restrictions, AI preferences
@@ -553,6 +556,7 @@ src/
     useCookingLog.ts            Cooking log CRUD hook with recentEntries (last 7 days) convenience getter (Phase 3)
     useRecipes.ts               Recipe CRUD with createRecipeAsync/updateRecipeAsync for reliable awaitable mutations
     useSettings.ts              Settings singleton CRUD via tRPC, convenience getters (isConfigured, llmProvider, dietaryRestrictions, etc.)
+    useToast.ts                 Reusable hook for firing global toast notifications and confirmation prompts
   lib/
     llm-stream.ts               Browser-compatible LLM streaming + non-streaming tool/function calling client. Supports OpenAI-compatible and Anthropic native APIs.
     preference-extractor.ts     Preference extraction via callWithTools with save_preference tool (Phase 4)
@@ -607,6 +611,7 @@ The following were implemented before MVP development and served as the foundati
 | Settings hook | `src/hooks/useSettings.ts` | ✅ Settings singleton CRUD via tRPC, convenience getters (`isConfigured`, `llmProvider`, etc.). |
 | Settings storage | `src/storage/settings.ts`, `src/types/settings.ts` | ✅ Zod schemas + storage repository singleton (key: `chefness:settings`). |
 | Settings tRPC router | `src/trpc/router.ts` | ✅ Added `settings.get` and `settings.update` procedures to existing router. |
+| Toast provider + hook | `src/components/ToastProvider.tsx`, `src/hooks/useToast.ts` | ✅ Reusable styled toast API with `toast.notify(...)` and async `toast.ask(...)`; native browser confirmations replaced for new chat, conversation delete, recipe delete, history delete, preference removal, and chat message regeneration. |
 
 ---
 

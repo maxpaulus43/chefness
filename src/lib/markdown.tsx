@@ -71,7 +71,7 @@ function parseBlocks(content: string): Block[] {
   let i = 0;
 
   while (i < lines.length) {
-    const line = lines[i]!;
+    const line = lines[i] ?? "";
 
     // Fenced code block
     if (line.trimStart().startsWith("```")) {
@@ -79,8 +79,9 @@ function parseBlocks(content: string): Block[] {
       const codeLines: string[] = [];
       i++;
       while (i < lines.length) {
-        if (lines[i]!.trimStart().startsWith("```")) { i++; break; }
-        codeLines.push(lines[i]!);
+        const codeLine = lines[i] ?? "";
+        if (codeLine.trimStart().startsWith("```")) { i++; break; }
+        codeLines.push(codeLine);
         i++;
       }
       blocks.push({ type: "code", lang, content: codeLines.join("\n") });
@@ -90,7 +91,12 @@ function parseBlocks(content: string): Block[] {
     // Heading
     const headingMatch = /^(#{1,3})\s+(.+)/.exec(line);
     if (headingMatch) {
-      blocks.push({ type: "heading", level: headingMatch[1]!.length, content: headingMatch[2]! });
+      const [, levelMarker, headingContent] = headingMatch;
+      blocks.push({
+        type: "heading",
+        level: levelMarker.length,
+        content: headingContent,
+      });
       i++;
       continue;
     }
@@ -101,8 +107,10 @@ function parseBlocks(content: string): Block[] {
     // Unordered list
     if (/^[-*]\s+/.test(line)) {
       const items: string[] = [];
-      while (i < lines.length && /^[-*]\s+/.test(lines[i]!)) {
-        items.push(lines[i]!.replace(/^[-*]\s+/, ""));
+      while (i < lines.length) {
+        const itemLine = lines[i] ?? "";
+        if (!/^[-*]\s+/.test(itemLine)) break;
+        items.push(itemLine.replace(/^[-*]\s+/, ""));
         i++;
       }
       blocks.push({ type: "ul", content: "", items });
@@ -112,8 +120,10 @@ function parseBlocks(content: string): Block[] {
     // Ordered list
     if (/^\d+\.\s+/.test(line)) {
       const items: string[] = [];
-      while (i < lines.length && /^\d+\.\s+/.test(lines[i]!)) {
-        items.push(lines[i]!.replace(/^\d+\.\s+/, ""));
+      while (i < lines.length) {
+        const itemLine = lines[i] ?? "";
+        if (!/^\d+\.\s+/.test(itemLine)) break;
+        items.push(itemLine.replace(/^\d+\.\s+/, ""));
         i++;
       }
       blocks.push({ type: "ol", content: "", items });
@@ -126,7 +136,7 @@ function parseBlocks(content: string): Block[] {
     // Paragraph
     const paraLines: string[] = [];
     while (i < lines.length) {
-      const l = lines[i]!;
+      const l = lines[i] ?? "";
       if (
         l.trim() === "" ||
         l.trimStart().startsWith("```") ||

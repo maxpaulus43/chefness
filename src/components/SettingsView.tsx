@@ -3,6 +3,7 @@ import { Icon } from "@/components/Icon";
 import { useSettings } from "@/hooks/useSettings";
 import { useAiPreferences } from "@/hooks/useAiPreferences";
 import { useOpenRouterOAuth } from "@/hooks/useOpenRouterOAuth";
+import { useToast } from "@/hooks/useToast";
 import {
   getAllProviders,
   getModelsForProvider,
@@ -28,6 +29,7 @@ const PREDEFINED_RESTRICTIONS = [
 const OPENROUTER_DEFAULT_MODEL = "openai/gpt-oss-120b:free";
 
 export function SettingsView() {
+  const toast = useToast();
   const {
     isLoading,
     llmProvider,
@@ -233,9 +235,14 @@ export function SettingsView() {
   };
 
   const handleDeletePreference = (id: string, text: string) => {
-    if (window.confirm(`Remove preference: "${text}"?`)) {
-      deletePreference(id);
-    }
+    void toast.ask({
+      title: "Remove preference?",
+      message: `"${text}"`,
+      confirmLabel: "Remove",
+      tone: "danger",
+    }).then((confirmed) => {
+      if (confirmed) deletePreference(id);
+    });
   };
 
   const handleSavePreference = async () => {

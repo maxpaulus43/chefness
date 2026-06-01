@@ -1,5 +1,6 @@
 import { colors, fonts, shadows, radii } from "@/theme";
 import { useChatSessions } from "@/hooks/useChatSessions";
+import { useToast } from "@/hooks/useToast";
 import type { ChatSession } from "@/types/chat-session";
 import { useCallback } from "react";
 import DeleteButton from "./DeleteButton";
@@ -57,18 +58,23 @@ export function ChatSessionList({
     currentSessionId,
 }: ChatSessionListProps) {
     const { sessions, isLoading, deleteSession } = useChatSessions();
+    const toast = useToast();
 
     const handleDelete = useCallback(
         (e: React.MouseEvent, session: ChatSession) => {
             e.stopPropagation();
-            const confirmed = window.confirm(
-                `Delete "${session.title}"? This cannot be undone.`,
-            );
-            if (confirmed) {
-                deleteSession(session.id);
-            }
+            void toast
+                .ask({
+                    title: `Delete "${session.title}"?`,
+                    message: "This cannot be undone.",
+                    confirmLabel: "Delete",
+                    tone: "danger",
+                })
+                .then((confirmed) => {
+                    if (confirmed) deleteSession(session.id);
+                });
         },
-        [deleteSession],
+        [deleteSession, toast],
     );
 
     if (isLoading) {
