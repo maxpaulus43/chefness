@@ -517,6 +517,7 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
     // The input remains available when the LLM is not configured so users can
     // still paste recipe URLs for non-AI JSON-LD import.
     const hasMessages = messages.length > 0;
+    const showMealControls = !hasMessages;
 
     return (
         <div style={styles.root}>
@@ -860,6 +861,7 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
                     handleMealTypeToggle,
                     handleMealSizeToggle,
                     inputRef,
+                    showMealControls,
                 )}
         </div>
     );
@@ -972,41 +974,46 @@ function renderInputArea(
     onMealType: (v: MealType) => void,
     onMealSize: (v: MealSize) => void,
     inputRef: React.RefObject<HTMLTextAreaElement | null>,
+    showMealControls: boolean,
 ) {
     const sendDisabled = !isStreaming && !inputValue.trim();
     return (
         <div style={styles.inputArea}>
-            <div style={styles.pillRow}>
-                {MEAL_TYPES.map(({ value, label }) => (
-                    <button
-                        key={value}
-                        type="button"
-                        style={{
-                            ...styles.pill,
-                            ...(mealType === value ? styles.pillActive : {}),
-                        }}
-                        onClick={() => onMealType(value)}
-                    >
-                        {label}
-                    </button>
-                ))}
-            </div>
-            <div style={styles.pillRow}>
-                <span style={styles.pillLabel}>Serves:</span>
-                {MEAL_SIZES.map(({ value, label }) => (
-                    <button
-                        key={value}
-                        type="button"
-                        style={{
-                            ...styles.pill,
-                            ...(mealSize === value ? styles.pillActive : {}),
-                        }}
-                        onClick={() => onMealSize(value)}
-                    >
-                        {label}
-                    </button>
-                ))}
-            </div>
+            {showMealControls && (
+                <>
+                    <div style={styles.pillRow}>
+                        {MEAL_TYPES.map(({ value, label }) => (
+                            <button
+                                key={value}
+                                type="button"
+                                style={{
+                                    ...styles.pill,
+                                    ...(mealType === value ? styles.pillActive : {}),
+                                }}
+                                onClick={() => onMealType(value)}
+                            >
+                                {label}
+                            </button>
+                        ))}
+                    </div>
+                    <div style={styles.pillRow}>
+                        <span style={styles.pillLabel}>Serves:</span>
+                        {MEAL_SIZES.map(({ value, label }) => (
+                            <button
+                                key={value}
+                                type="button"
+                                style={{
+                                    ...styles.pill,
+                                    ...(mealSize === value ? styles.pillActive : {}),
+                                }}
+                                onClick={() => onMealSize(value)}
+                            >
+                                {label}
+                            </button>
+                        ))}
+                    </div>
+                </>
+            )}
             <div style={styles.inputRow}>
                 <textarea
                     ref={inputRef}

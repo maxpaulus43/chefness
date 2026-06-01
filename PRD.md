@@ -136,8 +136,8 @@ the user refreshes or closes the app.
 - [ ] Chat messages render in a scrollable list with clear visual distinction
       between user messages and AI responses.
 - [ ] AI responses stream token-by-token (not delivered all at once).
-- [ ] The meal type and meal size controls are visible in the chat view (e.g.,
-      as pill selectors or a collapsible toolbar above the input).
+- [ ] The meal type and meal size controls are visible before the first message
+      of a new chat, then hide once the conversation has started.
 - [ ] Changing meal type or meal size does **not** add a visible message to
       the chat. These values are injected into the LLM's system prompt
       behind the scenes.
