@@ -6,7 +6,9 @@
  * all of that lives here.
  */
 import { trpc } from "@/trpc/client";
-import type { CreateRecipeInput, UpdateRecipeInput } from "@/types/recipe";
+import type { Recipe, CreateRecipeInput, UpdateRecipeInput } from "@/types/recipe";
+
+const EMPTY_RECIPES: Recipe[] = [];
 
 export function useRecipes() {
   const utils = trpc.useUtils();
@@ -36,7 +38,7 @@ export function useRecipes() {
 
   return {
     /** The list of all recipes (empty array while loading). */
-    recipes: listQuery.data ?? [],
+    recipes: listQuery.data ?? EMPTY_RECIPES,
 
     /** `true` while the initial recipe list is being fetched. */
     isLoading: listQuery.isLoading,

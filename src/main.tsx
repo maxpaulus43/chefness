@@ -1,5 +1,6 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import { FirebaseAuthProvider } from "@/auth/FirebaseAuthProvider";
 import { ToastProvider } from "@/components/ToastProvider";
 import { TRPCProvider } from "@/trpc/provider";
 import { migrateFromLocalStorage } from "@/storage/migrate-from-localstorage";
@@ -20,8 +21,10 @@ createRoot(rootElement).render(
   <StrictMode>
     <TRPCProvider>
       <ToastProvider>
-        <App />
-        <ReloadPrompt />
+        <FirebaseAuthProvider>
+          <App />
+          <ReloadPrompt />
+        </FirebaseAuthProvider>
       </ToastProvider>
     </TRPCProvider>
   </StrictMode>,

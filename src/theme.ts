@@ -21,6 +21,7 @@ export const colors = {
     saffronDeep: "#B07F2E",
     rose: "#E8C4C4",
     roseText: "#9B5C5C",
+    googleBlue: "#4285F4",
 
     // Warm neutral scale (Tailwind "stone"-ish, tuned warmer)
     stone900: "#2A1F1A",

@@ -731,6 +731,32 @@ mobile-first PWA with AI chat, settings configuration, and placeholder tabs for
 future features. See §6 for the complete file structure and §7 for the checked-off
 feature list.
 
+### Firebase Authentication status
+
+The Firebase Auth and Firestore migration is tracked in
+[`FIREBASE_MIGRATION_PLAN.md`](./FIREBASE_MIGRATION_PLAN.md). Firebase
+Authentication is now connected for:
+
+- first-launch **Sign in / Continue as guest** choice
+- Google redirect and email/password sign-in
+- email account creation
+- password reset and email verification
+- persisted session restoration
+- guest and signed-in Account settings
+- confirmed sign-out
+- recent reauthentication UI (account deletion remains disabled until trusted cloud cleanup)
+
+Cloud Firestore persistence is implemented for signed-in recipes, cooking
+history, AI preferences, chat sessions, and non-secret settings. Signed-out
+guests continue using IndexedDB. Signed-in data supports persistent offline
+reads/writes and refresh-based cross-device synchronization without real-time
+listeners.
+
+LLM API and OpenRouter OAuth keys remain UID-scoped in IndexedDB and never sync.
+A one-time confirmed guest import creates a read-only recovery snapshot, uploads
+and verifies records, then clears active guest stores. Device cache cleanup and account deletion remain disabled until the trusted
+cleanup Function is added.
+
 ### Key Architectural Decisions
 
 The following decisions were made during MVP implementation. Future agents must

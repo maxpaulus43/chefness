@@ -8,8 +8,13 @@ export type IconName =
     | "chefHat"
     | "clipboard"
     | "clock"
+    | "cloud"
+    | "lock"
+    | "logOut"
+    | "mail"
     | "messageCircle"
     | "plus"
+    | "user"
     | "send"
     | "settings"
     | "sparkles"
@@ -110,6 +115,31 @@ const paths: Record<IconName, ReactNode> = {
             <path d="M12 7v5l3 2" />
         </>
     ),
+    cloud: (
+        <>
+            <path d="M17.5 19H7a5 5 0 1 1 1.7-9.7A6 6 0 0 1 20 12a3.5 3.5 0 0 1-2.5 7Z" />
+            <path d="m9 14 2 2 4-4" />
+        </>
+    ),
+    lock: (
+        <>
+            <rect width="16" height="12" x="4" y="10" rx="2" />
+            <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+        </>
+    ),
+    logOut: (
+        <>
+            <path d="M10 17l5-5-5-5" />
+            <path d="M15 12H3" />
+            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+        </>
+    ),
+    mail: (
+        <>
+            <rect width="20" height="16" x="2" y="4" rx="2" />
+            <path d="m22 7-10 6L2 7" />
+        </>
+    ),
     messageCircle: (
         <>
             <path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5A8.5 8.5 0 0 1 21 11z" />
@@ -152,6 +182,12 @@ const paths: Record<IconName, ReactNode> = {
             <path d="M7 10v10" />
             <path d="M5 20H4a2 2 0 0 1-2-2v-6a2 2 0 0 1 2-2h3" />
             <path d="M17 14V4a2 2 0 0 0-2-2l-4 8H7v10h8.7a2 2 0 0 0 2-1.7L19 14Z" />
+        </>
+    ),
+    user: (
+        <>
+            <circle cx="12" cy="8" r="4" />
+            <path d="M4 21a8 8 0 0 1 16 0" />
         </>
     ),
     trash: (

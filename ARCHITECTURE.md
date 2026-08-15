@@ -8,16 +8,48 @@ task has the full context without needing to reverse-engineer it from code.
 
 ## 1. Project overview
 
-Chefness is a **client-side-first** cooking app (PWA, offline-first). There is
-**no separate application backend for user data**. All data operations run
-in-browser via tRPC with localStorage/IndexedDB-style client persistence. The
-architecture is designed so that local persistence can be swapped for a real
-remote backend without changing any UI code.
+Chefness is a **client-side-first** cooking app (PWA, offline-first). All data
+operations still run in-browser through tRPC, but persistence is scoped by
+identity: signed-out guests use IndexedDB and signed-in users use private Cloud
+Firestore collections with persistent offline caching. There is no separate
+Chefness application API server.
 
 Exception: the app may include tiny stateless Cloudflare Worker API endpoints
 for browser-impossible network tasks, such as fetching third-party recipe pages
 that block CORS. These endpoints must not store user data and must return only
 small, sanitized JSON responses.
+
+### Firebase Authentication and Firestore
+
+Firebase Authentication is connected for account identity only. Google and
+email/password sign-in, account creation, verification email, password reset,
+session restoration, sign-out, and reauthentication are implemented with the
+modular Firebase web SDK. Account deletion is disabled until recursive trusted
+cloud cleanup is available.
+
+- `src/lib/firebase.ts` initializes the Firebase app and Auth persistence from
+  `VITE_FIREBASE_*` environment variables. Analytics is intentionally disabled.
+- `src/auth/auth-context.ts` defines the provider-neutral component contract.
+- `src/auth/FirebaseAuthProvider.tsx` is the only module that calls Firebase Auth.
+- Components access authentication only through `src/hooks/useAuth.ts`.
+- `AuthChoiceView`, `AuthDialog`, and `AccountSettings` remain UI/orchestration
+  components and do not import Firebase SDKs.
+- Guest choice is device-local under `chefness:auth:onboarding`.
+
+Signed-in recipes, history, preferences, chats, and non-secret settings use
+Firestore paths under `users/{uid}`. API and OAuth keys are never written to
+Firestore; they use UID-scoped IndexedDB records. Guests continue using the
+existing IndexedDB collections. A one-time confirmed import creates a read-only
+local recovery snapshot, writes and verifies cloud records, then clears active
+guest records.
+
+Firestore rules are deny-by-default, enforce UID ownership, whitelist document
+fields, and explicitly reject secret settings fields. Account deletion and full
+Firestore disk-cache cleanup remain disabled until their planned trusted cleanup
+flow is implemented.
+
+The target architecture and progress checklist live in
+[`FIREBASE_MIGRATION_PLAN.md`](./FIREBASE_MIGRATION_PLAN.md).
 
 ### Tech stack
 
@@ -47,8 +79,11 @@ src/
     recipe.ts         Recipe, CreateRecipeInput, UpdateRecipeInput
   storage/            Persistence layer (the abstraction boundary)
     interface.ts      StorageRepository<TEntity, TCreate, TUpdate> interface
-    local-storage.ts  localStorage implementation of the interface
-    recipes.ts        Instantiates and exports the recipe repository
+    indexed-db.ts     Guest storage and local-only device records
+    firestore.ts      Generic signed-in Firestore repository
+    scoped-repository.ts  Chooses guest or signed-in persistence
+    guest-import.ts   Snapshot, upload, verification, and guest cleanup
+    recipes.ts        Instantiates scoped recipe repositories
   trpc/               RPC plumbing — procedures, client, providers
     index.ts          initTRPC instance (shared router/procedure builders)
     router.ts         appRouter — all tRPC procedures
@@ -97,7 +132,7 @@ downward. No layer may skip a level or reach into a layer above it.
 ├─────────────────────────────────────────────┤
 │  tRPC Router  (src/trpc/router.ts)          │  Procedures, validation
 ├─────────────────────────────────────────────┤
-│  Storage  (src/storage/)                    │  Persistence (localStorage)
+│  Storage  (src/storage/)                    │  IndexedDB / Firestore
 └─────────────────────────────────────────────┘
 ```
 
@@ -235,37 +270,46 @@ the RPC schema.
 
 `src/storage/interface.ts` defines `StorageRepository<TEntity, TCreate, TUpdate>`
 with five methods: `getAll`, `getById`, `create`, `update`, `delete`. **Every
-method returns a `Promise`**, even though the current localStorage
-implementation is synchronous. This means swapping to an async backend (HTTP,
-IndexedDB, etc.) requires zero changes to any call site.
+method returns a `Promise`**, matching both IndexedDB and Firestore without
+changing call sites.
 
-### The implementation
+### Implementations and scoping
 
-`src/storage/local-storage.ts` contains `LocalStorageRepository` — a class that
-implements the interface. It is the **only file in the entire codebase that
-touches `window.localStorage`**. No other file may call `localStorage.getItem`,
-`localStorage.setItem`, or `localStorage.removeItem`.
+- `IndexedDBRepository` stores signed-out guest entities and local-only data.
+- `FirestoreRepository` stores signed-in entities below `users/{uid}`.
+- `ScopedRepository` selects the implementation from settled Firebase Auth
+  state for every operation.
+- The app is gated during Auth restoration and React Query caches are cleared
+  before identity scopes change, preventing guest/user cache bleed.
+- Firestore uses persistent multi-tab local cache. Reads and writes continue
+  offline and queued writes sync after reconnection.
+- No Firestore snapshot listeners are used. Queries refetch on startup, focus,
+  reconnect, and after mutations.
 
-### Entity wiring
+Each entity module shares its `buildEntity` and `applyUpdate` functions between
+its IndexedDB and Firestore repositories. Repositories continue generating IDs
+and ISO timestamps; tRPC only validates and delegates.
 
-Each entity gets a file in `src/storage/` (e.g. `recipes.ts`) that:
+### Settings partition
 
-1. Imports the interface type and the `LocalStorageRepository` class.
-2. Exports a typed alias (e.g. `RecipeRepository`).
-3. Exports a singleton instance with entity-specific configuration
-   (`storageKey`, `buildEntity`, `applyUpdate`).
+The domain `Settings` value is composed from two stores:
 
-The repository is responsible for generating `id`, `createdAt`, and `updatedAt`
-inside `buildEntity` — the tRPC router just passes user input through.
+- Firestore `users/{uid}/settings/app`: provider, model, dietary restrictions,
+  and dietary notes.
+- IndexedDB `local-credentials` keyed by Firebase UID: LLM API key and
+  OpenRouter OAuth key.
 
-### How to swap to a real backend
+Guest settings remain a single IndexedDB entity. Security rules whitelist cloud
+settings fields so an accidental secret write is rejected independently of the
+client.
 
-1. Create a new class (e.g. `HttpRecipeRepository`) that
-   `implements StorageRepository<Recipe, CreateRecipeInput, UpdateRecipeInput>`
-   and makes `fetch()` calls.
-2. In `src/storage/recipes.ts`, change the instantiation from
-   `new LocalStorageRepository(…)` to `new HttpRecipeRepository(…)`.
-3. Nothing else changes. The router, hooks, and components are unaffected.
+### Guest import
+
+`guest-import.ts` detects existing guest records once per UID, saves a versioned
+read-only recovery snapshot, uploads stable IDs in bounded batches, waits for
+server acknowledgement, verifies cloud IDs/counts, records the decision, and
+only then clears active guest stores. Failed imports retain local data and can be
+retried.
 
 ---
 
@@ -290,6 +334,11 @@ Current endpoint:
 
 - `POST /api/extract-recipe-url` — fetches a public recipe URL server-side,
   extracts schema.org JSON-LD `Recipe` data, and returns normalized recipe JSON.
+
+Firebase Hosting is configured for temporary static preview channels using
+`dist/client`, SPA fallback, and a no-cache service-worker header. It does not
+yet rewrite `/api/extract-recipe-url`, so URL imports are expected to fail on
+Firebase previews. Cloudflare remains the endpoint/production-hosting platform.
 
 Chat URL imports are orchestrated in `useChat`: a URL-only/import-only user
 message bypasses the LLM path, calls `src/lib/recipe-url-extractor.ts`, saves via
@@ -365,7 +414,7 @@ Type files live in `src/types/` and are importable from any layer.
 | Zod schemas         | camelCase               | `recipeSchema`, `createRecipeInput`  |
 | TypeScript types    | PascalCase              | `Recipe`, `CreateRecipeInput`        |
 | tRPC procedures     | camelCase verb/noun     | `recipe.list`, `recipe.create`       |
-| localStorage keys   | `chefness:` prefix      | `chefness:recipes`                   |
+| IndexedDB stores    | kebab-case              | `chat-sessions`                      |
 
 ---
 
@@ -379,9 +428,9 @@ Suppose you're adding a "Shopping List" feature:
    - Export inferred TS types.
 
 2. **Storage** → `src/storage/shopping-lists.ts`
-   - Import `LocalStorageRepository` and `StorageRepository` interface.
-   - Export a `shoppingListRepository` singleton with
-     `storageKey: "chefness:shopping-lists"`.
+   - Define shared entity builder/update functions.
+   - Instantiate IndexedDB and Firestore repositories.
+   - Export them through `ScopedRepository`.
 
 3. **Router** → add a `shoppingList` sub-router in `src/trpc/router.ts`
    - Define `list`, `getById`, `create`, `update`, `delete` procedures.

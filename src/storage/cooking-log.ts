@@ -14,6 +14,8 @@ import type {
   UpdateCookingLogInput,
 } from "@/types/cooking-log";
 import { IndexedDBRepository } from "@/storage/indexed-db";
+import { FirestoreRepository } from "@/storage/firestore";
+import { ScopedRepository } from "@/storage/scoped-repository";
 import { generateUUID } from "@/lib/uuid";
 
 /** Concrete type alias so consumers don't need to spell out the generics. */
@@ -23,35 +25,48 @@ export type CookingLogRepository = StorageRepository<
   UpdateCookingLogInput
 >;
 
-export const cookingLogRepository: CookingLogRepository =
-  new IndexedDBRepository<
-    CookingLogEntry,
-    CreateCookingLogInput,
-    UpdateCookingLogInput
-  >({
-    storeName: "cooking-log",
+function buildCookingLog(data: CreateCookingLogInput): CookingLogEntry {
+  const now = new Date().toISOString();
+  return { id: generateUUID(), ...data, createdAt: now, updatedAt: now };
+}
 
-    buildEntity: (data) => {
-      const now = new Date().toISOString();
-      return {
-        id: generateUUID(),
-        ...data,
-        createdAt: now,
-        updatedAt: now,
-      };
-    },
+function applyCookingLogUpdate(
+  existing: CookingLogEntry,
+  data: UpdateCookingLogInput,
+): CookingLogEntry {
+  const { id: _, ...patch } = data;
+  return {
+    ...existing,
+    ...(patch.title !== undefined && { title: patch.title }),
+    ...(patch.date !== undefined && { date: patch.date }),
+    ...(patch.rating !== undefined && { rating: patch.rating }),
+    ...(patch.comment !== undefined && { comment: patch.comment }),
+    ...(patch.recipeId !== undefined && { recipeId: patch.recipeId }),
+    updatedAt: new Date().toISOString(),
+  };
+}
 
-    applyUpdate: (existing, data) => {
-      const { id: _, ...patch } = data;
-      return {
-        ...existing,
-        // Only overwrite fields that were explicitly provided
-        ...(patch.title !== undefined && { title: patch.title }),
-        ...(patch.date !== undefined && { date: patch.date }),
-        ...(patch.rating !== undefined && { rating: patch.rating }),
-        ...(patch.comment !== undefined && { comment: patch.comment }),
-        ...(patch.recipeId !== undefined && { recipeId: patch.recipeId }),
-        updatedAt: new Date().toISOString(),
-      };
-    },
-  });
+const guestRepository = new IndexedDBRepository<
+  CookingLogEntry,
+  CreateCookingLogInput,
+  UpdateCookingLogInput
+>({
+  storeName: "cooking-log",
+  buildEntity: buildCookingLog,
+  applyUpdate: applyCookingLogUpdate,
+});
+
+const cloudRepository = new FirestoreRepository<
+  CookingLogEntry,
+  CreateCookingLogInput,
+  UpdateCookingLogInput
+>({
+  collectionName: "cookingLog",
+  buildEntity: buildCookingLog,
+  applyUpdate: applyCookingLogUpdate,
+});
+
+export const cookingLogRepository: CookingLogRepository = new ScopedRepository(
+  guestRepository,
+  cloudRepository,
+);

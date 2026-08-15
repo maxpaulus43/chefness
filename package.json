@@ -10,6 +10,8 @@
         "deploy": "bun run build && wrangler deploy",
         "lint": "eslint src/",
         "lint:fix": "eslint src/ --fix",
+        "emulators": "firebase emulators:start --only auth,firestore",
+        "test:rules": "firebase emulators:exec --only firestore \"vitest run --config vitest.rules.config.ts\"",
         "prepare": "simple-git-hooks"
     },
     "simple-git-hooks": {
@@ -29,6 +31,7 @@
         "@trpc/client": "^11.17.0",
         "@trpc/react-query": "^11.17.0",
         "@trpc/server": "^11.17.0",
+        "firebase": "^12.16.0",
         "react": "^19.2.5",
         "react-dom": "^19.2.5",
         "zod": "^4.3.6"
@@ -36,12 +39,14 @@
     "devDependencies": {
         "@cloudflare/vite-plugin": "^1.29.0",
         "@eslint/js": "^10.0.1",
+        "@firebase/rules-unit-testing": "^5.0.1",
         "@types/react": "^19.2.14",
         "@types/react-dom": "^19.2.3",
         "@vitejs/plugin-react": "^6.0.1",
         "eslint": "^10.2.0",
         "eslint-plugin-react-hooks": "^7.0.1",
         "eslint-plugin-react-refresh": "^0.5.2",
+        "firebase-tools": "^15.23.0",
         "globals": "^17.5.0",
         "lint-staged": "^16.4.0",
         "simple-git-hooks": "^2.13.1",
@@ -49,6 +54,7 @@
         "typescript-eslint": "^8.58.2",
         "vite": "^8.0.8",
         "vite-plugin-pwa": "^1.2.0",
+        "vitest": "^4.1.10",
         "wrangler": "4"
     }
 }

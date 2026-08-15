@@ -7,7 +7,7 @@
  * class. The rest of the app is unaffected because it only depends on
  * the `StorageRepository` interface.
  *
- * All five entity stores share a single `"chefness"` database so that
+ * All entity and migration stores share a single `"chefness"` database so that
  * IndexedDB's `onupgradeneeded` lifecycle is handled in one place.
  */
 import type { StorageRepository } from "@/storage/interface";
@@ -17,13 +17,16 @@ import type { StorageRepository } from "@/storage/interface";
 // ---------------------------------------------------------------------------
 
 const DB_NAME = "chefness";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const STORE_NAMES = [
   "recipes",
   "settings",
   "cooking-log",
   "ai-preferences",
   "chat-sessions",
+  "local-credentials",
+  "migration-meta",
+  "legacy-backups",
 ] as const;
 
 // ---------------------------------------------------------------------------

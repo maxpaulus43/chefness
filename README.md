@@ -20,6 +20,7 @@ Chefness is a mobile-first, offline-first Progressive Web App (PWA) that helps y
 - ⚙️ **LLM Provider Selection** — BYO API key, supports OpenAI, Anthropic, OpenRouter, and 20+ providers via `@clinebot/llms` registry
 - 🍳 **Meal Planning** — Meal type (breakfast / lunch / dinner / snack / dessert) and serving size selectors
 - 📱 **Mobile-First PWA** — Installable, offline-capable, designed for kitchen use
+- 👤 **Firebase Accounts & Sync** — Optional guest mode plus Google/email accounts, private Firestore sync, and offline cloud caching
 
 ### Recipes (Phase 2 — Complete)
 
@@ -57,6 +58,16 @@ bun run preview
 
 Open the app, go to **Settings**, select your LLM provider and model, and enter your API key. Start chatting!
 
+### Temporary Firebase preview
+
+```bash
+bun run build
+bunx firebase hosting:channel:deploy temporary --project chefness-dev --expires 7d
+```
+
+The preview serves `dist/client` with SPA fallback. Recipe URL imports are not
+available there until `/api/extract-recipe-url` is migrated from Cloudflare.
+
 ---
 
 ## 🛠 Tech Stack
@@ -87,11 +98,11 @@ Chefness uses a strict four-layer architecture. Data flows downward; dependencie
 ├─────────────────────────────────────────────┤
 │  tRPC Router  (procedures, validation)      │
 ├─────────────────────────────────────────────┤
-│  Storage  (localStorage repositories)       │
+│  Storage  (guest IndexedDB / Firestore)      │
 └─────────────────────────────────────────────┘
 ```
 
-All data operations run in-browser via tRPC with localStorage as the persistence layer. **No backend server.** The only network calls are to the user's chosen LLM provider.
+All data operations run in-browser through tRPC. Guests use IndexedDB; signed-in users use private UID-scoped Firestore collections with persistent offline caching. There is no separate Chefness application API server.
 
 👉 See [ARCHITECTURE.md](./ARCHITECTURE.md) for full details.
 
@@ -104,7 +115,7 @@ src/
   components/    UI components (ChatView, RecipeListView, SettingsView, etc.)
   hooks/         Business logic hooks (useChat, useRecipes, useCookingLog, etc.)
   lib/           Utilities (llm-stream, recipe-extractor, recipe-markdown, etc.)
-  storage/       Persistence layer (localStorage repositories)
+  storage/       Scoped persistence (IndexedDB, Firestore, guest import)
   trpc/          In-browser tRPC setup (router, client, provider)
   types/         Zod schemas and TypeScript types
 ```
@@ -113,10 +124,11 @@ src/
 
 ## 🔒 Privacy & Data
 
-- All data stays on-device in localStorage
-- No accounts, no server, no tracking
-- The only network calls are to the LLM provider you configure
-- API keys are stored locally and never sent anywhere except the chosen provider
+- Guest data stays on-device in IndexedDB
+- Signed-in app data syncs to private Firestore collections
+- API and OAuth keys stay device-local and never enter Firestore
+- Firebase Analytics is not enabled
+- LLM credentials are sent only to the provider the user configures
 
 ---
 

@@ -1,0 +1,6 @@
+{
+  "projects": {
+    "default": "chefness-dev",
+    "dev": "chefness-dev"
+  }
+}

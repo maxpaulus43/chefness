@@ -1,0 +1,101 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function owns(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
+    function hasEntityMetadata(data, documentId) {
+      return data.id == documentId &&
+        data.createdAt is string &&
+        data.updatedAt is string;
+    }
+
+    match /users/{uid}/settings/{settingsId} {
+      allow read, delete: if owns(uid) && settingsId == 'app';
+      allow create, update: if owns(uid) &&
+        settingsId == 'app' &&
+        request.resource.data.keys().hasOnly([
+          'id',
+          'llmProvider',
+          'llmModel',
+          'dietaryRestrictions',
+          'otherDietaryNotes',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        hasEntityMetadata(request.resource.data, settingsId) &&
+        request.resource.data.llmProvider is string &&
+        request.resource.data.llmModel is string &&
+        request.resource.data.dietaryRestrictions is list &&
+        request.resource.data.dietaryRestrictions.size() <= 20 &&
+        request.resource.data.otherDietaryNotes is string &&
+        request.resource.data.otherDietaryNotes.size() <= 2000;
+    }
+
+    match /users/{uid}/recipes/{recipeId} {
+      allow read, delete: if owns(uid);
+      allow create, update: if owns(uid) &&
+        request.resource.data.keys().hasOnly([
+          'id', 'title', 'description', 'ingredients', 'steps', 'createdAt', 'updatedAt'
+        ]) &&
+        hasEntityMetadata(request.resource.data, recipeId) &&
+        request.resource.data.title is string &&
+        request.resource.data.title.size() > 0 &&
+        request.resource.data.title.size() <= 500 &&
+        request.resource.data.description is string &&
+        request.resource.data.description.size() <= 10000 &&
+        request.resource.data.ingredients is list &&
+        request.resource.data.ingredients.size() <= 500 &&
+        request.resource.data.steps is list &&
+        request.resource.data.steps.size() <= 500;
+    }
+
+    match /users/{uid}/cookingLog/{entryId} {
+      allow read, delete: if owns(uid);
+      allow create, update: if owns(uid) &&
+        request.resource.data.keys().hasOnly([
+          'id', 'title', 'date', 'rating', 'comment', 'recipeId', 'createdAt', 'updatedAt'
+        ]) &&
+        hasEntityMetadata(request.resource.data, entryId) &&
+        request.resource.data.title is string &&
+        request.resource.data.title.size() > 0 &&
+        request.resource.data.title.size() <= 500 &&
+        request.resource.data.date is string &&
+        (request.resource.data.rating == null || request.resource.data.rating in ['up', 'down']) &&
+        request.resource.data.comment is string &&
+        request.resource.data.comment.size() <= 10000 &&
+        (request.resource.data.recipeId == null || request.resource.data.recipeId is string);
+    }
+
+    match /users/{uid}/aiPreferences/{preferenceId} {
+      allow read, delete: if owns(uid);
+      allow create, update: if owns(uid) &&
+        request.resource.data.keys().hasOnly(['id', 'text', 'createdAt', 'updatedAt']) &&
+        hasEntityMetadata(request.resource.data, preferenceId) &&
+        request.resource.data.text is string &&
+        request.resource.data.text.size() > 0 &&
+        request.resource.data.text.size() <= 2000;
+    }
+
+    match /users/{uid}/chatSessions/{sessionId} {
+      allow read, delete: if owns(uid);
+      allow create, update: if owns(uid) &&
+        request.resource.data.keys().hasOnly([
+          'id', 'title', 'messages', 'mealType', 'mealSize', 'createdAt', 'updatedAt'
+        ]) &&
+        hasEntityMetadata(request.resource.data, sessionId) &&
+        request.resource.data.title is string &&
+        request.resource.data.title.size() <= 500 &&
+        request.resource.data.messages is list &&
+        request.resource.data.messages.size() <= 1000 &&
+        (request.resource.data.mealType == null || request.resource.data.mealType is string) &&
+        (request.resource.data.mealSize == null || request.resource.data.mealSize is string);
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

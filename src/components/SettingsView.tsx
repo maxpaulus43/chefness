@@ -1,4 +1,5 @@
 import { colors, fonts, shadows, radii } from "@/theme";
+import { AccountSettings } from "@/components/AccountSettings";
 import { Icon } from "@/components/Icon";
 import { useSettings } from "@/hooks/useSettings";
 import { useAiPreferences } from "@/hooks/useAiPreferences";
@@ -284,6 +285,8 @@ export function SettingsView() {
   return (
     <div style={styles.container}>
       <h1 style={styles.header}>Settings</h1>
+
+      <AccountSettings />
 
       {/* ── OpenRouter Quick Setup ── */}
       <section style={styles.section}>

@@ -12,8 +12,10 @@ export function TRPCProvider({ children }: { children: React.ReactNode }) {
       new QueryClient({
         defaultOptions: {
           queries: {
-            // For a local-only app, refetching on window focus adds no value.
-            refetchOnWindowFocus: false,
+            // Signed-in users use focus/reconnect refetches for cross-device
+            // freshness without maintaining real-time Firestore listeners.
+            refetchOnWindowFocus: true,
+            refetchOnReconnect: true,
           },
         },
       }),

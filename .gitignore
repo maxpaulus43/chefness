@@ -23,6 +23,10 @@ dev-dist/
 
 # Logs
 *.log
+*-debug.log
+
+# Firebase local deployment cache
+.firebase/
 
 # wrangler files
 .wrangler

@@ -14,6 +14,8 @@ import type {
   UpdateAiPreferenceInput,
 } from "@/types/ai-preference";
 import { IndexedDBRepository } from "@/storage/indexed-db";
+import { FirestoreRepository } from "@/storage/firestore";
+import { ScopedRepository } from "@/storage/scoped-repository";
 import { generateUUID } from "@/lib/uuid";
 
 /** Concrete type alias so consumers don't need to spell out the generics. */
@@ -23,31 +25,44 @@ export type AiPreferenceRepository = StorageRepository<
   UpdateAiPreferenceInput
 >;
 
-export const aiPreferenceRepository: AiPreferenceRepository =
-  new IndexedDBRepository<
-    AiPreference,
-    CreateAiPreferenceInput,
-    UpdateAiPreferenceInput
-  >({
-    storeName: "ai-preferences",
+function buildAiPreference(data: CreateAiPreferenceInput): AiPreference {
+  const now = new Date().toISOString();
+  return { id: generateUUID(), ...data, createdAt: now, updatedAt: now };
+}
 
-    buildEntity: (data) => {
-      const now = new Date().toISOString();
-      return {
-        id: generateUUID(),
-        ...data,
-        createdAt: now,
-        updatedAt: now,
-      };
-    },
+function applyAiPreferenceUpdate(
+  existing: AiPreference,
+  data: UpdateAiPreferenceInput,
+): AiPreference {
+  const { id: _, ...patch } = data;
+  return {
+    ...existing,
+    ...(patch.text !== undefined && { text: patch.text }),
+    updatedAt: new Date().toISOString(),
+  };
+}
 
-    applyUpdate: (existing, data) => {
-      const { id: _, ...patch } = data;
-      return {
-        ...existing,
-        // Only overwrite fields that were explicitly provided
-        ...(patch.text !== undefined && { text: patch.text }),
-        updatedAt: new Date().toISOString(),
-      };
-    },
-  });
+const guestRepository = new IndexedDBRepository<
+  AiPreference,
+  CreateAiPreferenceInput,
+  UpdateAiPreferenceInput
+>({
+  storeName: "ai-preferences",
+  buildEntity: buildAiPreference,
+  applyUpdate: applyAiPreferenceUpdate,
+});
+
+const cloudRepository = new FirestoreRepository<
+  AiPreference,
+  CreateAiPreferenceInput,
+  UpdateAiPreferenceInput
+>({
+  collectionName: "aiPreferences",
+  buildEntity: buildAiPreference,
+  applyUpdate: applyAiPreferenceUpdate,
+});
+
+export const aiPreferenceRepository: AiPreferenceRepository = new ScopedRepository(
+  guestRepository,
+  cloudRepository,
+);
