@@ -130,6 +130,7 @@ the user refreshes or closes the app.
 | **CH-4** | As a user, I can set the **meal type** (breakfast, lunch, dinner, snack, dessert) before or during a conversation using a control in the chat view. |
 | **CH-5** | As a user, I can set the **meal size** (cooking for 1, 2, 4, 6+) before or during a conversation using a control in the chat view. |
 | **CH-6** | As a user, I see a helpful empty state when no conversation is active, with suggested prompts I can tap (e.g., "What should I cook tonight?", "Help me use up leftover chicken"). |
+| **CH-7** | As a user with a vision-capable model selected, I can take or attach a photo and send it with my prompt. |
 
 #### Acceptance Criteria
 
@@ -149,6 +150,14 @@ the user refreshes or closes the app.
       at the bottom).
 - [ ] The chat auto-scrolls to the latest message as the AI streams a
       response.
+- [x] The image attachment control appears only when the selected OpenRouter
+      model supports image input.
+- [x] Mobile devices can open the rear camera through the attachment control;
+      compatible devices may also choose an existing image.
+- [x] Attached images are resized before being previewed, persisted with the
+      user message, and sent as multimodal OpenRouter content.
+- [x] Users can remove a selected image before sending and can send an image
+      with or without accompanying text.
 - [ ] A "New Chat" button is accessible (e.g., in the chat header) and
       confirms before clearing if a conversation is in progress.
 - [ ] If the LLM API key is not configured, the chat view shows a clear
@@ -553,12 +562,14 @@ src/
     useChat.ts                  Chat state management, LLM streaming via fetch(), system prompt construction with meal type/size, recent history, dietary restrictions, AI preferences
     useClipboard.ts             Reusable clipboard hook: copyToClipboard, copied (2s timer), error (Phase 2)
     useCookingLog.ts            Cooking log CRUD hook with recentEntries (last 7 days) convenience getter (Phase 3)
+    useImageAttachment.ts       Camera/image attachment preparation state and errors
     useRecipes.ts               Recipe CRUD with createRecipeAsync/updateRecipeAsync for reliable awaitable mutations
     useOpenRouterModels.ts      Live OpenRouter model catalog loading and combined free/vision/tools filters
     useSettings.ts              Settings singleton CRUD via tRPC, OpenRouter credentials, personalization getters
     useToast.ts                 Reusable hook for firing global toast notifications and confirmation prompts
   lib/
-    llm-stream.ts               Browser-compatible LLM streaming + non-streaming tool/function calling client. Supports OpenAI-compatible and Anthropic native APIs.
+    image-attachment.ts         Resizes camera/library images and encodes them for preview, persistence, and LLM requests
+    llm-stream.ts               Browser-compatible LLM streaming + non-streaming tool/function calling client, including OpenRouter image content
     openrouter-models.ts         Fetches and validates OpenRouter's live model catalog; model capability helpers
     preference-extractor.ts     Preference extraction via callWithTools with save_preference tool (Phase 4)
     recipe-extractor.ts         Thin wrapper around callWithTools with save_recipe tool definition (Phase 2)
@@ -606,9 +617,9 @@ The following were implemented before MVP development and served as the foundati
 | --- | --- | --- |
 | Bottom nav bar | `src/components/BottomNavBar.tsx` | ✅ Updated tabs to Chat, Recipes, History, Settings with active state and `Tab` type export. |
 | Tab content switching | `src/components/HomePage.tsx` | ✅ `useState`-based tab switching, renders correct content per tab. Chat is default. |
-| Chat view | `src/components/ChatView.tsx` | ✅ Full chat UI with message list, text input, send button, meal type/size pill selectors, empty state with suggested prompts, error display, streaming display. |
-| Chat hook | `src/hooks/useChat.ts` | ✅ Conversation state management, LLM streaming via `fetch()` (not `@clinebot/agents`), system prompt construction with meal type/size, offline detection. |
-| LLM streaming client | `src/lib/llm-stream.ts` | ✅ Browser-compatible SSE streaming client. Supports OpenAI-compatible and Anthropic native APIs via direct `fetch()` calls. |
+| Chat view | `src/components/ChatView.tsx` | ✅ Full chat UI with message list, input, send button, vision-gated camera/image attachments, meal controls, empty states, errors, and streaming display. |
+| Chat hook | `src/hooks/useChat.ts` | ✅ Conversation state, persistence, vision capability detection, multimodal message orchestration, system prompts, streaming, and offline detection. |
+| LLM streaming client | `src/lib/llm-stream.ts` | ✅ Browser-compatible SSE client with OpenRouter `image_url` multimodal content support. |
 | Settings view | `src/components/SettingsView.tsx` | ✅ OpenRouter OAuth connection and live model selection with combinable Free, Vision, and Tools filters; no manual provider/API-key section. |
 | Settings hook | `src/hooks/useSettings.ts` | ✅ Settings singleton CRUD via tRPC with OpenRouter-only effective credentials. |
 | Settings storage | `src/storage/settings.ts`, `src/types/settings.ts` | ✅ Zod schemas + storage repository singleton (key: `chefness:settings`). |
@@ -627,6 +638,7 @@ A clear checklist of everything included in v1:
 - [x] **Tab switching** — tapping a tab shows its content; Chat is default
 - [x] **Chat view** — full chat UI with message list, text input, send button
 - [x] **AI streaming responses** — token-by-token rendering in chat bubbles
+- [x] **Vision prompts** — take or attach a resized image when the selected model supports vision
 - [x] **Meal type selector** — breakfast / lunch / dinner / snack / dessert
 - [x] **Meal size selector** — cooking for 1 / 2 / 4 / 6+
 - [x] **System prompt** — base cooking guru persona + meal type + meal size

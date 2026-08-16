@@ -17,6 +17,7 @@ Chefness is a mobile-first, offline-first Progressive Web App (PWA) that helps y
 ### Core (MVP)
 
 - 💬 **AI Chat** — Streaming conversations with a cooking guru persona
+- 📷 **Vision Prompts** — take or attach photos when the selected model supports image input
 - ⚙️ **OpenRouter Integration** — connect with OpenRouter OAuth and filter the live model catalog by free, vision, and tool support
 - 🍳 **Meal Planning** — Meal type (breakfast / lunch / dinner / snack / dessert) and serving size selectors
 - 📱 **Mobile-First PWA** — Installable, offline-capable, designed for kitchen use

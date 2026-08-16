@@ -5,6 +5,7 @@ import type { MealType, MealSize } from "@/hooks/useChat";
 import { useAiPreferences } from "@/hooks/useAiPreferences";
 import { useRecipes } from "@/hooks/useRecipes";
 import { useSettings } from "@/hooks/useSettings";
+import { useImageAttachment } from "@/hooks/useImageAttachment";
 import { useToast } from "@/hooks/useToast";
 import { Markdown } from "@/lib/markdown";
 import { extractPreference } from "@/lib/preference-extractor";
@@ -161,6 +162,7 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
         setMealSize,
         setMessageFlag,
         isConfigured,
+        canAttachImage,
         currentSessionId,
         loadSession,
     } = useChat();
@@ -172,6 +174,13 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
 
     const [inputValue, setInputValue] = useState("");
     const [showSessionList, setShowSessionList] = useState(false);
+    const {
+        attachment: imageAttachment,
+        isPreparing: isPreparingImage,
+        error: imageAttachmentError,
+        attachImage,
+        clearImage,
+    } = useImageAttachment();
     const toast = useToast();
     const [editingMessageIndex, setEditingMessageIndex] = useState<
         number | null
@@ -180,7 +189,8 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const messageAreaRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLTextAreaElement>(null);
-    const lastUserMessageRef = useRef<string>("");
+    const imageInputRef = useRef<HTMLInputElement>(null);
+    const lastUserMessageRef = useRef<{ text: string; imageDataUrl: string } | null>(null);
     const isNearBottomRef = useRef(true);
     const prevMessageCountRef = useRef(0);
 
@@ -372,11 +382,22 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
 
     const handleSend = useCallback(() => {
         const text = inputValue.trim();
-        if (!text || isStreaming) return;
-        lastUserMessageRef.current = text;
+        const imageDataUrl = imageAttachment?.dataUrl ?? "";
+        if ((!text && !imageDataUrl) || isStreaming || isPreparingImage) return;
+        lastUserMessageRef.current = { text, imageDataUrl };
         setInputValue("");
-        void sendMessage(text);
-    }, [inputValue, isStreaming, sendMessage]);
+        clearImage();
+        void sendMessage(text, imageDataUrl);
+    }, [clearImage, imageAttachment, inputValue, isPreparingImage, isStreaming, sendMessage]);
+
+    const handleImageChange = useCallback(
+        (event: React.ChangeEvent<HTMLInputElement>) => {
+            const file = event.target.files?.[0];
+            event.target.value = "";
+            if (file) void attachImage(file);
+        },
+        [attachImage],
+    );
 
     useEffect(() => {
         if (!isStreaming) return;
@@ -393,7 +414,7 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
 
     const handleSuggestionTap = useCallback(
         (text: string) => {
-            lastUserMessageRef.current = text;
+            lastUserMessageRef.current = { text, imageDataUrl: "" };
             void sendMessage(text);
         },
         [sendMessage],
@@ -405,6 +426,7 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
             setEditingMessageIndex(null);
             setEditingMessageValue("");
             setShowSessionList(false);
+            clearImage();
         };
 
         if (messages.length > 0) {
@@ -421,7 +443,7 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
             return;
         }
         startNewChat();
-    }, [messages.length, clearChat, toast]);
+    }, [messages.length, clearChat, clearImage, toast]);
 
     const handleToggleSessionList = useCallback(() => {
         setShowSessionList((prev) => !prev);
@@ -433,8 +455,9 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
             setEditingMessageIndex(null);
             setEditingMessageValue("");
             setShowSessionList(false);
+            clearImage();
         },
-        [loadSession],
+        [clearImage, loadSession],
     );
 
     useEffect(() => {
@@ -457,8 +480,9 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
     );
 
     const handleRetry = useCallback(() => {
-        if (lastUserMessageRef.current) {
-            void sendMessage(lastUserMessageRef.current);
+        const lastMessage = lastUserMessageRef.current;
+        if (lastMessage) {
+            void sendMessage(lastMessage.text, lastMessage.imageDataUrl);
         }
     }, [sendMessage]);
 
@@ -487,13 +511,16 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
                 })
                 .then((confirmed) => {
                     if (!confirmed) return;
-                    lastUserMessageRef.current = text;
+                    lastUserMessageRef.current = {
+                        text,
+                        imageDataUrl: messages[index]?.imageDataUrl ?? "",
+                    };
                     setEditingMessageIndex(null);
                     setEditingMessageValue("");
                     void editUserMessageAndRegenerate(index, text);
                 });
         },
-        [editingMessageValue, editUserMessageAndRegenerate, toast],
+        [editingMessageValue, editUserMessageAndRegenerate, messages, toast],
     );
 
     const handleMealTypeToggle = useCallback(
@@ -817,11 +844,20 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
                                         ) : (
                                             <div style={styles.userMessageColumn}>
                                                 <div style={styles.userBubble}>
-                                                    <span style={styles.msgText}>
-                                                        {msg.content}
-                                                    </span>
+                                                    {msg.imageDataUrl && (
+                                                        <img
+                                                            src={msg.imageDataUrl}
+                                                            alt="User attachment"
+                                                            style={styles.messageImage}
+                                                        />
+                                                    )}
+                                                    {msg.content && (
+                                                        <span style={styles.msgText}>
+                                                            {msg.content}
+                                                        </span>
+                                                    )}
                                                 </div>
-                                                {!isStreaming && (
+                                                {!isStreaming && msg.content && (
                                                     <button
                                                         type="button"
                                                         style={styles.editMessageBtn}
@@ -862,6 +898,13 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
                     handleMealSizeToggle,
                     inputRef,
                     showMealControls,
+                    canAttachImage,
+                    imageAttachment,
+                    isPreparingImage,
+                    imageAttachmentError,
+                    imageInputRef,
+                    handleImageChange,
+                    clearImage,
                 )}
         </div>
     );
@@ -975,8 +1018,15 @@ function renderInputArea(
     onMealSize: (v: MealSize) => void,
     inputRef: React.RefObject<HTMLTextAreaElement | null>,
     showMealControls: boolean,
+    canAttachImage: boolean,
+    imageAttachment: ReturnType<typeof useImageAttachment>["attachment"],
+    isPreparingImage: boolean,
+    imageAttachmentError: string | null,
+    imageInputRef: React.RefObject<HTMLInputElement | null>,
+    onImageChange: (event: React.ChangeEvent<HTMLInputElement>) => void,
+    onClearImage: () => void,
 ) {
-    const sendDisabled = !isStreaming && !inputValue.trim();
+    const sendDisabled = !isStreaming && ((!inputValue.trim() && !imageAttachment) || isPreparingImage);
     return (
         <div style={styles.inputArea}>
             {showMealControls && (
@@ -1014,7 +1064,53 @@ function renderInputArea(
                     </div>
                 </>
             )}
+            {imageAttachment && (
+                <div style={styles.imagePreviewRow}>
+                    <img
+                        src={imageAttachment.dataUrl}
+                        alt={imageAttachment.name}
+                        style={styles.imagePreview}
+                    />
+                    <span style={styles.imagePreviewName}>{imageAttachment.name}</span>
+                    <button
+                        type="button"
+                        onClick={onClearImage}
+                        style={styles.removeImageButton}
+                        aria-label="Remove attached image"
+                    >
+                        <Icon name="x" size={16} strokeWidth={2.5} />
+                    </button>
+                </div>
+            )}
+            {imageAttachmentError && (
+                <p style={styles.imageAttachmentError}>{imageAttachmentError}</p>
+            )}
             <div style={styles.inputRow}>
+                {canAttachImage && (
+                    <>
+                        <input
+                            ref={imageInputRef}
+                            type="file"
+                            accept="image/*"
+                            capture="environment"
+                            onChange={onImageChange}
+                            style={styles.hiddenFileInput}
+                            disabled={isStreaming || isPreparingImage}
+                        />
+                        <button
+                            type="button"
+                            onClick={() => imageInputRef.current?.click()}
+                            disabled={isStreaming || isPreparingImage}
+                            aria-label="Take or attach a photo"
+                            style={{
+                                ...styles.imageAttachButton,
+                                ...(isPreparingImage ? styles.imageAttachButtonDisabled : {}),
+                            }}
+                        >
+                            <Icon name="image" size={20} strokeWidth={2} />
+                        </button>
+                    </>
+                )}
                 <textarea
                     ref={inputRef}
                     value={inputValue}
@@ -1151,6 +1247,9 @@ const styles: Record<string, React.CSSProperties> = {
         gap: "0.375rem",
     },
     userBubble: {
+        display: "flex",
+        flexDirection: "column",
+        gap: "0.5rem",
         padding: "0.75rem 1rem",
         borderRadius: "16px 16px 4px 16px",
         backgroundColor: colors.saffronTint,
@@ -1240,6 +1339,14 @@ const styles: Record<string, React.CSSProperties> = {
         boxShadow: shadows.glass,
     },
     msgText: { whiteSpace: "pre-wrap" as const },
+    messageImage: {
+        display: "block",
+        width: "100%",
+        maxWidth: 280,
+        maxHeight: 320,
+        objectFit: "cover" as const,
+        borderRadius: radii.sm,
+    },
     typing: {
         display: "inline-block",
         marginLeft: "0.25rem",
@@ -1381,6 +1488,71 @@ const styles: Record<string, React.CSSProperties> = {
         color: colors.saffron,
         backgroundColor: colors.saffronTint,
         borderColor: colors.saffronTintBorder,
+    },
+    imagePreviewRow: {
+        display: "flex",
+        alignItems: "center",
+        gap: "0.625rem",
+        padding: "0.5rem",
+        backgroundColor: colors.glass,
+        border: `1px solid ${colors.glassBorder}`,
+        borderRadius: radii.md,
+        boxShadow: shadows.glass,
+    },
+    imagePreview: {
+        width: 56,
+        height: 56,
+        objectFit: "cover" as const,
+        borderRadius: radii.sm,
+        flexShrink: 0,
+    },
+    imagePreviewName: {
+        flex: 1,
+        minWidth: 0,
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap" as const,
+        fontSize: "0.8125rem",
+        color: colors.stone700,
+    },
+    removeImageButton: {
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        width: 36,
+        height: 36,
+        padding: 0,
+        color: colors.stone600,
+        backgroundColor: "transparent",
+        border: "none",
+        borderRadius: radii.sm,
+        cursor: "pointer",
+        flexShrink: 0,
+    },
+    imageAttachmentError: {
+        margin: 0,
+        fontSize: "0.8125rem",
+        color: colors.danger,
+    },
+    hiddenFileInput: { display: "none" },
+    imageAttachButton: {
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        width: 44,
+        height: 44,
+        padding: 0,
+        color: colors.saffron,
+        backgroundColor: colors.glass,
+        border: `1px solid ${colors.saffronTintBorder}`,
+        borderRadius: radii.md,
+        boxShadow: shadows.glass,
+        cursor: "pointer",
+        flexShrink: 0,
+    },
+    imageAttachButtonDisabled: {
+        opacity: 0.5,
+        cursor: "not-allowed",
     },
     inputRow: { display: "flex", gap: "0.5rem", alignItems: "flex-end" },
     textInput: {

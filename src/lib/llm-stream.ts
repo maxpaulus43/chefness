@@ -20,6 +20,8 @@ import type { ProviderInfo } from "@clinebot/llms";
 export interface StreamMessage {
   role: "user" | "assistant" | "system";
   content: string;
+  /** Resized data URL for OpenAI-compatible multimodal user messages. */
+  imageDataUrl?: string;
 }
 
 /** Options for a streaming chat completion request. */
@@ -90,6 +92,18 @@ async function* parseSSE(
 // OpenAI-compatible streaming
 // ---------------------------------------------------------------------------
 
+function openAIMessageContent(message: StreamMessage) {
+  if (!message.imageDataUrl) return message.content;
+
+  return [
+    ...(message.content ? [{ type: "text" as const, text: message.content }] : []),
+    {
+      type: "image_url" as const,
+      image_url: { url: message.imageDataUrl },
+    },
+  ];
+}
+
 async function streamOpenAI(
   baseUrl: string,
   apiKey: string,
@@ -101,7 +115,7 @@ async function streamOpenAI(
 ): Promise<string> {
   const apiMessages = [
     { role: "system" as const, content: systemPrompt },
-    ...messages.map((m) => ({ role: m.role, content: m.content })),
+    ...messages.map((m) => ({ role: m.role, content: openAIMessageContent(m) })),
   ];
 
   const url = `${baseUrl.replace(/\/+$/, "")}/chat/completions`;

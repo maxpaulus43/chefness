@@ -54,6 +54,7 @@ export function useOpenRouterModels(enabled: boolean, selectedModelId: string) {
   const selectedModel = models.find((model) => model.id === selectedModelId) ?? null;
   const isSelectedModelFilteredOut = selectedModel !== null &&
     !filteredModels.some((model) => model.id === selectedModelId);
+  const selectedModelSupportsVision = selectedModel !== null && supportsVision(selectedModel);
 
   return {
     models: filteredModels,
@@ -65,6 +66,7 @@ export function useOpenRouterModels(enabled: boolean, selectedModelId: string) {
     toolsOnly,
     selectedModel,
     isSelectedModelFilteredOut,
+    selectedModelSupportsVision,
     toggleFreeOnly: () => setFreeOnly((enabled) => !enabled),
     toggleVisionOnly: () => setVisionOnly((enabled) => !enabled),
     toggleToolsOnly: () => setToolsOnly((enabled) => !enabled),

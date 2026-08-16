@@ -4,6 +4,8 @@ import { z } from "zod";
 const chatMessageSchema = z.object({
   role: z.enum(["user", "assistant"]),
   content: z.string(),
+  /** Resized image data URL attached to a user message. */
+  imageDataUrl: z.string().optional().default(""),
   timestamp: z.string(), // ISO string
   // Hidden context used for URL-imported recipes. Not rendered as chat text,
   // but persisted so later "Save Current Recipe" extraction can reconstruct

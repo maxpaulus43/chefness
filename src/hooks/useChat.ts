@@ -23,6 +23,7 @@
  */
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useSettings } from "@/hooks/useSettings";
+import { useOpenRouterModels } from "@/hooks/useOpenRouterModels";
 import { useCookingLog } from "@/hooks/useCookingLog";
 import { useAiPreferences } from "@/hooks/useAiPreferences";
 import { useChatSessions } from "@/hooks/useChatSessions";
@@ -41,6 +42,8 @@ import type { ChatSessionMessage } from "@/types/chat-session";
 export interface ChatMessage {
   role: "user" | "assistant";
   content: string;
+  /** Resized image attached to a user message. */
+  imageDataUrl?: string;
   /** Persisted action flags — only relevant for assistant messages. */
   savedRecipeId?: string;  // ID of saved recipe, or empty/undefined = not saved
   memorySaved?: boolean;
@@ -245,6 +248,7 @@ export function useChat() {
   const { preferences: aiPreferences } = useAiPreferences();
   const { sessions, updateSession, createSessionAsync } = useChatSessions();
   const { createRecipeAsync } = useRecipes();
+  const { selectedModelSupportsVision } = useOpenRouterModels(isConfigured, effectiveModel);
 
   /** Preference texts for the system prompt — stable across renders. */
   const preferenceTexts = aiPreferences.map((p) => p.text);
@@ -280,6 +284,7 @@ export function useChat() {
       mostRecent.messages.map((m) => ({
         role: m.role,
         content: m.content,
+        imageDataUrl: m.imageDataUrl,
         importedRecipeContext: m.importedRecipeContext,
         savedRecipeId: m.savedRecipeId,
         memorySaved: m.memorySaved,
@@ -301,6 +306,7 @@ export function useChat() {
       msgs.map((m) => ({
         role: m.role,
         content: m.content,
+        imageDataUrl: m.imageDataUrl ?? "",
         timestamp: new Date().toISOString(),
         importedRecipeContext: m.importedRecipeContext ?? "",
         savedRecipeId: m.savedRecipeId ?? "",
@@ -350,6 +356,7 @@ export function useChat() {
           const sessionMsgs = next.map((m) => ({
             role: m.role,
             content: m.content,
+            imageDataUrl: m.imageDataUrl ?? "",
             timestamp: new Date().toISOString(),
             importedRecipeContext: m.importedRecipeContext ?? "",
             savedRecipeId: m.savedRecipeId ?? "",
@@ -371,13 +378,13 @@ export function useChat() {
   // -------------------------------------------------------------------------
 
   const sendMessageFromHistory = useCallback(
-    async (baseMessages: ChatMessage[], text: string) => {
+    async (baseMessages: ChatMessage[], text: string, imageDataUrl = "") => {
       if (!navigator.onLine) {
         setError("You are offline. Chat requires an internet connection.");
         return;
       }
 
-      const recipeUrlMessage = getRecipeUrlMessage(text);
+      const recipeUrlMessage = imageDataUrl ? null : getRecipeUrlMessage(text);
       if (!recipeUrlMessage && !isConfigured) {
         setError("LLM is not configured. Please set provider, model, and API key in Settings.");
         return;
@@ -388,7 +395,7 @@ export function useChat() {
       }
 
       setError(null);
-      const userMsg: ChatMessage = { role: "user", content: text };
+      const userMsg: ChatMessage = { role: "user", content: text, imageDataUrl };
       let history = [...baseMessages, userMsg];
       setMessages([...history, { role: "assistant", content: "" }]);
       setIsStreaming(true);
@@ -398,7 +405,7 @@ export function useChat() {
       if (!sessionId) {
         try {
           const session = await createSessionAsync({
-            title: text.slice(0, 60),
+            title: text.slice(0, 60) || "Photo conversation",
             mealType,
             mealSize,
           });
@@ -504,6 +511,7 @@ export function useChat() {
           messages: history.map((m) => ({
             role: m.role,
             content: messageContentForModel(m),
+            imageDataUrl: m.imageDataUrl,
           })),
           signal: controller.signal,
           onToken: (_token, accumulated) => {
@@ -560,8 +568,8 @@ export function useChat() {
   );
 
   const sendMessage = useCallback(
-    async (text: string) => {
-      await sendMessageFromHistory(messages, text);
+    async (text: string, imageDataUrl = "") => {
+      await sendMessageFromHistory(messages, text, imageDataUrl);
     },
     [messages, sendMessageFromHistory],
   );
@@ -575,7 +583,7 @@ export function useChat() {
       // Re-send from the conversation state immediately before the edited
       // message. sendMessageFromHistory appends the edited user message and
       // creates a fresh assistant response, discarding everything after it.
-      await sendMessageFromHistory(messages.slice(0, index), text);
+      await sendMessageFromHistory(messages.slice(0, index), text, msg.imageDataUrl);
     },
     [messages, isStreaming, sendMessageFromHistory],
   );
@@ -625,6 +633,7 @@ export function useChat() {
         session.messages.map((m) => ({
           role: m.role,
           content: m.content,
+          imageDataUrl: m.imageDataUrl,
           importedRecipeContext: m.importedRecipeContext,
           savedRecipeId: m.savedRecipeId,
           memorySaved: m.memorySaved,
@@ -652,6 +661,7 @@ export function useChat() {
     setMealSize,
     setMessageFlag,
     isConfigured,
+    canAttachImage: isConfigured && selectedModelSupportsVision,
     llmProvider: effectiveProvider,
     llmModel: effectiveModel,
     currentSessionId,
