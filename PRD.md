@@ -152,8 +152,8 @@ the user refreshes or closes the app.
       response.
 - [x] The image attachment control appears only when the selected OpenRouter
       model supports image input.
-- [x] Mobile devices can open the rear camera through the attachment control;
-      compatible devices may also choose an existing image.
+- [x] The attachment control opens the device image chooser, allowing users to
+      take a new photo or select an existing photo from their library.
 - [x] Attached images are resized before being previewed, persisted with the
       user message, and sent as multimodal OpenRouter content.
 - [x] Users can remove a selected image before sending and can send an image

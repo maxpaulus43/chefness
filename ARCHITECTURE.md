@@ -297,8 +297,9 @@ when `tools` is listed in `supported_parameters`. The default is the stable
 
 For vision-capable selected models, Chat exposes an image attachment control.
 `useImageAttachment` delegates resizing/encoding to
-`src/lib/image-attachment.ts`; camera images are resized to a maximum 1600px
-dimension and JPEG-encoded before being persisted on the user message. The
+`src/lib/image-attachment.ts`; photos from the device camera or image library
+are resized to a maximum 1600px dimension and JPEG-encoded before being
+persisted on the user message. The
 streaming client sends these images to OpenRouter as OpenAI-compatible
 `image_url` content parts. Models without `image` in their input modalities do
 not show the attachment control.

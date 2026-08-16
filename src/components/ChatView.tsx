@@ -1092,7 +1092,6 @@ function renderInputArea(
                             ref={imageInputRef}
                             type="file"
                             accept="image/*"
-                            capture="environment"
                             onChange={onImageChange}
                             style={styles.hiddenFileInput}
                             disabled={isStreaming || isPreparingImage}
@@ -1101,7 +1100,7 @@ function renderInputArea(
                             type="button"
                             onClick={() => imageInputRef.current?.click()}
                             disabled={isStreaming || isPreparingImage}
-                            aria-label="Take or attach a photo"
+                            aria-label="Take a photo or choose one from your library"
                             style={{
                                 ...styles.imageAttachButton,
                                 ...(isPreparingImage ? styles.imageAttachButtonDisabled : {}),
