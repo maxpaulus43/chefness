@@ -17,7 +17,7 @@ Chefness is a mobile-first, offline-first Progressive Web App (PWA) that helps y
 ### Core (MVP)
 
 - 💬 **AI Chat** — Streaming conversations with a cooking guru persona
-- ⚙️ **LLM Provider Selection** — BYO API key, supports OpenAI, Anthropic, OpenRouter, and 20+ providers via `@clinebot/llms` registry
+- ⚙️ **OpenRouter Integration** — connect with OpenRouter OAuth and filter the live model catalog by free, vision, and tool support
 - 🍳 **Meal Planning** — Meal type (breakfast / lunch / dinner / snack / dessert) and serving size selectors
 - 📱 **Mobile-First PWA** — Installable, offline-capable, designed for kitchen use
 
@@ -55,7 +55,7 @@ bun run build
 bun run preview
 ```
 
-Open the app, go to **Settings**, select your LLM provider and model, and enter your API key. Start chatting!
+Open the app, go to **Settings**, connect your OpenRouter account, and select a model. Start chatting!
 
 ---
 
@@ -69,7 +69,7 @@ Open the app, go to **Settings**, select your LLM provider and model, and enter 
 | RPC Layer | tRPC 11 (in-browser, no server) |
 | Server State | TanStack React Query 5 |
 | Validation | Zod 4 |
-| LLM Integration | `@clinebot/llms` (provider/model registry) + custom fetch-based streaming client |
+| LLM Integration | OpenRouter OAuth + live model catalog + custom fetch-based streaming client |
 | PWA | vite-plugin-pwa |
 | Package Manager | Bun |
 
@@ -91,7 +91,7 @@ Chefness uses a strict four-layer architecture. Data flows downward; dependencie
 └─────────────────────────────────────────────┘
 ```
 
-All data operations run in-browser via tRPC with localStorage as the persistence layer. **No backend server.** The only network calls are to the user's chosen LLM provider.
+All data operations run in-browser via tRPC with local persistence. **No application backend server.** LLM requests are sent to OpenRouter.
 
 👉 See [ARCHITECTURE.md](./ARCHITECTURE.md) for full details.
 
@@ -115,8 +115,8 @@ src/
 
 - All data stays on-device in localStorage
 - No accounts, no server, no tracking
-- The only network calls are to the LLM provider you configure
-- API keys are stored locally and never sent anywhere except the chosen provider
+- LLM network calls are sent only to OpenRouter
+- The OpenRouter OAuth key is stored locally and sent only to OpenRouter
 
 ---
 

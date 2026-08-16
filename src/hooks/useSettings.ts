@@ -5,6 +5,7 @@
  * They never import `trpc` directly or manage cache invalidation —
  * all of that lives here.
  */
+import { OPENROUTER_DEFAULT_MODEL } from "@/lib/openrouter-models";
 import { trpc } from "@/trpc/client";
 import type { Settings, UpdateSettingsInput } from "@/types/settings";
 
@@ -45,20 +46,11 @@ export function useSettings() {
 
   const settings = getQuery.data ?? DEFAULT_SETTINGS;
 
-  // Resolve effective LLM credentials — prefer manual config, fall back to OpenRouter OAuth
-  const effectiveProvider = settings.llmApiKey
-    ? settings.llmProvider
-    : settings.openRouterOAuthKey
-      ? "openrouter"
-      : settings.llmProvider;
-
-  const effectiveModel = settings.llmApiKey
-    ? settings.llmModel
-    : settings.openRouterOAuthKey
-      ? settings.llmModel || "openai/gpt-5.2"
-      : settings.llmModel;
-
-  const effectiveApiKey = settings.llmApiKey || settings.openRouterOAuthKey;
+  // OpenRouter is the sole LLM provider. Legacy manual-provider fields remain
+  // in storage for backward-compatible parsing but are intentionally ignored.
+  const effectiveProvider = "openrouter";
+  const effectiveModel = settings.llmModel || OPENROUTER_DEFAULT_MODEL;
+  const effectiveApiKey = settings.openRouterOAuthKey;
 
   return {
     /** The current settings object (sensible defaults while loading). */
@@ -77,22 +69,16 @@ export function useSettings() {
     /** `true` while an update is in flight. */
     isUpdating: updateMutation.isPending,
 
-    /** Convenience getter: the current LLM provider identifier. */
-    llmProvider: settings.llmProvider,
-
-    /** Convenience getter: the current LLM model identifier. */
+    /** Convenience getter: the current OpenRouter model identifier. */
     llmModel: settings.llmModel,
 
-    /** Convenience getter: the current LLM API key. */
-    llmApiKey: settings.llmApiKey,
-
-    /** Resolved provider ID — uses OpenRouter when OAuth is active and no manual key. */
+    /** Resolved provider ID — always OpenRouter. */
     effectiveProvider,
 
-    /** Resolved model ID — uses OpenRouter default when OAuth is active and no model selected. */
+    /** Resolved OpenRouter model ID, with the default applied. */
     effectiveModel,
 
-    /** Resolved API key — prefers manual key, falls back to OpenRouter OAuth key. */
+    /** Resolved API key returned by OpenRouter OAuth. */
     effectiveApiKey,
 
     /** Convenience getter: the current dietary restrictions list. */
@@ -107,9 +93,7 @@ export function useSettings() {
     /** `true` when the user has connected via OpenRouter OAuth. */
     isOpenRouterConnected: settings.openRouterOAuthKey !== "",
 
-    /** `true` when the user can chat — either manual config or OAuth key. */
-    isConfigured:
-      (settings.llmProvider !== "" && settings.llmModel !== "" && settings.llmApiKey !== "") ||
-      settings.openRouterOAuthKey !== "",
+    /** `true` when the user has connected an OpenRouter account. */
+    isConfigured: settings.openRouterOAuthKey !== "",
   } as const;
 }

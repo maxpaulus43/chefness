@@ -3,13 +3,9 @@ import { Icon } from "@/components/Icon";
 import { useSettings } from "@/hooks/useSettings";
 import { useAiPreferences } from "@/hooks/useAiPreferences";
 import { useOpenRouterOAuth } from "@/hooks/useOpenRouterOAuth";
+import { useOpenRouterModels } from "@/hooks/useOpenRouterModels";
 import { useToast } from "@/hooks/useToast";
-import {
-  getAllProviders,
-  getModelsForProvider,
-  type ProviderInfo,
-  type ModelInfo,
-} from "@clinebot/llms";
+import { OPENROUTER_DEFAULT_MODEL } from "@/lib/openrouter-models";
 import { useEffect, useRef, useState } from "react";
 
 /** Predefined dietary restriction labels shown as toggleable chips. */
@@ -26,15 +22,11 @@ const PREDEFINED_RESTRICTIONS = [
   "keto",
 ] as const;
 
-const OPENROUTER_DEFAULT_MODEL = "openai/gpt-oss-120b:free";
-
 export function SettingsView() {
   const toast = useToast();
   const {
     isLoading,
-    llmProvider,
     llmModel,
-    llmApiKey,
     dietaryRestrictions,
     otherDietaryNotes,
     openRouterOAuthKey,
@@ -42,7 +34,7 @@ export function SettingsView() {
     updateSettings,
   } = useSettings();
 
-  const { startOAuth, isProcessingCallback, oauthError } = useOpenRouterOAuth();
+  const { startOAuth, isStartingOAuth, isProcessingCallback, oauthError } = useOpenRouterOAuth();
 
   const {
     preferences: aiPreferences,
@@ -52,15 +44,6 @@ export function SettingsView() {
     deletePreference,
   } = useAiPreferences();
 
-  const [providers, setProviders] = useState<ProviderInfo[]>([]);
-  const [models, setModels] = useState<Record<string, ModelInfo>>({});
-  const [loadingProviders, setLoadingProviders] = useState(true);
-  const [loadingModels, setLoadingModels] = useState(false);
-
-  // OpenRouter model list (fetched when connected).
-  const [openRouterModels, setOpenRouterModels] = useState<[string, ModelInfo][]>([]);
-  const [loadingOpenRouterModels, setLoadingOpenRouterModels] = useState(false);
-
   // AI Memory: inline "add preference" form state.
   const [showAddPreference, setShowAddPreference] = useState(false);
   const [newPreferenceText, setNewPreferenceText] = useState("");
@@ -68,29 +51,29 @@ export function SettingsView() {
   // Local state for the OpenRouter model picker.
   const [selectedOpenRouterModel, setSelectedOpenRouterModel] = useState(llmModel);
   const hasAppliedOpenRouterDefault = useRef(false);
+  const {
+    models: openRouterModels,
+    totalModelCount,
+    isLoading: loadingOpenRouterModels,
+    error: openRouterModelsError,
+    freeOnly,
+    visionOnly,
+    toolsOnly,
+    selectedModel,
+    isSelectedModelFilteredOut,
+    toggleFreeOnly,
+    toggleVisionOnly,
+    toggleToolsOnly,
+    retry: retryOpenRouterModels,
+  } = useOpenRouterModels(isOpenRouterConnected, selectedOpenRouterModel);
 
   // Local state so the UI reacts synchronously to user selection instead
   // of waiting for the async tRPC mutation round-trip.
-  const [selectedProvider, setSelectedProvider] = useState(llmProvider);
-  const [selectedModel, setSelectedModel] = useState(llmModel);
-  const [selectedApiKey, setSelectedApiKey] = useState(llmApiKey);
   const [selectedRestrictions, setSelectedRestrictions] = useState<string[]>(dietaryRestrictions);
   const [selectedOtherNotes, setSelectedOtherNotes] = useState(otherDietaryNotes);
 
   // Keep local state in sync when the hook value changes (initial load,
   // external updates, page refresh).
-  useEffect(() => {
-    setSelectedProvider(llmProvider);
-  }, [llmProvider]);
-
-  useEffect(() => {
-    setSelectedModel(llmModel);
-  }, [llmModel]);
-
-  useEffect(() => {
-    setSelectedApiKey(llmApiKey);
-  }, [llmApiKey]);
-
   useEffect(() => {
     setSelectedRestrictions(dietaryRestrictions);
   }, [dietaryRestrictions]);
@@ -99,41 +82,7 @@ export function SettingsView() {
     setSelectedOtherNotes(otherDietaryNotes);
   }, [otherDietaryNotes]);
 
-  // Fetch provider list on mount.
-  useEffect(() => {
-    let cancelled = false;
-    setLoadingProviders(true);
-    void getAllProviders().then((list) => {
-      if (!cancelled) {
-        setProviders(list);
-        setLoadingProviders(false);
-      }
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  // Fetch models whenever the selected provider changes.
-  useEffect(() => {
-    if (!selectedProvider) {
-      setModels({});
-      return;
-    }
-    let cancelled = false;
-    setLoadingModels(true);
-    void getModelsForProvider(selectedProvider).then((result) => {
-      if (!cancelled) {
-        setModels(result);
-        setLoadingModels(false);
-      }
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [selectedProvider]);
-
-  // Default newly connected OpenRouter accounts to the free GPT OSS model.
+  // Default newly connected OpenRouter accounts to OpenRouter's free-model router.
   useEffect(() => {
     if (!isOpenRouterConnected) {
       hasAppliedOpenRouterDefault.current = false;
@@ -154,28 +103,6 @@ export function SettingsView() {
     );
   }, [isOpenRouterConnected, llmModel]);
 
-  // Fetch OpenRouter models when connected.
-  useEffect(() => {
-    if (!isOpenRouterConnected) {
-      setOpenRouterModels([]);
-      return;
-    }
-    let cancelled = false;
-    setLoadingOpenRouterModels(true);
-    void getModelsForProvider("openrouter").then((result) => {
-      if (!cancelled) {
-        const sorted = Object.entries(result).sort(([, a], [, b]) =>
-          (a.name ?? a.id).localeCompare(b.name ?? b.id),
-        );
-        setOpenRouterModels(sorted);
-        setLoadingOpenRouterModels(false);
-      }
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [isOpenRouterConnected]);
-
   const handleOpenRouterModelChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newModel = e.target.value;
     setSelectedOpenRouterModel(newModel);
@@ -186,39 +113,12 @@ export function SettingsView() {
     updateSettings({ openRouterOAuthKey: "" });
   };
 
-  /** Whether the existing AI Configuration section should appear muted. */
-  const isManualConfigMuted = isOpenRouterConnected && !llmApiKey;
-
   const maskedOAuthKey =
     openRouterOAuthKey.length >= 4
       ? `••••••${openRouterOAuthKey.slice(-4)}`
       : openRouterOAuthKey.length > 0
         ? "••••••"
         : "";
-
-  const handleProviderChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newProvider = e.target.value;
-    setSelectedProvider(newProvider);
-    setSelectedModel("");
-    updateSettings({ llmProvider: newProvider, llmModel: "" });
-  };
-
-  const handleModelChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newModel = e.target.value;
-    setSelectedModel(newModel);
-    updateSettings({ llmModel: newModel });
-  };
-
-  const handleApiKeyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newKey = e.target.value;
-    setSelectedApiKey(newKey);
-    updateSettings({ llmApiKey: newKey });
-  };
-
-  const handleClearApiKey = () => {
-    setSelectedApiKey("");
-    updateSettings({ llmApiKey: "" });
-  };
 
   const handleToggleRestriction = (restriction: string) => {
     const updated = selectedRestrictions.includes(restriction)
@@ -258,13 +158,6 @@ export function SettingsView() {
     setShowAddPreference(false);
   };
 
-  const maskedKey =
-    selectedApiKey.length >= 4
-      ? `••••••${selectedApiKey.slice(-4)}`
-      : selectedApiKey.length > 0
-        ? "••••••"
-        : "";
-
   if (isLoading) {
     return (
       <div style={styles.container}>
@@ -272,14 +165,6 @@ export function SettingsView() {
       </div>
     );
   }
-
-  const sortedProviders = [...providers].sort((a, b) =>
-    a.name.localeCompare(b.name),
-  );
-
-  const modelEntries = Object.entries(models).sort(([, a], [, b]) =>
-    (a.name ?? a.id).localeCompare(b.name ?? b.id),
-  );
 
   return (
     <div style={styles.container}>
@@ -299,6 +184,34 @@ export function SettingsView() {
 
             {/* Model picker */}
             <div style={styles.field}>
+              <span style={styles.label}>Filter models</span>
+              <div style={styles.modelFilters}>
+                <button
+                  type="button"
+                  aria-pressed={freeOnly}
+                  onClick={toggleFreeOnly}
+                  style={freeOnly ? styles.chipActive : styles.chip}
+                >
+                  Free
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={visionOnly}
+                  onClick={toggleVisionOnly}
+                  style={visionOnly ? styles.chipActive : styles.chip}
+                >
+                  Vision
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={toolsOnly}
+                  onClick={toggleToolsOnly}
+                  style={toolsOnly ? styles.chipActive : styles.chip}
+                >
+                  Tools
+                </button>
+              </div>
+
               <label htmlFor="openrouter-model" style={styles.label}>
                 Model
               </label>
@@ -306,18 +219,41 @@ export function SettingsView() {
                 id="openrouter-model"
                 value={selectedOpenRouterModel}
                 onChange={handleOpenRouterModelChange}
-                disabled={loadingOpenRouterModels}
+                disabled={loadingOpenRouterModels || openRouterModelsError !== null}
                 style={styles.select}
               >
                 <option value="">
-                  {loadingOpenRouterModels ? "Loading models…" : "Select a model"}
+                  {loadingOpenRouterModels
+                    ? "Loading models…"
+                    : openRouterModels.length === 0
+                      ? "No models match these filters"
+                      : "Select a model"}
                 </option>
-                {openRouterModels.map(([id, info]) => (
-                  <option key={id} value={id}>
-                    {info.name ?? id}
+                {isSelectedModelFilteredOut && selectedModel && (
+                  <option value={selectedModel.id}>
+                    {selectedModel.name} (selected; hidden by filters)
+                  </option>
+                )}
+                {openRouterModels.map((model) => (
+                  <option key={model.id} value={model.id}>
+                    {model.name}
                   </option>
                 ))}
               </select>
+
+              {!loadingOpenRouterModels && !openRouterModelsError && (
+                <p style={styles.modelCount}>
+                  Showing {openRouterModels.length} of {totalModelCount} models
+                </p>
+              )}
+              {openRouterModelsError && (
+                <div style={styles.modelErrorRow}>
+                  <p style={styles.openRouterError}>{openRouterModelsError}</p>
+                  <button type="button" onClick={retryOpenRouterModels} style={styles.retryButton}>
+                    Retry
+                  </button>
+                </div>
+              )}
             </div>
 
             <button
@@ -340,26 +276,16 @@ export function SettingsView() {
               <button
                 type="button"
                 onClick={() => void startOAuth()}
+                disabled={isStartingOAuth}
                 style={styles.openRouterSignInButton}
               >
-                Sign in with OpenRouter
+                {isStartingOAuth ? "Opening OpenRouter…" : "Sign in with OpenRouter"}
               </button>
             )}
 
             {oauthError && <p style={styles.openRouterError}>{oauthError}</p>}
           </>
         )}
-      </section>
-
-      {/* ── Separator ── */}
-      <div style={styles.separator}>— or configure a provider directly —</div>
-
-      {/* ── Manual AI Configuration ── */}
-      <section style={{ ...styles.section, ...(isManualConfigMuted ? styles.mutedSection : {}) }}>
-        <h2 style={styles.sectionTitle}>AI Configuration</h2>
-        {renderProviderField(selectedProvider, sortedProviders, loadingProviders, handleProviderChange)}
-        {renderModelField(selectedProvider, selectedModel, modelEntries, loadingModels, handleModelChange)}
-        {renderApiKeyField(selectedApiKey, maskedKey, handleApiKeyChange, handleClearApiKey)}
       </section>
 
       <section style={styles.section}>
@@ -470,77 +396,6 @@ export function SettingsView() {
   );
 }
 
-function renderProviderField(
-  value: string,
-  providers: ProviderInfo[],
-  loading: boolean,
-  onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void,
-) {
-  return (
-    <div style={styles.field}>
-      <label htmlFor="llm-provider" style={styles.label}>Provider</label>
-      <select id="llm-provider" value={value} onChange={onChange} disabled={loading} style={styles.select}>
-        <option value="">{loading ? "Loading providers…" : "Select a provider"}</option>
-        {providers.map((p) => (
-          <option key={p.id} value={p.id}>{p.name}</option>
-        ))}
-      </select>
-    </div>
-  );
-}
-
-function renderModelField(
-  provider: string,
-  value: string,
-  entries: [string, ModelInfo][],
-  loading: boolean,
-  onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void,
-) {
-  return (
-    <div style={styles.field}>
-      <label htmlFor="llm-model" style={styles.label}>Model</label>
-      <select id="llm-model" value={value} onChange={onChange} disabled={!provider || loading} style={styles.select}>
-        <option value="">
-          {!provider ? "Select a provider first" : loading ? "Loading models…" : "Select a model"}
-        </option>
-        {entries.map(([id, info]) => (
-          <option key={id} value={id}>{info.name ?? id}</option>
-        ))}
-      </select>
-    </div>
-  );
-}
-
-function renderApiKeyField(
-  value: string,
-  maskedKey: string,
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void,
-  onClear: () => void,
-) {
-  return (
-    <div style={styles.field}>
-      <label htmlFor="llm-api-key" style={styles.label}>API Key</label>
-      <div style={styles.apiKeyRow}>
-        <input
-          id="llm-api-key"
-          type="password"
-          value={value}
-          onChange={onChange}
-          placeholder="Enter your API key"
-          style={styles.input}
-          autoComplete="off"
-        />
-        {value && (
-          <button type="button" onClick={onClear} style={styles.clearButton}>
-            Clear
-          </button>
-        )}
-      </div>
-      {maskedKey && <p style={styles.maskedKey}>API key: {maskedKey}</p>}
-    </div>
-  );
-}
-
 const styles: Record<string, React.CSSProperties> = {
   container: {
     padding: "1.5rem 1rem",
@@ -602,19 +457,6 @@ const styles: Record<string, React.CSSProperties> = {
     boxSizing: "border-box" as const,
     minWidth: 0,
   },
-  apiKeyRow: { display: "flex", gap: "0.5rem", alignItems: "center" },
-  clearButton: {
-    padding: "0.625rem 1rem",
-    fontSize: "0.875rem",
-    fontWeight: 500,
-    color: colors.danger,
-    backgroundColor: colors.dangerTint,
-    border: `1px solid ${colors.dangerTintBorder}`,
-    borderRadius: radii.sm,
-    cursor: "pointer",
-    whiteSpace: "nowrap" as const,
-    flexShrink: 0,
-  },
   maskedKey: {
     marginTop: "0.375rem",
     fontSize: "0.8125rem",
@@ -630,6 +472,35 @@ const styles: Record<string, React.CSSProperties> = {
     flexWrap: "wrap" as const,
     gap: "0.5rem",
     marginBottom: "1.25rem",
+  },
+  modelFilters: {
+    display: "flex",
+    flexWrap: "wrap" as const,
+    gap: "0.5rem",
+    marginBottom: "1rem",
+  },
+  modelCount: {
+    margin: "0.375rem 0 0",
+    fontSize: "0.75rem",
+    color: colors.stone600,
+  },
+  modelErrorRow: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: "0.75rem",
+    marginTop: "0.5rem",
+  },
+  retryButton: {
+    padding: "0.375rem 0.75rem",
+    fontSize: "0.8125rem",
+    fontWeight: 500,
+    color: colors.saffron,
+    backgroundColor: colors.glass,
+    border: `1px solid ${colors.glassBorder}`,
+    borderRadius: radii.sm,
+    cursor: "pointer",
+    flexShrink: 0,
   },
   chip: {
     padding: "0.375rem 0.75rem",
@@ -787,14 +658,5 @@ const styles: Record<string, React.CSSProperties> = {
     border: `1px solid ${colors.dangerTintBorder}`,
     borderRadius: radii.md,
     cursor: "pointer",
-  },
-  separator: {
-    textAlign: "center" as const,
-    fontSize: "0.8125rem",
-    color: colors.stone400,
-    margin: "0 0 2rem",
-  },
-  mutedSection: {
-    opacity: 0.5,
   },
 };

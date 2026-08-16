@@ -2,7 +2,6 @@ import { BottomNavBar, type Tab } from "@/components/BottomNavBar";
 import { ChatView } from "@/components/ChatView";
 import { HistoryView } from "@/components/HistoryView";
 import { SettingsView } from "@/components/SettingsView";
-import { useOpenRouterOAuth } from "@/hooks/useOpenRouterOAuth";
 import { useState, useCallback, type ReactNode } from "react";
 import { colors } from "@/theme";
 import RecipeView from "./RecipeView";
@@ -34,10 +33,6 @@ function TabPanel({
 }
 
 export function HomePage() {
-    // Process OpenRouter OAuth callback (if redirected back with ?code=).
-    // This must run inside TRPCProvider so useSettings() works.
-    useOpenRouterOAuth();
-
     const [activeTab, setActiveTab] = useState<Tab>("chat");
 
     const navigateToSettings = useCallback(() => {

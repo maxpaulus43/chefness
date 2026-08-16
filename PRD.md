@@ -40,7 +40,7 @@ what you've cooked.**
 | **Offline-first** | All non-AI features work without an internet connection. Recipes, history, settings, and preferences are stored on-device. |
 | **AI-powered** | A conversational LLM is the primary interaction model. The AI adapts to the user's context (dietary restrictions, recent meals, preferences). |
 | **Single-user** | No accounts, no server. Everything is local to the device. |
-| **Privacy-respecting** | Data stays on-device. The only network calls are to the user's chosen LLM provider using their own API key. |
+| **Privacy-respecting** | Data stays on-device. LLM requests use the user's locally stored OpenRouter OAuth key. |
 | **Warm & inviting visual design** | A "kitchen glassmorphism" aesthetic: a cream gradient background with subtle grain, Fraunces serif headings over Inter body text, a saffron/espresso/rose palette, frosted translucent cards with soft shadows, and consistent inline SVG icons instead of platform-dependent emojis. Tokens are centralized in `src/theme.ts`. |
 
 ---
@@ -79,7 +79,7 @@ what you've cooked.**
 | **Chat** | Chat | AI cooking session — the primary interaction surface | ✅ MVP |
 | **Recipes** | Recipes | Saved recipe collection | Future (tab visible but empty state in MVP) |
 | **History** | History | Chronological cooking log | Future (tab visible but empty state in MVP) |
-| **Settings** | Settings | LLM provider config, API key, dietary restrictions, preferences | ✅ MVP |
+| **Settings** | Settings | OpenRouter connection/model, dietary restrictions, preferences | ✅ MVP |
 
 ### Tab Behavior
 
@@ -176,35 +176,33 @@ conversational.
 
 #### Description
 
-The user configures their preferred LLM inference provider and model in the
-Settings page. The app uses the `@clinebot/*` package suite for
-provider-agnostic LLM integration. The user provides their own API key, which
+The user connects an OpenRouter account through OAuth and selects an OpenRouter
+model in Settings. OpenRouter is the sole LLM inference provider. The OAuth key
 is stored on-device.
 
 #### User Stories
 
 | ID | Story |
 | --- | --- |
-| **LLM-1** | As a user, I can select my LLM provider from a list of supported providers on the Settings page. |
-| **LLM-2** | As a user, I can select a specific model from the chosen provider. |
-| **LLM-3** | As a user, I can enter and save my API key for the selected provider. |
-| **LLM-4** | As a user, I can see whether my API key is configured (without displaying the full key) — e.g., "API key: ••••••7f3a". |
-| **LLM-5** | As a user, I can clear/change my API key. |
-| **LLM-6** | As a user, I can test my configuration by sending a quick test message from Settings (optional but nice-to-have for MVP). |
+| **LLM-1** | As a user, I can connect my OpenRouter account from Settings. |
+| **LLM-2** | As a user, I can select a specific OpenRouter model. |
+| **LLM-3** | As a user, I can see whether OpenRouter is connected without displaying the full OAuth key. |
+| **LLM-4** | As a user, I can disconnect my OpenRouter account. |
+| **LLM-5** | As a user, I can test my configuration by sending a quick test message from Settings (optional but nice-to-have for MVP). |
 
 #### Acceptance Criteria
 
-- [ ] Provider selection uses a dropdown or selection list populated from
-      `@clinebot/llms` supported providers.
-- [ ] Model selection updates dynamically based on the selected provider.
-- [ ] The API key is stored in localStorage via the existing storage layer
-      (using key prefix `chefness:settings:*` — see ARCHITECTURE.md for
-      storage conventions).
-- [ ] The API key is **never** logged to the console or included in error
+- [x] OpenRouter connection uses OAuth PKCE.
+- [x] Model selection is limited to OpenRouter models.
+- [x] The OAuth key is stored through the existing settings storage layer.
+- [x] The OAuth key is **never** logged to the console or included in error
       reports.
-- [ ] Settings persist across app restarts (localStorage).
-- [ ] If no provider/model/API key is configured, the Chat tab shows a
-      clear setup prompt (see CH acceptance criteria).
+- [x] Settings persist across app restarts.
+- [x] If OpenRouter is not connected, the Chat tab shows a clear setup prompt
+      (see CH acceptance criteria).
+- [x] The model picker fetches the live OpenRouter model catalog rather than a
+      bundled registry.
+- [x] Models can be filtered by free pricing, vision support, and tool support.
 - [ ] Chatting with the LLM requires an internet connection. If offline,
       the chat view shows "You're offline. Chat requires an internet
       connection." The rest of the app works offline.
@@ -213,35 +211,36 @@ is stored on-device.
 
 | Key | Value |
 | --- | --- |
-| `chefness:settings:llm-provider` | Provider identifier string |
-| `chefness:settings:llm-model` | Model identifier string |
-| `chefness:settings:llm-api-key` | API key string |
+| `chefness:settings` | Settings singleton containing `llmModel` and `openRouterOAuthKey` |
+
+Legacy `llmProvider` and `llmApiKey` fields remain parseable for existing
+records but are ignored at runtime.
 
 ### 4.3 Settings Page (MVP Scope)
 
 #### Description
 
-The Settings page is the configuration hub. In MVP, it contains only the LLM
-provider/model/API key configuration (see §4.2). Future additions (dietary
-restrictions, AI memory) are described in §5.
+The Settings page is the configuration hub. It contains OpenRouter connection
+and model selection (see §4.2), dietary restrictions, and AI memory. The former
+manual "AI Configuration" provider/API-key section is not shown.
 
 #### User Stories
 
 | ID | Story |
 | --- | --- |
 | **SET-1** | As a user, I can navigate to the Settings tab and see all configurable options clearly organized. |
-| **SET-2** | As a user, I see section headers grouping related settings (e.g., "AI Configuration"). |
+| **SET-2** | As a user, I see section headers grouping related settings (e.g., "OpenRouter"). |
 
 #### Acceptance Criteria
 
-- [ ] The Settings page has a clear header: "Settings".
-- [ ] Settings are organized into labeled sections.
-- [ ] MVP section: **AI Configuration** — contains provider selector, model
-      selector, API key input (see §4.2).
-- [ ] Future sections (Dietary Restrictions, AI Memory) are **not shown** in
-      MVP — no empty placeholders or "coming soon" labels.
-- [ ] All settings save immediately on change (no "Save" button needed).
-- [ ] The page is scrollable if content exceeds the viewport.
+- [x] The Settings page has a clear header: "Settings".
+- [x] Settings are organized into labeled sections.
+- [x] **OpenRouter** section contains OAuth connect/disconnect controls and the
+      model selector (see §4.2).
+- [x] No manual provider or API-key configuration section is shown.
+- [x] Dietary Restrictions and AI Memory sections are shown.
+- [x] Settings save immediately on change (no page-level "Save" button needed).
+- [x] The page is scrollable if content exceeds the viewport.
 
 ### 4.4 Navigation & Layout (MVP Scope)
 
@@ -520,7 +519,7 @@ The app uses the following packages for provider-agnostic LLM integration:
 
 | Package | Version | Purpose |
 | --- | --- | --- |
-| `@clinebot/llms` | 0.0.32 | Config-driven SDK for selecting, extending, and instantiating LLM providers and models. **Browser build used for provider/model registry only** (`getAllProviders`, `getModelsForProvider`, `toProviderConfig`). |
+| `@clinebot/llms` | 0.0.32 | Browser-compatible provider metadata used to resolve OpenRouter request configuration (`getProvider`, `toProviderConfig`). Model discovery comes directly from OpenRouter's live API. |
 | `@clinebot/agents` | 0.0.32 | High-level SDK for building agentic loops with LLMs. **Installed but unused at runtime** — `Agent` class requires Node.js (see §9 architectural decisions). |
 | `@clinebot/core` | 0.0.32 | Cline Core SDK. Foundation dependency for the above packages. **Installed but unused at runtime.** |
 | `@clinebot/shared` | 0.0.32 | Shared utilities, types, and schemas. Common types used across the integration layer. |
@@ -545,7 +544,7 @@ src/
     RecipeDetailView.tsx         Full recipe display with ingredients, steps, back/edit/delete/copy buttons (Phase 2)
     RecipeEditView.tsx           Edit form for recipes — title, description, ingredients, steps as textareas (Phase 2)
     RecipeListView.tsx           Recipe card list for Recipes tab, with empty/loading/error states (Phase 2)
-    SettingsView.tsx             AI Configuration, Dietary Restrictions (chips + freeform), AI Memory (preference list + add/delete)
+    SettingsView.tsx             OpenRouter connection/model selection, Dietary Restrictions, AI Memory
     ToastProvider.tsx            Global styled toast notifications and async confirmation prompts, replacing native browser dialogs
   contexts/
     toast-context.ts             Toast API context/types (`notify`, `ask`, `dismiss`)
@@ -555,10 +554,12 @@ src/
     useClipboard.ts             Reusable clipboard hook: copyToClipboard, copied (2s timer), error (Phase 2)
     useCookingLog.ts            Cooking log CRUD hook with recentEntries (last 7 days) convenience getter (Phase 3)
     useRecipes.ts               Recipe CRUD with createRecipeAsync/updateRecipeAsync for reliable awaitable mutations
-    useSettings.ts              Settings singleton CRUD via tRPC, convenience getters (isConfigured, llmProvider, dietaryRestrictions, etc.)
+    useOpenRouterModels.ts      Live OpenRouter model catalog loading and combined free/vision/tools filters
+    useSettings.ts              Settings singleton CRUD via tRPC, OpenRouter credentials, personalization getters
     useToast.ts                 Reusable hook for firing global toast notifications and confirmation prompts
   lib/
     llm-stream.ts               Browser-compatible LLM streaming + non-streaming tool/function calling client. Supports OpenAI-compatible and Anthropic native APIs.
+    openrouter-models.ts         Fetches and validates OpenRouter's live model catalog; model capability helpers
     preference-extractor.ts     Preference extraction via callWithTools with save_preference tool (Phase 4)
     recipe-extractor.ts         Thin wrapper around callWithTools with save_recipe tool definition (Phase 2)
     recipe-url-extractor.ts     Client helper that calls the same-origin Worker recipe URL extraction endpoint
@@ -581,6 +582,7 @@ src/
     ai-preference.ts            AiPreference, CreateAiPreferenceInput, UpdateAiPreferenceInput Zod schemas (Phase 4)
     cooking-log.ts              CookingLogEntry, CreateCookingLogInput, UpdateCookingLogInput Zod schemas (Phase 3)
     settings.ts                 Settings Zod schemas (settingsSchema with dietaryRestrictions + otherDietaryNotes, createSettingsInput, updateSettingsInput)
+    openrouter-model.ts         Runtime schema for the OpenRouter model catalog fields used by filters
     recipe.ts                   Recipe Zod schemas (pre-existing)
 ```
 
@@ -607,8 +609,8 @@ The following were implemented before MVP development and served as the foundati
 | Chat view | `src/components/ChatView.tsx` | ✅ Full chat UI with message list, text input, send button, meal type/size pill selectors, empty state with suggested prompts, error display, streaming display. |
 | Chat hook | `src/hooks/useChat.ts` | ✅ Conversation state management, LLM streaming via `fetch()` (not `@clinebot/agents`), system prompt construction with meal type/size, offline detection. |
 | LLM streaming client | `src/lib/llm-stream.ts` | ✅ Browser-compatible SSE streaming client. Supports OpenAI-compatible and Anthropic native APIs via direct `fetch()` calls. |
-| Settings view | `src/components/SettingsView.tsx` | ✅ AI Configuration section: provider dropdown, model dropdown (both from `@clinebot/llms` registry), API key input with masked display. |
-| Settings hook | `src/hooks/useSettings.ts` | ✅ Settings singleton CRUD via tRPC, convenience getters (`isConfigured`, `llmProvider`, etc.). |
+| Settings view | `src/components/SettingsView.tsx` | ✅ OpenRouter OAuth connection and live model selection with combinable Free, Vision, and Tools filters; no manual provider/API-key section. |
+| Settings hook | `src/hooks/useSettings.ts` | ✅ Settings singleton CRUD via tRPC with OpenRouter-only effective credentials. |
 | Settings storage | `src/storage/settings.ts`, `src/types/settings.ts` | ✅ Zod schemas + storage repository singleton (key: `chefness:settings`). |
 | Settings tRPC router | `src/trpc/router.ts` | ✅ Added `settings.get` and `settings.update` procedures to existing router. |
 | Toast provider + hook | `src/components/ToastProvider.tsx`, `src/hooks/useToast.ts` | ✅ Reusable styled toast API with `toast.notify(...)` and async `toast.ask(...)`; native browser confirmations replaced for new chat, conversation delete, recipe delete, history delete, preference removal, and chat message regeneration. |
@@ -631,10 +633,10 @@ A clear checklist of everything included in v1:
 - [x] **New Chat button** — clears current conversation and starts fresh
 - [x] **Empty chat state** — suggested prompt bubbles for quick start
 - [x] **Error handling in chat** — network errors, invalid API key, offline state
-- [x] **Settings page** — AI Configuration section
-- [x] **LLM provider selector** — populated from `@clinebot/llms`
-- [x] **LLM model selector** — updates based on selected provider
-- [x] **API key input** — masked display, save, clear, stored in localStorage
+- [x] **Settings page** — OpenRouter connection, model selection, dietary restrictions, and AI memory
+- [x] **OpenRouter OAuth** — connect/disconnect without manual provider configuration
+- [x] **OpenRouter model selector** — populated from the live OpenRouter catalog with Free, Vision, and Tools filters
+- [x] **OAuth key status** — masked display, stored locally
 - [x] **Offline detection** — chat shows offline message; rest of app works
 - [x] **Recipes tab** — empty state placeholder ("Coming soon" or similar)
 - [x] **History tab** — empty state placeholder ("Coming soon" or similar)
@@ -738,9 +740,9 @@ understand these to avoid re-discovering limitations or breaking existing patter
 
 #### a) @clinebot/* packages: browser limitations
 
-- `@clinebot/llms` browser build exports the model/provider **registry** (`getAllProviders`, `getModelsForProvider`, `toProviderConfig`) but does **NOT** export `createHandler`/`createHandlerAsync`. These require Node.js because they dynamically import provider SDKs (`openai`, `@anthropic-ai/sdk`, etc.) which depend on Node builtins.
+- `@clinebot/llms` browser build exports provider metadata helpers (`getProvider`, `toProviderConfig`) but does **NOT** export `createHandler`/`createHandlerAsync`. These require Node.js because they dynamically import provider SDKs (`openai`, `@anthropic-ai/sdk`, etc.) which depend on Node builtins.
 - `@clinebot/agents` `Agent` class is **NOT usable in the browser** because it depends on `createHandler` internally.
-- **Decision:** We use `@clinebot/llms` for provider/model metadata only. Actual LLM communication uses a custom browser-compatible streaming client (`src/lib/llm-stream.ts`) that makes direct `fetch()` calls with SSE parsing.
+- **Decision:** We use `@clinebot/llms` only to resolve OpenRouter request configuration. Model discovery uses OpenRouter's live public API. Actual LLM communication uses a custom browser-compatible streaming client (`src/lib/llm-stream.ts`) that makes direct `fetch()` calls with SSE parsing.
 - The `@clinebot/agents` and `@clinebot/core` packages are installed but unused at runtime. They could be removed from dependencies if desired, but they don't affect bundle size since they're tree-shaken out.
 
 #### b) LLM streaming: fetch-based SSE client
@@ -753,7 +755,7 @@ understand these to avoid re-discovering limitations or breaking existing patter
 
 #### c) Settings reactivity pattern
 
-- `SettingsView` uses local component state (`selectedProvider`, `selectedModel`, `localApiKey`) that syncs with the `useSettings` hook on load but **leads** during user interaction. This avoids the async tRPC mutation round-trip delay that would cause dropdowns to snap back to old values.
+- `SettingsView` uses local component state for the OpenRouter model picker and personalization controls that syncs with `useSettings` but **leads** during user interaction. This avoids the async tRPC mutation round-trip delay that would cause controls to snap back to old values.
 - **This pattern should be followed** for any future Settings fields that need immediate UI feedback.
 
 #### d) Tab switching: no router
@@ -886,7 +888,7 @@ and manual preference saving.
 | LLM integration | Use `@clinebot/agents` `Agent` class for chat | Custom `fetch()`-based SSE client (`llm-stream.ts`) | `Agent` class requires Node.js; not usable in browser |
 | Chat hook | `useChat` calls LLM via `@clinebot/agents` | `useChat` calls LLM via `src/lib/llm-stream.ts` | Same — browser compatibility |
 | Settings storage key | Multiple keys (`chefness:settings:llm-provider`, etc.) | Single key (`chefness:settings`) storing full settings object | Simpler singleton pattern via `LocalStorageRepository` |
-| Provider list | Potentially curated subset | All providers from `getAllProviders()` | Maximizes user choice; user enters their own API key |
+| Provider configuration | Multiple manual providers and BYO API keys | OpenRouter OAuth only | Simplifies setup and matches the supported product direction |
 | Recipe extraction | Regex-based detection + heuristic parser | User-triggered LLM extraction via native tool calling | More reliable; user controls what to save; LLM understands its own output |
 | Dietary restrictions storage | Separate key `chefness:settings:dietary-restrictions` | Part of settings singleton (`chefness:settings`) | Simpler; one entity to manage |
 | AI Memory save flow | AI-only detection | AI detection + manual add in Settings | More user control; resolves open question #5 |
@@ -897,8 +899,8 @@ and manual preference saving.
 
 | # | Question | Impact | Status |
 | --- | --- | --- | --- |
-| 1 | Which `@clinebot/llms` providers/models should be available by default? Do we show all supported providers or a curated subset? | LLM-1, LLM-2 | ✅ **Resolved** — All providers from `getAllProviders()` are shown. The user selects their provider and enters their own API key. |
-| 2 | Should the API key be stored as plaintext in localStorage or lightly obfuscated? | LLM-3 | ✅ **Resolved** — Plaintext in localStorage (same as all other settings). No obfuscation for MVP. Acceptable given the single-user, no-server architecture. |
+| 1 | Which providers and models should be available? | LLM-1, LLM-2 | ✅ **Resolved** — OpenRouter is the sole provider. Models come from its live catalog and can be filtered by free pricing, vision support, and tool support. |
+| 2 | How should the OpenRouter OAuth key be stored? | LLM-3 | ✅ **Resolved** — Plaintext in the local settings store. No obfuscation for MVP. Acceptable given the single-user, no-server architecture. |
 | 3 | What heuristic or mechanism detects that an AI response contains a recipe vs. general conversation? Options: (a) structured output / tool call from the LLM, (b) regex-based detection, (c) a follow-up LLM call to classify. | SR-1 | ✅ **Resolved** — No auto-detection. User taps "Save Recipe" on any assistant message. The app uses native LLM tool/function calling (`callWithTools` with a `save_recipe` tool definition) to extract structured recipe data. This avoids fragile regex heuristics and gives provider-enforced structured output. |
 | 4 | Should the "I cooked this!" action auto-populate the title from the recipe, or let the user name it? | HL-2 | ✅ **Resolved** — Auto-populated from the first non-empty line of the assistant message, stripped of Markdown formatting. Editable later in the History tab. |
 | 5 | For AI Memory (DR-3), should the AI proactively suggest saving preferences, or should there also be a manual "Remember this" button the user can press? | DR-3 | ✅ **Resolved** — Both. The AI proactively suggests remembering preferences via system prompt instructions, AND users can manually add preferences in the Settings > AI Memory section. |

@@ -16,13 +16,16 @@ import {
   createCodeChallenge,
   buildAuthUrl,
   exchangeCodeForKey,
+  type CodeChallengeMethod,
 } from "@/lib/openrouter-oauth";
 import { useSettings } from "@/hooks/useSettings";
 
-const SESSION_KEY = "chefness:oauth:code_verifier";
+const VERIFIER_SESSION_KEY = "chefness:oauth:code_verifier";
+const METHOD_SESSION_KEY = "chefness:oauth:code_challenge_method";
 
 export function useOpenRouterOAuth() {
   const { updateSettings } = useSettings();
+  const [isStartingOAuth, setIsStartingOAuth] = useState(false);
   const [isProcessingCallback, setIsProcessingCallback] = useState(false);
   const [oauthError, setOauthError] = useState<string | null>(null);
 
@@ -33,24 +36,35 @@ export function useOpenRouterOAuth() {
   // startOAuth: generate verifier, store it, redirect to OpenRouter
   // ------------------------------------------------------------------
   const startOAuth = useCallback(async () => {
-    const verifier = generateCodeVerifier();
-    const challenge = await createCodeChallenge(verifier);
+    setOauthError(null);
+    setIsStartingOAuth(true);
 
-    sessionStorage.setItem(SESSION_KEY, verifier);
+    try {
+      const verifier = generateCodeVerifier();
+      const challenge = await createCodeChallenge(verifier);
 
-    const callbackUrl = window.location.origin + window.location.pathname;
-    const authUrl = buildAuthUrl(callbackUrl, challenge);
+      sessionStorage.setItem(VERIFIER_SESSION_KEY, verifier);
+      sessionStorage.setItem(METHOD_SESSION_KEY, challenge.method);
 
-    // Use a temporary <a> click instead of setting window.location.href.
-    // On iOS Safari, programmatic location changes route through the service
-    // worker's fetch handler, which can cause "a response served by service
-    // worker has redirections" errors for cross-origin navigations.
-    const a = document.createElement("a");
-    a.href = authUrl;
-    a.rel = "noreferrer";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+      const callbackUrl = window.location.origin + window.location.pathname;
+      const authUrl = buildAuthUrl(callbackUrl, challenge.value, challenge.method);
+
+      // Suppress referrer-based app attribution. OpenRouter derives the app
+      // from callback_url; sending the PWA referrer can conflict with an
+      // existing app record and fail authorization with HTTP 409.
+      const link = document.createElement("a");
+      link.href = authUrl;
+      link.rel = "noreferrer";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (error) {
+      const message = error instanceof Error
+        ? error.message
+        : "Unable to start OpenRouter sign-in.";
+      setOauthError(message);
+      setIsStartingOAuth(false);
+    }
   }, []);
 
   // ------------------------------------------------------------------
@@ -65,7 +79,9 @@ export function useOpenRouterOAuth() {
     if (exchangeStarted.current) return;
     exchangeStarted.current = true;
 
-    const verifier = sessionStorage.getItem(SESSION_KEY);
+    const verifier = sessionStorage.getItem(VERIFIER_SESSION_KEY);
+    const storedMethod = sessionStorage.getItem(METHOD_SESSION_KEY);
+    const method: CodeChallengeMethod = storedMethod === "plain" ? "plain" : "S256";
 
     if (!verifier) {
       setOauthError("OAuth callback received but no code verifier found in session. Please try again.");
@@ -76,7 +92,7 @@ export function useOpenRouterOAuth() {
 
     setIsProcessingCallback(true);
 
-    exchangeCodeForKey(code, verifier)
+    exchangeCodeForKey(code, verifier, method)
       .then((key) => {
         updateSettings({ openRouterOAuthKey: key });
       })
@@ -85,7 +101,8 @@ export function useOpenRouterOAuth() {
         setOauthError(message);
       })
       .finally(() => {
-        sessionStorage.removeItem(SESSION_KEY);
+        sessionStorage.removeItem(VERIFIER_SESSION_KEY);
+        sessionStorage.removeItem(METHOD_SESSION_KEY);
         cleanUpUrl(params);
         setIsProcessingCallback(false);
       });
@@ -95,6 +112,8 @@ export function useOpenRouterOAuth() {
   return {
     /** Kick off the OpenRouter OAuth PKCE flow. */
     startOAuth,
+    /** `true` while preparing the authorization redirect. */
+    isStartingOAuth,
     /** `true` while the code→key exchange is in flight. */
     isProcessingCallback,
     /** Error message if the exchange failed, otherwise `null`. */

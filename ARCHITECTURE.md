@@ -279,6 +279,22 @@ client uses `unstable_localLink` from `@trpc/client` to call the router directly
 in the same JS context. The tRPC instance is initialized with
 `allowOutsideOfServer: true` and `isServer: false`.
 
+### OpenRouter-only LLM configuration
+
+Chefness uses OpenRouter as its sole LLM provider. Users connect through the
+OpenRouter OAuth PKCE flow and select an OpenRouter model in Settings. The
+former manual provider/API-key configuration UI has been removed. Legacy
+`llmProvider` and `llmApiKey` fields remain readable in the settings schema so
+existing persisted records still parse, but runtime credential resolution
+ignores them and always uses the OpenRouter OAuth key.
+
+`src/lib/openrouter-models.ts` fetches and runtime-validates OpenRouter's public
+`/api/v1/models` catalog. `useOpenRouterModels` owns catalog loading, errors,
+and combined filters. A model is free when both prompt and completion prices
+are zero, supports vision when `image` is an input modality, and supports tools
+when `tools` is listed in `supported_parameters`. The default is the stable
+`openrouter/free` router rather than a specific free model that may disappear.
+
 ### Stateless Worker endpoints
 
 `src/worker.ts` is the Cloudflare Worker entry point configured by
