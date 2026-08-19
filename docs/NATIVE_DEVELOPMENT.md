@@ -1,0 +1,61 @@
+# Native iOS Development
+
+Chefness uses Expo/React Native on iOS while retaining its Vite web app.
+
+## First-time setup
+
+Requirements: Bun, Xcode, an Apple development identity, and an unlocked/trusted iPhone with Developer Mode enabled.
+
+```bash
+bun install
+bunx expo prebuild --platform ios
+```
+
+`ios/` is generated and ignored. Make durable native configuration changes in `app.json` or `plugins/`.
+
+## Daily development
+
+```bash
+# Terminal 1: Metro
+bun run start
+
+# Terminal 2: choose the connected device, build, and install
+bun run ios:device
+```
+
+For a production-like build that runs without Metro:
+
+```bash
+bunx expo run:ios --device "Your iPhone" \
+  --configuration Release --no-bundler
+```
+
+Keep the phone unlocked during installation and first launch.
+
+## Required checks
+
+```bash
+bun run lint
+bun run typecheck:native
+bunx expo-doctor
+bunx expo export --platform ios --output-dir /tmp/chefness-expo
+bun run build  # retained web target
+```
+
+## Useful device commands
+
+```bash
+xcrun devicectl list devices
+xcrun devicectl device process launch --device "Your iPhone" \
+  --terminate-existing com.maxpaulus.chefness
+xcrun devicectl device capture screenshot --device "Your iPhone" \
+  --destination /tmp/chefness.png
+```
+
+## Common issues
+
+- **Device locked:** unlock it and rerun the install/launch command.
+- **Signing failure:** open Xcode and confirm the Apple Development team/certificate.
+- **Native dependency or `app.json` changed:** run `bunx expo prebuild --platform ios --clean`.
+- **Immediate iOS 27 launch crash:** do not remove `plugins/with-ios-scene-lifecycle.cjs` from `app.json`.
+- **OpenRouter on iOS:** after creating the key, copy OpenRouter's one-time authorization code, close the browser sheet, and paste the code into Chefness.

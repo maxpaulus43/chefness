@@ -60,6 +60,9 @@ bun run preview
 
 Open the app, go to **Settings**, connect your OpenRouter account, and select a model. Start chatting!
 
+- Human guide: [Native iOS Development](./docs/NATIVE_DEVELOPMENT.md)
+- Agent checklist: [Native iOS Runbook for Agents](./docs/AGENT_NATIVE_RUNBOOK.md)
+
 ---
 
 ## 🛠 Tech Stack
