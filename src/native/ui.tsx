@@ -54,6 +54,6 @@ const styles = StyleSheet.create({
   buttonText: { color: colors.white, fontWeight: "700" }, secondaryText: { color: colors.espresso },
   chip: { borderRadius: 999, borderWidth: 1, borderColor: colors.stone300, paddingHorizontal: 13, paddingVertical: 9, backgroundColor: colors.white },
   chipSelected: { borderColor: colors.saffron, backgroundColor: colors.saffronTint }, chipText: { color: colors.stone600 }, chipTextSelected: { color: colors.saffronDeep, fontWeight: "700" },
-  input: { minHeight: 44, borderWidth: 1, borderColor: colors.stone300, borderRadius: 12, paddingHorizontal: 13, paddingVertical: 10, color: colors.espresso, backgroundColor: colors.white, fontSize: 16 }, multiline: { minHeight: 88, textAlignVertical: "top" },
+  input: { minHeight: 44, borderWidth: 1, borderColor: colors.stone300, borderRadius: 12, paddingHorizontal: 13, paddingVertical: 10, color: colors.espresso, backgroundColor: colors.white, fontSize: 16 }, multiline: {  textAlignVertical: "top" },
   empty: { alignItems: "center", padding: 32, gap: 8 }, emptyTitle: { color: colors.espresso, fontSize: 20, fontWeight: "700", textAlign: "center" }, muted: { color: colors.stone600, lineHeight: 21, textAlign: "center" },
 });
