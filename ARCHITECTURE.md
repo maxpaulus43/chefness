@@ -40,6 +40,10 @@ small, sanitized JSON responses.
   of persistence (`indexed-db.native.ts`), UUID generation, and OpenRouter
   streaming without branching the shared hooks/router/domain model.
 - `index.js`, `app.json`, `babel.config.cjs`, and `metro.config.cjs` configure Expo.
+- Native OpenRouter connection uses OpenRouter's documented no-callback PKCE
+  flow: S256 authorization opens in a secure browser sheet, the user copies the
+  one-time code back into Chefness, and the app exchanges it locally for the key.
+  The PWA retains its normal HTTP callback flow.
 - The local config plugin `plugins/with-ios-scene-lifecycle.cjs` adds the scene
   lifecycle required by the iOS 27 SDK during prebuild.
 - The generated `ios/` directory is ignored; run `bunx expo prebuild --platform ios`

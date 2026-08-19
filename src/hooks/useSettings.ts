@@ -66,6 +66,10 @@ export function useSettings() {
     updateSettings: (data: Omit<UpdateSettingsInput, "id">) =>
       updateMutation.mutate({ id: "user-settings", ...data }),
 
+    /** Update settings and resolve only after on-device persistence succeeds. */
+    updateSettingsAsync: (data: Omit<UpdateSettingsInput, "id">) =>
+      updateMutation.mutateAsync({ id: "user-settings", ...data }),
+
     /** `true` while an update is in flight. */
     isUpdating: updateMutation.isPending,
 

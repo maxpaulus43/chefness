@@ -752,8 +752,9 @@ Shared hooks, Zod schemas, the local tRPC router, and domain helpers remain the
 single business-logic implementation. Native records use AsyncStorage; web
 records use IndexedDB. Expo platform extension resolution selects native
 persistence, UUID, and OpenRouter streaming implementations. The app uses the
-`chefness://oauth` callback and an iOS scene lifecycle config plugin for current
-Xcode/iOS SDK compatibility.
+documented no-callback S256 PKCE flow on native (copying OpenRouter's one-time
+authorization code back into the app) and an iOS scene lifecycle config plugin
+for current Xcode/iOS SDK compatibility.
 
 ### MVP Status: ✅ Complete
 
