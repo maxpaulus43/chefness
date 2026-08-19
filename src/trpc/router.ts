@@ -8,6 +8,7 @@ import {
 import { recipeRepository } from "@/storage/recipes";
 import {
   settingsSchema,
+  createSettingsInput,
   updateSettingsInput,
 } from "@/types/settings";
 import { settingsRepository, SETTINGS_SINGLETON_ID } from "@/storage/settings";
@@ -83,7 +84,7 @@ const settingsRouter = router({
   get: procedure.output(settingsSchema).query(async () => {
     const existing = await settingsRepository.getById(SETTINGS_SINGLETON_ID);
     if (existing) return existing;
-    return settingsRepository.create({});
+    return settingsRepository.create(createSettingsInput.parse({}));
   }),
 
   /** Update the singleton settings. */

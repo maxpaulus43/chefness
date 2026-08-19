@@ -1,54 +1,72 @@
 {
-    "name": "chefness",
-    "private": true,
-    "version": "0.0.0",
-    "type": "module",
-    "scripts": {
-        "dev": "vite",
-        "build": "vite build",
-        "preview": "bun run build && wrangler dev",
-        "deploy": "bun run build && wrangler deploy",
-        "lint": "eslint src/",
-        "lint:fix": "eslint src/ --fix",
-        "prepare": "simple-git-hooks"
-    },
-    "simple-git-hooks": {
-        "pre-commit": "bunx lint-staged"
-    },
-    "lint-staged": {
-        "src/**/*.{ts,tsx}": [
-            "eslint --fix --max-warnings=0"
-        ]
-    },
-    "dependencies": {
-        "@clinebot/agents": "^0.0.32",
-        "@clinebot/core": "^0.0.32",
-        "@clinebot/llms": "^0.0.32",
-        "@clinebot/shared": "^0.0.32",
-        "@tanstack/react-query": "^5.100.11",
-        "@trpc/client": "^11.17.0",
-        "@trpc/react-query": "^11.17.0",
-        "@trpc/server": "^11.17.0",
-        "react": "^19.2.5",
-        "react-dom": "^19.2.5",
-        "zod": "^4.3.6"
-    },
-    "devDependencies": {
-        "@cloudflare/vite-plugin": "^1.29.0",
-        "@eslint/js": "^10.0.1",
-        "@types/react": "^19.2.14",
-        "@types/react-dom": "^19.2.3",
-        "@vitejs/plugin-react": "^6.0.1",
-        "eslint": "^10.2.0",
-        "eslint-plugin-react-hooks": "^7.0.1",
-        "eslint-plugin-react-refresh": "^0.5.2",
-        "globals": "^17.5.0",
-        "lint-staged": "^16.4.0",
-        "simple-git-hooks": "^2.13.1",
-        "typescript": "^6.0.2",
-        "typescript-eslint": "^8.58.2",
-        "vite": "^8.0.8",
-        "vite-plugin-pwa": "^1.2.0",
-        "wrangler": "4"
-    }
+  "name": "chefness",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "bun run build && wrangler dev",
+    "deploy": "bun run build && wrangler deploy",
+    "lint": "eslint src/",
+    "lint:fix": "eslint src/ --fix",
+    "prepare": "simple-git-hooks",
+    "start": "expo start",
+    "ios": "expo run:ios",
+    "ios:device": "expo run:ios --device",
+    "typecheck:native": "tsc -p tsconfig.native.json --noEmit"
+  },
+  "simple-git-hooks": {
+    "pre-commit": "bunx lint-staged"
+  },
+  "lint-staged": {
+    "src/**/*.{ts,tsx}": [
+      "eslint --fix --max-warnings=0"
+    ]
+  },
+  "dependencies": {
+    "@clinebot/agents": "^0.0.32",
+    "@clinebot/core": "^0.0.32",
+    "@clinebot/llms": "^0.0.32",
+    "@clinebot/shared": "^0.0.32",
+    "@expo/vector-icons": "^15.1.1",
+    "@react-native-async-storage/async-storage": "2.2.0",
+    "@tanstack/react-query": "^5.100.11",
+    "@trpc/client": "^11.17.0",
+    "@trpc/react-query": "^11.17.0",
+    "@trpc/server": "^11.17.0",
+    "expo": "~57.0.0",
+    "expo-clipboard": "^57.0.1",
+    "expo-crypto": "^57.0.1",
+    "expo-font": "~57.0.1",
+    "expo-image-picker": "^57.0.11",
+    "expo-status-bar": "^57.0.1",
+    "expo-web-browser": "^57.0.2",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "react-native": "0.86.2",
+    "react-native-markdown-display": "^7.0.2",
+    "react-native-safe-area-context": "~5.7.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.29.0",
+    "@eslint/js": "^10.0.1",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.1",
+    "babel-plugin-module-resolver": "^5.0.3",
+    "eslint": "^10.2.0",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.5.2",
+    "globals": "^17.5.0",
+    "lint-staged": "^16.4.0",
+    "simple-git-hooks": "^2.13.1",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.58.2",
+    "vite": "^8.0.8",
+    "vite-plugin-pwa": "^1.2.0",
+    "wrangler": "4"
+  },
+  "main": "index.js"
 }

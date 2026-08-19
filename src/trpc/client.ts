@@ -18,7 +18,7 @@ export const trpcClient = createTRPCClient<AppRouter>({
   links: [
     unstable_localLink({
       router: appRouter,
-      createContext: () => ({}),
+      createContext: () => Promise.resolve({}),
     }),
   ],
 });

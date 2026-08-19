@@ -8,11 +8,11 @@ task has the full context without needing to reverse-engineer it from code.
 
 ## 1. Project overview
 
-Chefness is a **client-side-first** cooking app (PWA, offline-first). There is
-**no separate application backend for user data**. All data operations run
-in-browser via tRPC with localStorage/IndexedDB-style client persistence. The
-architecture is designed so that local persistence can be swapped for a real
-remote backend without changing any UI code.
+Chefness is a **client-side-first** cooking app with an Expo/React Native iOS
+app and a retained PWA build. There is **no separate application backend for
+user data**. All data operations run on-device through the same local tRPC
+router. iOS persists through AsyncStorage; the web build uses IndexedDB. The
+repository boundary keeps business hooks and router procedures platform-neutral.
 
 Exception: the app may include tiny stateless Cloudflare Worker API endpoints
 for browser-impossible network tasks, such as fetching third-party recipe pages
@@ -23,13 +23,27 @@ small, sanitized JSON responses.
 
 | Concern          | Library                         | Version |
 | ---------------- | ------------------------------- | ------- |
-| Framework        | React                           | 19      |
+| Framework        | Expo / React Native / React     | 57 / 0.86 / 19 |
+| Web bundler      | Vite                            | 8       |
+| Native bundler   | Metro / Hermes                  | Expo 57 |
 | Language         | TypeScript (strict mode)        | 6       |
-| Bundler          | Vite                            | 8       |
 | RPC layer        | tRPC (client + server)          | 11      |
 | Server state     | TanStack React Query            | 5       |
 | Validation       | Zod                             | 4       |
 | Package manager  | Bun                             |         |
+
+### Platform structure
+
+- `src/App.native.tsx` is the native entry UI; `src/App.tsx` remains the web entry.
+- `src/native/` contains React Native presentation screens and shared controls.
+- Metro resolves `.native.ts` before `.ts`. This supplies native implementations
+  of persistence (`indexed-db.native.ts`), UUID generation, and OpenRouter
+  streaming without branching the shared hooks/router/domain model.
+- `index.js`, `app.json`, `babel.config.cjs`, and `metro.config.cjs` configure Expo.
+- The local config plugin `plugins/with-ios-scene-lifecycle.cjs` adds the scene
+  lifecycle required by the iOS 27 SDK during prebuild.
+- The generated `ios/` directory is ignored; run `bunx expo prebuild --platform ios`
+  when native projects need regeneration.
 
 ### Path aliases
 
@@ -76,7 +90,9 @@ Reusable presentational UI lives under `src/components/`. Shared UI glyphs use
 `currentColor` so controls can use theme-token colors without emoji rendering
 differences across platforms.
 
-Global feedback UI is provided by `src/components/ToastProvider.tsx`, mounted in
+Native feedback uses React Native `Alert` and accessible modal sheets where
+platform-native confirmation or selection is appropriate. Web feedback remains
+provided by `src/components/ToastProvider.tsx`, mounted in
 `src/main.tsx` inside the tRPC provider. Components call `useToast()` and then
 `toast.notify(...)` for transient messages or `await toast.ask(...)` for custom
 confirmation prompts. Do not use native `window.alert`/`window.confirm` for app
@@ -239,12 +255,17 @@ method returns a `Promise`**, even though the current localStorage
 implementation is synchronous. This means swapping to an async backend (HTTP,
 IndexedDB, etc.) requires zero changes to any call site.
 
-### The implementation
+### The implementations
 
-`src/storage/local-storage.ts` contains `LocalStorageRepository` — a class that
-implements the interface. It is the **only file in the entire codebase that
-touches `window.localStorage`**. No other file may call `localStorage.getItem`,
-`localStorage.setItem`, or `localStorage.removeItem`.
+Entity repositories import `src/storage/indexed-db.ts`. Platform resolution
+selects the appropriate implementation:
+
+- Web: `indexed-db.ts` stores entities in IndexedDB.
+- Native: `indexed-db.native.ts` stores the same entity arrays in AsyncStorage.
+
+Both implement the same async `StorageRepository`, so routers, hooks, validation,
+and cache invalidation are shared unchanged. `local-storage.ts` and the one-time
+web migration helper remain only for upgrading older PWA installations.
 
 ### Entity wiring
 
@@ -257,6 +278,10 @@ Each entity gets a file in `src/storage/` (e.g. `recipes.ts`) that:
 
 The repository is responsible for generating `id`, `createdAt`, and `updatedAt`
 inside `buildEntity` — the tRPC router just passes user input through.
+
+Native and web records are intentionally device-local and are not synchronized.
+Secrets such as the OpenRouter OAuth key remain in the settings record on that
+device, matching the existing single-user product requirement.
 
 ### How to swap to a real backend
 
@@ -317,9 +342,12 @@ Current endpoint:
   extracts schema.org JSON-LD `Recipe` data, and returns normalized recipe JSON.
 
 Chat URL imports are orchestrated in `useChat`: a URL-only/import-only user
-message bypasses the LLM path, calls `src/lib/recipe-url-extractor.ts`, saves via
+message bypasses the LLM path and saves via
 the existing recipe hook, and appends a local assistant success/error message.
-When a URL appears inside a broader conversational instruction, `useChat`
+The web helper calls the same-origin Worker to bypass browser CORS; the
+`.native.ts` helper fetches and parses schema.org JSON-LD directly on-device,
+where browser CORS does not apply. When a URL appears inside a broader
+conversational instruction, `useChat`
 extracts the recipe, stores formatted recipe data as hidden
 `importedRecipeContext` on the visible user message, sends that context to the
 LLM, and persists it in the chat session so later "Save Current Recipe"

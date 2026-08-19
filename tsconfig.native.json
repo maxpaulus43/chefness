@@ -1,0 +1,12 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "ignoreDeprecations": "6.0",
+    "baseUrl": ".",
+    "paths": { "@/*": ["src/*"] },
+    "moduleSuffixes": [".native", ".ios", ""]
+  },
+  "include": ["src/App.native.tsx", "src/native/**/*.ts", "src/native/**/*.tsx", "src/hooks/**/*.ts", "src/lib/**/*.ts", "src/storage/**/*.ts", "src/trpc/**/*.ts", "src/types/**/*.ts"],
+  "exclude": ["src/storage/migrate-from-localstorage.ts"]
+}

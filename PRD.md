@@ -24,8 +24,9 @@
 
 ## 1. Overview & Vision
 
-**Chefness** is a mobile-first, offline-first Progressive Web App (PWA) that
-helps users cook using AI. The user chats with an AI "cooking guru" that knows
+**Chefness** is a mobile-first, offline-first Expo/React Native iOS app with
+the existing Progressive Web App retained as a web target. The user chats with
+an AI "cooking guru" that knows
 their dietary restrictions, recent cooking history, and preferences — and helps
 them plan meals, discover recipes, and cook step-by-step.
 
@@ -374,8 +375,9 @@ Users can copy a saved recipe to the clipboard as formatted Markdown text.
 - [x] The share button is available on the recipe detail view.
 - [x] The Markdown output includes: title (as `#`), description, ingredients
       (as bullet list), steps (as numbered list).
-- [x] Uses the Clipboard API (`navigator.clipboard.writeText`).
-- [x] Graceful fallback or error message if Clipboard API is unavailable.
+- [x] Uses the platform clipboard (`expo-clipboard` on native and
+      `navigator.clipboard.writeText` on web).
+- [x] Graceful fallback or error message if clipboard access is unavailable.
 
 ### 5.3 Cooking Log & History
 
@@ -738,12 +740,25 @@ fully functional in Settings, with both AI-detected and manual preference saving
 
 ## 9. Implementation Status & Architectural Decisions
 
+### Native Migration Status: ✅ Complete (iOS)
+
+The product now has a native Expo/React Native iOS presentation layer while
+retaining the existing PWA target. Chat and streaming, OpenRouter OAuth/model
+selection, camera or photo-library attachments, persisted session history,
+recipe import/save/search/detail/edit/delete/share and AI edits, cooking history,
+dietary restrictions, and AI memory all use native screens and controls.
+
+Shared hooks, Zod schemas, the local tRPC router, and domain helpers remain the
+single business-logic implementation. Native records use AsyncStorage; web
+records use IndexedDB. Expo platform extension resolution selects native
+persistence, UUID, and OpenRouter streaming implementations. The app uses the
+`chefness://oauth` callback and an iOS scene lifecycle config plugin for current
+Xcode/iOS SDK compatibility.
+
 ### MVP Status: ✅ Complete
 
-All MVP features from §7 have been implemented. The app is a fully functional
-mobile-first PWA with AI chat, settings configuration, and placeholder tabs for
-future features. See §6 for the complete file structure and §7 for the checked-off
-feature list.
+All MVP features from §7 have been implemented for both the iOS app and retained
+web target. See §6 for the feature structure and §7 for the checked-off list.
 
 ### Key Architectural Decisions
 

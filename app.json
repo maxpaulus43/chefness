@@ -1,0 +1,41 @@
+{
+  "expo": {
+    "name": "Chefness",
+    "slug": "chefness",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "chefness",
+    "userInterfaceStyle": "light",
+    "icon": "./public/pwa-512x512.png",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.maxpaulus.chefness",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Chefness uses the camera to let you share food and ingredient photos with your cooking assistant.",
+        "NSPhotoLibraryUsageDescription": "Chefness uses your photo library to attach food and ingredient photos to chats.",
+        "UIApplicationSceneManifest": {
+          "UIApplicationSupportsMultipleScenes": false,
+          "UISceneConfigurations": {
+            "UIWindowSceneSessionRoleApplication": [
+              {
+                "UISceneConfigurationName": "Default Configuration",
+                "UISceneDelegateClassName": "$(PRODUCT_MODULE_NAME).SceneDelegate"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Choose food and ingredient photos to share with your cooking assistant.",
+          "cameraPermission": "Take food and ingredient photos to share with your cooking assistant."
+        }
+      ],
+      "expo-font",
+      "./plugins/with-ios-scene-lifecycle.cjs"
+    ]
+  }
+}

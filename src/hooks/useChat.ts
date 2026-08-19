@@ -379,7 +379,7 @@ export function useChat() {
 
   const sendMessageFromHistory = useCallback(
     async (baseMessages: ChatMessage[], text: string, imageDataUrl = "") => {
-      if (!navigator.onLine) {
+      if (typeof navigator !== "undefined" && typeof navigator.onLine === "boolean" && !navigator.onLine) {
         setError("You are offline. Chat requires an internet connection.");
         return;
       }
@@ -406,6 +406,7 @@ export function useChat() {
         try {
           const session = await createSessionAsync({
             title: text.slice(0, 60) || "Photo conversation",
+            messages: [],
             mealType,
             mealSize,
           });

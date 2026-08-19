@@ -31,3 +31,7 @@ dev-dist/
 !.env.example
 
 .pi/
+
+.expo/
+
+/ios/

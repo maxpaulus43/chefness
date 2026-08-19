@@ -2,7 +2,7 @@
 
 **Your AI sous-chef that lives in your pocket.**
 
-Chefness is a mobile-first, offline-first Progressive Web App (PWA) that helps you cook using AI. Chat with a knowledgeable cooking guru that remembers your dietary restrictions, recent cooking history, and preferences — and helps you plan meals, discover recipes, and cook step-by-step. Save recipes to a personal collection, log what you've cooked, and let the AI suggest variety based on your history. It runs entirely in the browser with no backend server — you bring your own LLM API key.
+Chefness is a mobile-first, offline-first Expo/React Native iOS app with a retained PWA target. Chat with a knowledgeable cooking guru that remembers your dietary restrictions, recent cooking history, and preferences. Save recipes, log what you've cooked, and let the AI suggest variety. User data stays on-device; OpenRouter is connected through OAuth.
 
 
 |      |      |      |      |      |
@@ -20,7 +20,7 @@ Chefness is a mobile-first, offline-first Progressive Web App (PWA) that helps y
 - 📷 **Vision Prompts** — take or attach photos when the selected model supports image input
 - ⚙️ **OpenRouter Integration** — connect with OpenRouter OAuth and filter the live model catalog by free, vision, and tool support
 - 🍳 **Meal Planning** — Meal type (breakfast / lunch / dinner / snack / dessert) and serving size selectors
-- 📱 **Mobile-First PWA** — Installable, offline-capable, designed for kitchen use
+- 📱 **Native iOS + PWA** — Expo/React Native on iPhone, with the installable web target retained
 
 ### Recipes (Phase 2 — Complete)
 
@@ -46,13 +46,15 @@ cd chefness
 # Install dependencies
 bun install
 
-# Start dev server
+# Start the native Expo dev server
+bun run start
+
+# Build and install on a connected iPhone
+bun run ios:device
+
+# Web development / production build
 bun run dev
-
-# Build for production
 bun run build
-
-# Preview production build
 bun run preview
 ```
 
@@ -64,9 +66,9 @@ Open the app, go to **Settings**, connect your OpenRouter account, and select a 
 
 | Concern | Technology |
 | --- | --- |
-| Framework | React 19 |
+| Framework | Expo 57, React Native 0.86, React 19 |
 | Language | TypeScript 6 (strict) |
-| Bundler | Vite 8 |
+| Bundlers | Metro/Hermes (native), Vite 8 (web) |
 | RPC Layer | tRPC 11 (in-browser, no server) |
 | Server State | TanStack React Query 5 |
 | Validation | Zod 4 |
@@ -88,11 +90,11 @@ Chefness uses a strict four-layer architecture. Data flows downward; dependencie
 ├─────────────────────────────────────────────┤
 │  tRPC Router  (procedures, validation)      │
 ├─────────────────────────────────────────────┤
-│  Storage  (localStorage repositories)       │
+│  Storage  (AsyncStorage / IndexedDB)         │
 └─────────────────────────────────────────────┘
 ```
 
-All data operations run in-browser via tRPC with local persistence. **No application backend server.** LLM requests are sent to OpenRouter.
+All data operations run on-device via tRPC with local persistence. **No application backend server.** LLM requests are sent to OpenRouter.
 
 👉 See [ARCHITECTURE.md](./ARCHITECTURE.md) for full details.
 
@@ -102,10 +104,11 @@ All data operations run in-browser via tRPC with local persistence. **No applica
 
 ```
 src/
-  components/    UI components (ChatView, RecipeListView, SettingsView, etc.)
-  hooks/         Business logic hooks (useChat, useRecipes, useCookingLog, etc.)
+  native/        Expo/React Native screens and controls
+  components/    Retained web/PWA presentation components
+  hooks/         Shared business logic hooks (useChat, useRecipes, etc.)
   lib/           Utilities (llm-stream, recipe-extractor, recipe-markdown, etc.)
-  storage/       Persistence layer (localStorage repositories)
+  storage/       Platform persistence (AsyncStorage / IndexedDB)
   trpc/          In-browser tRPC setup (router, client, provider)
   types/         Zod schemas and TypeScript types
 ```
@@ -114,7 +117,7 @@ src/
 
 ## 🔒 Privacy & Data
 
-- All data stays on-device in localStorage
+- All data stays on-device in AsyncStorage (iOS) or IndexedDB (web)
 - No accounts, no server, no tracking
 - LLM network calls are sent only to OpenRouter
 - The OpenRouter OAuth key is stored locally and sent only to OpenRouter
