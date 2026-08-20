@@ -1,11 +1,11 @@
+import { StyleSheet, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
-import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
-import { StyleSheet } from "react-native";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import { TRPCProvider } from "@/trpc/provider";
-import { Home } from "@/native/Home";
+import { NativeNavigation } from "@/native/navigation";
 import { colors } from "@/theme";
 
 export default function NativeApp() {
-  return <SafeAreaProvider><StatusBar style="dark" /><SafeAreaView edges={["top", "left", "right"]} style={styles.safe}><TRPCProvider><Home /></TRPCProvider></SafeAreaView></SafeAreaProvider>;
+  return <SafeAreaProvider><StatusBar style="dark" /><View style={styles.root}><TRPCProvider><NativeNavigation /></TRPCProvider></View></SafeAreaProvider>;
 }
-const styles = StyleSheet.create({ safe: { flex: 1, backgroundColor: colors.cream } });
+const styles = StyleSheet.create({ root: { flex: 1, backgroundColor: colors.cream } });

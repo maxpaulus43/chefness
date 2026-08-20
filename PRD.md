@@ -84,14 +84,19 @@ what you've cooked.**
 
 ### Tab Behavior
 
-- Tapping a tab switches the visible content area. There is no client-side
-  router in MVP — tabs swap content in-place.
+- On iOS, React Navigation provides the standard bottom tab bar and nested
+  native stacks. The retained web app continues to swap tab content in-place.
 - The Chat tab is the default/home tab when the app launches.
-- Each tab preserves its scroll position when the user switches away and back.
-- The bottom nav bar is fixed to the bottom of the viewport. On iOS, its
-  62-point interactive row sits above the device bottom safe-area inset while
-  the bar background extends behind the Home indicator. When the keyboard is
-  open, the chat composer moves directly above it.
+- Each iOS tab preserves its mounted screen and nested navigation state when
+  the user switches away and back.
+- The iOS system tab bar handles the device bottom safe area and exposes native
+  tab accessibility semantics. When the keyboard is open, the chat composer
+  moves directly above it.
+- Recipes use list → detail → edit stack destinations with standard back
+  transitions and swipe-back. Chat history, message editing, and model
+  selection use native form sheets.
+- The `chefness://` URL scheme has destinations for recipes, chats, history,
+  settings, and model selection so navigation is ready for external links.
 
 ### Layout Structure
 
@@ -793,10 +798,17 @@ understand these to avoid re-discovering limitations or breaking existing patter
 - `SettingsView` uses local component state for the OpenRouter model picker and personalization controls that syncs with `useSettings` but **leads** during user interaction. This avoids the async tRPC mutation round-trip delay that would cause controls to snap back to old values.
 - **This pattern should be followed** for any future Settings fields that need immediate UI feedback.
 
-#### d) Tab switching: no router
+#### d) Platform navigation
 
-- Navigation uses simple `useState` in `HomePage.tsx`. No client-side router library. Tabs swap content in-place.
-- Chat tab is default on launch.
+- iOS uses React Navigation bottom tabs and nested native stacks from
+  `src/native/navigation.tsx`. React Navigation preserves mounted tab/stack
+  state and provides system safe-area, transition, back-gesture, and
+  accessibility behavior.
+- `src/native/navigation-routes.ts` defines typed destinations and
+  `chefness://` deep links for recipes, chats, history, and settings.
+- The retained web app still uses simple `useState` tab/content switching in
+  `HomePage.tsx`; it does not require React Navigation.
+- Chat is the default tab on both platforms.
 
 ### Phase 2 Status: ✅ Complete
 
@@ -834,9 +846,10 @@ now fully functional with save, list, detail, edit, delete, and share flows.
 
 #### g) Recipe tab navigation
 
-- `HomePage.tsx` manages `selectedRecipeId` + `recipeViewMode` state (`list` | `detail` | `edit`) for navigation within the Recipes tab.
-- No router needed — the same `useState`-based pattern from MVP (decision d) is extended.
-- The Recipes tab renders `RecipeListView`, `RecipeDetailView`, or `RecipeEditView` based on the current state.
+- On iOS, recipe list, detail, and edit are typed native-stack destinations;
+  recipe IDs are route parameters and standard swipe-back is enabled.
+- On web, `HomePage.tsx` continues to manage `selectedRecipeId` and
+  `recipeViewMode` (`list` | `detail` | `edit`) locally.
 
 #### h) Async mutations for reliability
 

@@ -35,12 +35,18 @@ small, sanitized JSON responses.
 ### Platform structure
 
 - `src/App.native.tsx` is the native entry UI; `src/App.tsx` remains the web entry.
-- `src/native/` contains React Native presentation screens and shared controls.
-  The native app shell leaves the bottom edge to `Home`, whose tab bar adds the
-  device bottom safe-area inset beneath a fixed 62-point interactive row. The
-  content region therefore ends above the complete bar on both Home-indicator
-  and older zero-inset iPhones. Chat uses frame-based keyboard avoidance with
-  no hard-coded vertical offset so its composer follows the keyboard correctly.
+- `src/native/` contains React Native presentation screens, shared controls,
+  and the iOS navigation graph. React Navigation owns the four-tab bottom bar
+  and its safe-area/accessibility behavior. Each tab remains mounted after its
+  first visit, preserving expected tab state. Native stacks provide standard
+  headers, transitions, and edge swipe-back for recipe list/detail/edit.
+  Chat history, message editing, and model selection are stack-presented iOS
+  form sheets. Chat uses frame-based keyboard avoidance with no hard-coded
+  vertical offset so its composer follows the keyboard correctly.
+- `src/native/navigation-routes.ts` is the typed route/deep-link contract.
+  The `chefness://` scheme resolves recipe IDs, chat-session IDs, history,
+  settings, and model selection to nested tab/stack destinations. The retained
+  web app continues to use its existing in-place navigation.
 - Metro resolves `.native.ts` before `.ts`. This supplies native implementations
   of persistence (`indexed-db.native.ts`), UUID generation, and OpenRouter
   streaming without branching the shared hooks/router/domain model.

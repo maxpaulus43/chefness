@@ -59,22 +59,40 @@
 - Keyboard: verified open and closed on both simulator device classes. The chat
   composer remains directly above the keyboard when open, and screen content
   ends above the complete tab bar when closed.
-- Automated coverage: `tests/native-layout.test.ts` covers representative
-  34-point and zero-point bottom insets.
+- The former custom inset-metrics coverage was retired with Goal 3. React
+  Navigation now owns the system tab bar and safe-area calculation; its result
+  was re-verified in the Goal 3 Release simulator build.
 
 #### 3. Adopt native navigation
 
 **Goal:** Replace hand-built screen swapping with standard iOS tabs, stacks, and sheets.
 
-- [ ] Replace the custom absolute-positioned tab implementation.
-- [ ] Add native bottom tabs for Chat, Recipes, History, and Settings.
-- [ ] Add stack navigation for recipe list, detail, and edit screens.
-- [ ] Preserve standard swipe-back behavior.
-- [ ] Present chat history, message editing, and model selection as appropriate native sheets.
-- [ ] Preserve tab and navigation state where expected.
-- [ ] Add deep-link-ready destinations for recipes, chats, and settings.
+- [x] Replace the custom absolute-positioned tab implementation.
+- [x] Add native bottom tabs for Chat, Recipes, History, and Settings.
+- [x] Add stack navigation for recipe list, detail, and edit screens.
+- [x] Preserve standard swipe-back behavior.
+- [x] Present chat history, message editing, and model selection as appropriate native sheets.
+- [x] Preserve tab and navigation state where expected.
+- [x] Add deep-link-ready destinations for recipes, chats, and settings.
 
 **Done when:** Navigation has standard iOS transitions, back gestures, safe-area behavior, and accessibility semantics.
+
+**Verification:**
+
+- Built and launched the signed Release simulator app on an iPhone 17 Pro.
+  Verified the system tab bar exposes four correctly labeled tab accessibility
+  elements, respects the Home-indicator inset, and preserves mounted tab and
+  nested stack state.
+- Verified recipe list, detail, and edit are native-stack destinations with
+  standard headers, transitions, and edge swipe-back enabled.
+- Verified Chat History and Choose Model render as iOS form sheets. Message
+  editing uses the same native sheet destination when a message is available.
+- Opened `chefness://settings` and `chefness://settings/models` through iOS and
+  verified they resolve to the expected tab and sheet. Automated route coverage
+  also checks recipe, chat, and settings destination parsing.
+- Automated/build coverage: `bun test`, `bun run typecheck:native`,
+  `bun run lint`, `bunx expo-doctor`, iOS Expo export, Release simulator build,
+  and the retained web production build all pass.
 
 #### 4. Use native sharing
 
@@ -289,3 +307,4 @@ Add one entry when an item starts or finishes.
 | 2026-04-12 | Roadmap created | Complete | Initial prioritized roadmap based on the current native implementation. |
 | 2026-08-19 | 1. Secure OpenRouter credentials | Complete | Added Keychain storage, automatic AsyncStorage migration/scrubbing, sanitized request errors, accurate settings copy, and a manual verification checklist. |
 | 2026-08-19 | 2. Correct bottom safe-area handling | Complete | Added inset-aware native tab-bar sizing, corrected keyboard avoidance, automated inset coverage, and open/closed keyboard verification on Home-indicator and non-Home-indicator iPhones. |
+| 2026-08-19 | 3. Adopt native navigation | Complete | Replaced absolute-positioned tabs and state-swapped recipe views with React Navigation bottom tabs, native stacks and form sheets; added `chefness://` recipe, chat, and settings destinations and simulator verification. |
