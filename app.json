@@ -10,6 +10,11 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.maxpaulus.chefness",
+      "entitlements": {
+        "keychain-access-groups": [
+          "$(AppIdentifierPrefix)$(PRODUCT_BUNDLE_IDENTIFIER)"
+        ]
+      },
       "infoPlist": {
         "NSCameraUsageDescription": "Chefness uses the camera to let you share food and ingredient photos with your cooking assistant.",
         "NSPhotoLibraryUsageDescription": "Chefness uses your photo library to attach food and ingredient photos to chats.",

@@ -63,7 +63,8 @@ small, sanitized JSON responses.
   one-time code back into Chefness, and the app exchanges it locally for the key.
   `settings.native.ts` persists that key in iOS Keychain through
   `expo-secure-store`; it automatically migrates and scrubs the former
-  AsyncStorage settings field. The PWA retains its normal HTTP callback flow
+  AsyncStorage settings field. `app.json` declares the app-specific Keychain
+  access-group entitlement required by signed device and simulator builds. The PWA retains its normal HTTP callback flow
   and IndexedDB-backed credential storage.
 - The local config plugin `plugins/with-ios-scene-lifecycle.cjs` adds the scene
   lifecycle required by the iOS 27 SDK during prebuild.

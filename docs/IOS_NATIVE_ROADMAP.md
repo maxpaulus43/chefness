@@ -352,7 +352,7 @@ Add one entry when an item starts or finishes.
 | Date | Item | Status | Notes |
 | --- | --- | --- | --- |
 | 2026-04-12 | Roadmap created | Complete | Initial prioritized roadmap based on the current native implementation. |
-| 2026-08-19 | 1. Secure OpenRouter credentials | Complete | Added Keychain storage, automatic AsyncStorage migration/scrubbing, sanitized request errors, accurate settings copy, and a manual verification checklist. |
+| 2026-08-19 | 1. Secure OpenRouter credentials | Complete | Added Keychain storage and its app access-group entitlement, automatic AsyncStorage migration/scrubbing, sanitized request errors, accurate settings copy, and a manual verification checklist. |
 | 2026-08-19 | 2. Correct bottom safe-area handling | Complete | Added inset-aware native tab-bar sizing, corrected keyboard avoidance, automated inset coverage, and open/closed keyboard verification on Home-indicator and non-Home-indicator iPhones. |
 | 2026-08-19 | 3. Adopt native navigation | Complete | Replaced absolute-positioned tabs and state-swapped recipe views with React Navigation bottom tabs, native stacks and form sheets; added `chefness://` recipe, chat, and settings destinations and simulator verification. |
 | 2026-08-19 | 4. Use native sharing | Complete | Replaced the misleading clipboard-only “Copy / Share” action with the iOS system share sheet, retained a separate Copy Markdown action, and made cancellation silent and failures explicit. |
