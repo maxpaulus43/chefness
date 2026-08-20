@@ -7,7 +7,11 @@ import type {
 // React Navigation requires exact type aliases rather than open interfaces.
 // eslint-disable-next-line @typescript-eslint/consistent-type-definitions
 export type ChatStackParamList = {
-  Chat: { sessionId?: string } | undefined;
+  // sharedUrl/shareTs arrive via the share-extension deep link
+  // (chefness://chats?sharedUrl=<base64url>&shareTs=<ms>).
+  Chat:
+    | { sessionId?: string; sharedUrl?: string; shareTs?: string }
+    | undefined;
   ChatHistory: undefined;
 };
 

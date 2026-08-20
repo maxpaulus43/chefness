@@ -1,2 +1,3 @@
 const { getDefaultConfig } = require("expo/metro-config");
-module.exports = getDefaultConfig(__dirname);
+const { withShareExtension } = require("expo-share-extension/metro");
+module.exports = withShareExtension(getDefaultConfig(__dirname));

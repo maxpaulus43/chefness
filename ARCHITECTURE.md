@@ -74,11 +74,22 @@ small, sanitized JSON responses.
   AsyncStorage settings field. `app.json` declares the app-specific Keychain
   access-group entitlement required by signed device and simulator builds. The PWA retains its normal HTTP callback flow
   and IndexedDB-backed credential storage.
+- An iOS share extension (`expo-share-extension`) lets users share a web URL
+  from Safari into Chefness. `index.share.js` registers
+  `src/native/ShareExtensionScreen.tsx` as the extension root; the extension
+  runs in its own sandboxed process, so instead of writing storage directly it
+  base64url-encodes the shared URL (`src/lib/share-url-encoding.ts`) and opens
+  the host app via `chefness://chats?sharedUrl=...&shareTs=...`. The Chat route
+  decodes the URL, dedupes on `shareTs`, and calls `useChat().importSharedUrl`,
+  which starts a fresh session and reuses the existing URL-only auto-save
+  import flow. `metro.config.cjs` is wrapped with `withShareExtension` to
+  bundle the extension entry.
 - The local config plugin `plugins/with-ios-scene-lifecycle.cjs` adds the scene
   lifecycle required by the iOS 27 SDK during prebuild. The companion
-  `plugins/with-ios-pods-deployment-target.cjs` raises every generated CocoaPods
-  target to the app's iOS deployment target because Xcode 27 rejects older pod
-  resource targets.
+  `plugins/with-ios-pods-deployment-target.cjs` raises every generated native
+  app/extension build configuration and CocoaPods target to the app's iOS
+  deployment target because Xcode 27 rejects older targets and Expo modules
+  require iOS 16.4.
 - The generated `ios/` directory is ignored; run `bunx expo prebuild --platform ios`
   when native projects need regeneration.
 

@@ -399,7 +399,12 @@ export function useChat() {
   // -------------------------------------------------------------------------
 
   const sendMessageFromHistory = useCallback(
-    async (baseMessages: ChatMessage[], text: string, imageDataUrl = "") => {
+    async (
+      baseMessages: ChatMessage[],
+      text: string,
+      imageDataUrl = "",
+      options?: { forceNewSession?: boolean },
+    ) => {
       if (
         typeof navigator !== "undefined" &&
         typeof navigator.onLine === "boolean" &&
@@ -434,7 +439,7 @@ export function useChat() {
       setIsStreaming(true);
 
       // Auto-create a session on the first message.
-      let sessionId = currentSessionId;
+      let sessionId = options?.forceNewSession ? null : currentSessionId;
       if (!sessionId) {
         try {
           const session = await createSessionAsync({
@@ -630,6 +635,24 @@ export function useChat() {
     [messages, sendMessageFromHistory],
   );
 
+  // importSharedUrl — entry point for URLs shared from the iOS share
+  // extension. Starts a fresh conversation and runs the normal URL-import
+  // path (which auto-saves the recipe when the message is URL-only).
+  const importSharedUrl = useCallback(
+    async (url: string) => {
+      abortRef.current?.abort();
+      abortRef.current = null;
+      setMessages([]);
+      setError(null);
+      setIsStreaming(false);
+      setMealType(null);
+      setMealSize(null);
+      setCurrentSessionId(null);
+      await sendMessageFromHistory([], url, "", { forceNewSession: true });
+    },
+    [sendMessageFromHistory],
+  );
+
   const editUserMessageAndRegenerate = useCallback(
     async (index: number, content: string) => {
       const text = content.trim();
@@ -714,6 +737,7 @@ export function useChat() {
     mealType,
     mealSize,
     sendMessage,
+    importSharedUrl,
     editUserMessageAndRegenerate,
     stopStreaming,
     clearChat,

@@ -378,6 +378,28 @@ success or a clear extraction error in chat.
       session so the existing "Save Current Recipe" flow can save the latest
       edited recipe after follow-up conversation.
 
+### 5.1.2 Import Recipes via iOS Share Sheet
+
+#### Description
+
+iOS users can share a recipe page from Safari (or any app sharing a web URL)
+into Chefness. A share extension (built with `expo-share-extension`) shows the
+shared link with an “Import Recipe” button; confirming opens the main app via
+deep link, where the existing chat URL-import flow extracts and saves the
+recipe.
+
+#### Acceptance Criteria
+
+- [ ] Safari's share sheet lists Chefness for web URLs (activation rule:
+      `url`, max 1).
+- [ ] The extension shows the shared URL with Import Recipe and Cancel actions.
+- [ ] Import opens the main app on the Chat tab via
+      `chefness://chats?sharedUrl=<base64url>&shareTs=<ms>` and runs the
+      existing URL-only auto-save import in a fresh conversation.
+- [ ] A repeated deep link with the same `shareTs` is not imported twice.
+- [ ] Extraction success/failure is reported by the existing chat import
+      messages.
+
 ### 5.2 Share Recipes
 
 #### Description

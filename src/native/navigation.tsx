@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { Alert, FlatList, Pressable, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { NavigationContainer } from "@react-navigation/native";
@@ -29,6 +29,7 @@ import {
 } from "@/native/navigation-routes";
 import { ListInteractionRow } from "@/native/ListInteractionRow";
 import { nativeStyles } from "@/native/ui";
+import { decodeSharedUrl } from "@/lib/share-url-encoding";
 import { useAccessibilityPreferences } from "@/native/accessibility";
 import { nativeColors as colors, nativeFonts } from "@/native/theme";
 
@@ -137,6 +138,22 @@ function ChatRoute({
     if (sessionId && sessionId !== chat.currentSessionId)
       chat.loadSession(sessionId);
   }, [chat, sessionId]);
+
+  // Handle a recipe URL shared from the iOS share extension. The shareTs
+  // value uniquely identifies each share so a re-render or repeated deep link
+  // with the same params is not imported twice.
+  const sharedUrl = route.params?.sharedUrl;
+  const shareTs = route.params?.shareTs;
+  const handledShareTs = useRef<string | null>(null);
+  useEffect(() => {
+    if (!sharedUrl || !shareTs || handledShareTs.current === shareTs) return;
+    handledShareTs.current = shareTs;
+    const url = decodeSharedUrl(sharedUrl);
+    if (!url) return;
+    // Start a fresh conversation for the import; the existing chat
+    // URL-import flow extracts and saves the recipe.
+    void chat.importSharedUrl(url);
+  }, [chat, sharedUrl, shareTs]);
   return <ChatScreen chat={chat} openSettings={openSettings} />;
 }
 
