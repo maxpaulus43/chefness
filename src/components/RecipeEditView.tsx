@@ -112,7 +112,9 @@ export function RecipeEditView({
       <h1 style={styles.header}>Edit Recipe</h1>
 
       <div style={styles.field}>
-        <label htmlFor="edit-title" style={styles.label}>Title</label>
+        <label htmlFor="edit-title" style={styles.label}>
+          Title
+        </label>
         <input
           id="edit-title"
           type="text"
@@ -124,7 +126,9 @@ export function RecipeEditView({
       </div>
 
       <div style={styles.field}>
-        <label htmlFor="edit-description" style={styles.label}>Description</label>
+        <label htmlFor="edit-description" style={styles.label}>
+          Description
+        </label>
         <textarea
           id="edit-description"
           value={description}

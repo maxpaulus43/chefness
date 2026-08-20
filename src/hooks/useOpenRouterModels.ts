@@ -7,7 +7,9 @@ import {
 import { useEffect, useMemo, useState } from "react";
 
 export function useOpenRouterModels(enabled: boolean, selectedModelId: string) {
-  const [models, setModels] = useState<Awaited<ReturnType<typeof fetchOpenRouterModels>>>([]);
+  const [models, setModels] = useState<
+    Awaited<ReturnType<typeof fetchOpenRouterModels>>
+  >([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
@@ -32,7 +34,11 @@ export function useOpenRouterModels(enabled: boolean, selectedModelId: string) {
       .then(setModels)
       .catch((cause: unknown) => {
         if (controller.signal.aborted) return;
-        setError(cause instanceof Error ? cause.message : "Unable to load OpenRouter models.");
+        setError(
+          cause instanceof Error
+            ? cause.message
+            : "Unable to load OpenRouter models.",
+        );
       })
       .finally(() => {
         if (!controller.signal.aborted) setIsLoading(false);
@@ -43,18 +49,23 @@ export function useOpenRouterModels(enabled: boolean, selectedModelId: string) {
   /* eslint-enable react-hooks/set-state-in-effect */
 
   const filteredModels = useMemo(
-    () => models.filter((model) =>
-      (!freeOnly || isFreeOpenRouterModel(model)) &&
-      (!visionOnly || supportsVision(model)) &&
-      (!toolsOnly || supportsTools(model)),
-    ),
+    () =>
+      models.filter(
+        (model) =>
+          (!freeOnly || isFreeOpenRouterModel(model)) &&
+          (!visionOnly || supportsVision(model)) &&
+          (!toolsOnly || supportsTools(model)),
+      ),
     [freeOnly, models, toolsOnly, visionOnly],
   );
 
-  const selectedModel = models.find((model) => model.id === selectedModelId) ?? null;
-  const isSelectedModelFilteredOut = selectedModel !== null &&
+  const selectedModel =
+    models.find((model) => model.id === selectedModelId) ?? null;
+  const isSelectedModelFilteredOut =
+    selectedModel !== null &&
     !filteredModels.some((model) => model.id === selectedModelId);
-  const selectedModelSupportsVision = selectedModel !== null && supportsVision(selectedModel);
+  const selectedModelSupportsVision =
+    selectedModel !== null && supportsVision(selectedModel);
 
   return {
     models: filteredModels,

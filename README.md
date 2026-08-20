@@ -56,6 +56,10 @@ bun run ios:device
 bun run dev
 bun run build
 bun run preview
+
+# Format or verify formatting
+bun run format
+bun run format:check
 ```
 
 Open the app, go to **Settings**, connect your OpenRouter account, and select a model. Start chatting!
@@ -75,6 +79,7 @@ Open the app, go to **Settings**, connect your OpenRouter account, and select a 
 | RPC Layer | tRPC 11 (in-browser, no server) |
 | Server State | TanStack React Query 5 |
 | Validation | Zod 4 |
+| Formatting | Biome 2 |
 | LLM Integration | OpenRouter OAuth + live model catalog + custom fetch-based streaming client |
 | PWA | vite-plugin-pwa |
 | Package Manager | Bun |

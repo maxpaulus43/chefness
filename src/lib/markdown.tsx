@@ -29,15 +29,21 @@ function parseInline(text: string, keyPrefix: string): React.ReactNode[] {
 
     if (match[2] != null) {
       nodes.push(
-        <code key={key} style={mdStyles.inlineCode}>{match[2]}</code>,
+        <code key={key} style={mdStyles.inlineCode}>
+          {match[2]}
+        </code>,
       );
     } else if (match[3] != null) {
       nodes.push(
-        <strong key={key} style={mdStyles.bold}><em>{match[3]}</em></strong>,
+        <strong key={key} style={mdStyles.bold}>
+          <em>{match[3]}</em>
+        </strong>,
       );
     } else if (match[4] != null) {
       nodes.push(
-        <strong key={key} style={mdStyles.bold}>{match[4]}</strong>,
+        <strong key={key} style={mdStyles.bold}>
+          {match[4]}
+        </strong>,
       );
     } else if (match[5] != null) {
       nodes.push(<em key={key}>{match[5]}</em>);
@@ -80,7 +86,10 @@ function parseBlocks(content: string): Block[] {
       i++;
       while (i < lines.length) {
         const codeLine = lines[i] ?? "";
-        if (codeLine.trimStart().startsWith("```")) { i++; break; }
+        if (codeLine.trimStart().startsWith("```")) {
+          i++;
+          break;
+        }
         codeLines.push(codeLine);
         i++;
       }
@@ -102,7 +111,11 @@ function parseBlocks(content: string): Block[] {
     }
 
     // Horizontal rule
-    if (/^---+\s*$/.test(line)) { blocks.push({ type: "hr", content: "" }); i++; continue; }
+    if (/^---+\s*$/.test(line)) {
+      blocks.push({ type: "hr", content: "" });
+      i++;
+      continue;
+    }
 
     // Unordered list
     if (/^[-*]\s+/.test(line)) {
@@ -131,7 +144,10 @@ function parseBlocks(content: string): Block[] {
     }
 
     // Blank line
-    if (line.trim() === "") { i++; continue; }
+    if (line.trim() === "") {
+      i++;
+      continue;
+    }
 
     // Paragraph
     const paraLines: string[] = [];
@@ -144,7 +160,8 @@ function parseBlocks(content: string): Block[] {
         /^---+\s*$/.test(l) ||
         /^[-*]\s+/.test(l) ||
         /^\d+\.\s+/.test(l)
-      ) break;
+      )
+        break;
       paraLines.push(l);
       i++;
     }
@@ -175,9 +192,16 @@ export function Markdown({
         const key = `b${idx}`;
         switch (block.type) {
           case "heading": {
-            const Tag = (`h${Math.min(block.level ?? 1, 3)}`) as "h1" | "h2" | "h3";
+            const Tag = `h${Math.min(block.level ?? 1, 3)}` as
+              | "h1"
+              | "h2"
+              | "h3";
             const fontSize =
-              block.level === 1 ? "1.2rem" : block.level === 2 ? "1.1rem" : "1rem";
+              block.level === 1
+                ? "1.2rem"
+                : block.level === 2
+                  ? "1.1rem"
+                  : "1rem";
             return (
               <Tag key={key} style={{ ...mdStyles.heading, fontSize }}>
                 {parseInline(block.content, key)}
@@ -186,7 +210,9 @@ export function Markdown({
           }
           case "code":
             return (
-              <pre key={key} style={mdStyles.codeBlock}><code>{block.content}</code></pre>
+              <pre key={key} style={mdStyles.codeBlock}>
+                <code>{block.content}</code>
+              </pre>
             );
           case "hr":
             return <hr key={key} style={mdStyles.hr} />;

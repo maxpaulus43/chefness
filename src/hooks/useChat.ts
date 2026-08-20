@@ -45,7 +45,7 @@ export interface ChatMessage {
   /** Resized image attached to a user message. */
   imageDataUrl?: string;
   /** Persisted action flags — only relevant for assistant messages. */
-  savedRecipeId?: string;  // ID of saved recipe, or empty/undefined = not saved
+  savedRecipeId?: string; // ID of saved recipe, or empty/undefined = not saved
   memorySaved?: boolean;
   /** Hidden imported recipe context for URL-based recipe conversations. */
   importedRecipeContext?: string;
@@ -213,7 +213,9 @@ function getRecipeUrlMessage(text: string): RecipeUrlMessage | null {
   };
 }
 
-function formatImportedRecipeContext(extracted: ExtractedRecipeFromUrl): string {
+function formatImportedRecipeContext(
+  extracted: ExtractedRecipeFromUrl,
+): string {
   return [
     `Recipe imported from ${extracted.sourceName} (${extracted.sourceUrl}):`,
     `Title: ${extracted.recipe.title}`,
@@ -243,12 +245,22 @@ function messageContentForModel(message: ChatMessage): string {
 // ---------------------------------------------------------------------------
 
 export function useChat() {
-  const { effectiveProvider, effectiveModel, effectiveApiKey, isConfigured, dietaryRestrictions, otherDietaryNotes } = useSettings();
+  const {
+    effectiveProvider,
+    effectiveModel,
+    effectiveApiKey,
+    isConfigured,
+    dietaryRestrictions,
+    otherDietaryNotes,
+  } = useSettings();
   const { recentEntries } = useCookingLog();
   const { preferences: aiPreferences } = useAiPreferences();
   const { sessions, updateSession, createSessionAsync } = useChatSessions();
   const { createRecipeAsync } = useRecipes();
-  const { selectedModelSupportsVision } = useOpenRouterModels(isConfigured, effectiveModel);
+  const { selectedModelSupportsVision } = useOpenRouterModels(
+    isConfigured,
+    effectiveModel,
+  );
 
   /** Preference texts for the system prompt — stable across renders. */
   const preferenceTexts = aiPreferences.map((p) => p.text);
@@ -320,7 +332,12 @@ export function useChat() {
    * Called after each completed LLM response.
    */
   const persistMessages = useCallback(
-    (sessionId: string, msgs: ChatMessage[], mt: MealType | null, ms: MealSize | null) => {
+    (
+      sessionId: string,
+      msgs: ChatMessage[],
+      mt: MealType | null,
+      ms: MealSize | null,
+    ) => {
       updateSession({
         id: sessionId,
         messages: toSessionMessages(msgs),
@@ -340,7 +357,11 @@ export function useChat() {
    * session so the flag survives tab switches and reloads.
    */
   const setMessageFlag = useCallback(
-    (index: number, flag: "savedRecipeId" | "memorySaved", value?: string | boolean) => {
+    (
+      index: number,
+      flag: "savedRecipeId" | "memorySaved",
+      value?: string | boolean,
+    ) => {
       setMessages((prev) => {
         const next = [...prev];
         const msg = next[index];
@@ -379,23 +400,35 @@ export function useChat() {
 
   const sendMessageFromHistory = useCallback(
     async (baseMessages: ChatMessage[], text: string, imageDataUrl = "") => {
-      if (typeof navigator !== "undefined" && typeof navigator.onLine === "boolean" && !navigator.onLine) {
+      if (
+        typeof navigator !== "undefined" &&
+        typeof navigator.onLine === "boolean" &&
+        !navigator.onLine
+      ) {
         setError("You are offline. Chat requires an internet connection.");
         return;
       }
 
       const recipeUrlMessage = imageDataUrl ? null : getRecipeUrlMessage(text);
       if (!recipeUrlMessage && !isConfigured) {
-        setError("LLM is not configured. Please set provider, model, and API key in Settings.");
+        setError(
+          "LLM is not configured. Please set provider, model, and API key in Settings.",
+        );
         return;
       }
       if (recipeUrlMessage?.mode === "conversation-context" && !isConfigured) {
-        setError("Set up your AI provider to modify or discuss recipes from links. Paste only the URL to import the original recipe.");
+        setError(
+          "Set up your AI provider to modify or discuss recipes from links. Paste only the URL to import the original recipe.",
+        );
         return;
       }
 
       setError(null);
-      const userMsg: ChatMessage = { role: "user", content: text, imageDataUrl };
+      const userMsg: ChatMessage = {
+        role: "user",
+        content: text,
+        imageDataUrl,
+      };
       let history = [...baseMessages, userMsg];
       setMessages([...history, { role: "assistant", content: "" }]);
       setIsStreaming(true);
@@ -414,7 +447,9 @@ export function useChat() {
           setCurrentSessionId(sessionId);
         } catch {
           // Session creation failed — continue without persistence.
-          console.error("Failed to create chat session; messages will not be persisted.");
+          console.error(
+            "Failed to create chat session; messages will not be persisted.",
+          );
         }
       }
 
@@ -471,10 +506,7 @@ export function useChat() {
             signal: controller.signal,
           });
           const importedRecipeContext = formatImportedRecipeContext(extracted);
-          history = [
-            ...baseMessages,
-            { ...userMsg, importedRecipeContext },
-          ];
+          history = [...baseMessages, { ...userMsg, importedRecipeContext }];
           setMessages([...history, { role: "assistant", content: "" }]);
         } catch (err: unknown) {
           if (err instanceof DOMException && err.name === "AbortError") {
@@ -502,7 +534,14 @@ export function useChat() {
       let latestAssistantText = "";
 
       try {
-        const systemPrompt = buildSystemPrompt(mealType, mealSize, recentEntries, dietaryRestrictions, otherDietaryNotes, preferenceTexts);
+        const systemPrompt = buildSystemPrompt(
+          mealType,
+          mealSize,
+          recentEntries,
+          dietaryRestrictions,
+          otherDietaryNotes,
+          preferenceTexts,
+        );
 
         const finalText = await streamChat({
           providerId: effectiveProvider,
@@ -529,7 +568,8 @@ export function useChat() {
         });
 
         // Ensure the final text is set.
-        const resultText = finalText || "(No response received from the model.)";
+        const resultText =
+          finalText || "(No response received from the model.)";
         const finalMessages: ChatMessage[] = [
           ...history,
           { role: "assistant", content: resultText },
@@ -565,7 +605,22 @@ export function useChat() {
         setIsStreaming(false);
       }
     },
-    [mealType, mealSize, recentEntries, effectiveProvider, effectiveModel, effectiveApiKey, isConfigured, dietaryRestrictions, otherDietaryNotes, preferenceTexts, currentSessionId, createSessionAsync, createRecipeAsync, persistMessages],
+    [
+      mealType,
+      mealSize,
+      recentEntries,
+      effectiveProvider,
+      effectiveModel,
+      effectiveApiKey,
+      isConfigured,
+      dietaryRestrictions,
+      otherDietaryNotes,
+      preferenceTexts,
+      currentSessionId,
+      createSessionAsync,
+      createRecipeAsync,
+      persistMessages,
+    ],
   );
 
   const sendMessage = useCallback(
@@ -584,7 +639,11 @@ export function useChat() {
       // Re-send from the conversation state immediately before the edited
       // message. sendMessageFromHistory appends the edited user message and
       // creates a fresh assistant response, discarding everything after it.
-      await sendMessageFromHistory(messages.slice(0, index), text, msg.imageDataUrl);
+      await sendMessageFromHistory(
+        messages.slice(0, index),
+        text,
+        msg.imageDataUrl,
+      );
     },
     [messages, isStreaming, sendMessageFromHistory],
   );

@@ -13,13 +13,14 @@
 import { getDB } from "@/storage/indexed-db";
 
 /** Mapping from localStorage key → IndexedDB object store name. */
-const MIGRATION_MAP: readonly { localStorageKey: string; storeName: string }[] = [
-  { localStorageKey: "chefness:recipes", storeName: "recipes" },
-  { localStorageKey: "chefness:settings", storeName: "settings" },
-  { localStorageKey: "chefness:cooking-log", storeName: "cooking-log" },
-  { localStorageKey: "chefness:ai-preferences", storeName: "ai-preferences" },
-  { localStorageKey: "chefness:chat-sessions", storeName: "chat-sessions" },
-];
+const MIGRATION_MAP: readonly { localStorageKey: string; storeName: string }[] =
+  [
+    { localStorageKey: "chefness:recipes", storeName: "recipes" },
+    { localStorageKey: "chefness:settings", storeName: "settings" },
+    { localStorageKey: "chefness:cooking-log", storeName: "cooking-log" },
+    { localStorageKey: "chefness:ai-preferences", storeName: "ai-preferences" },
+    { localStorageKey: "chefness:chat-sessions", storeName: "chat-sessions" },
+  ];
 
 export async function migrateFromLocalStorage(): Promise<void> {
   // Collect entries that actually need migration.
@@ -64,8 +65,10 @@ export async function migrateFromLocalStorage(): Promise<void> {
         localStorage.removeItem(localStorageKey);
         resolve();
       };
-      tx.onerror = () => reject(tx.error ?? new Error("Migration transaction failed"));
-      tx.onabort = () => reject(tx.error ?? new Error("Migration transaction aborted"));
+      tx.onerror = () =>
+        reject(tx.error ?? new Error("Migration transaction failed"));
+      tx.onabort = () =>
+        reject(tx.error ?? new Error("Migration transaction aborted"));
     });
   }
 }

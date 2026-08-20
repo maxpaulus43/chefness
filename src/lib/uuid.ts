@@ -6,7 +6,10 @@
  * implementation for older environments (e.g. iOS Safari < 15.4).
  */
 export function generateUUID(): string {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+  if (
+    typeof crypto !== "undefined" &&
+    typeof crypto.randomUUID === "function"
+  ) {
     return crypto.randomUUID();
   }
 
@@ -27,7 +30,9 @@ export function generateUUID(): string {
   // Set variant 1 (10xx) in the high two bits of byte 8.
   bytes[8] = (byteEight & 0x3f) | 0x80;
 
-  const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+  const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join(
+    "",
+  );
 
   return [
     hex.slice(0, 8),

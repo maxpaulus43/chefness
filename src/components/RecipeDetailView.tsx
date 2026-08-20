@@ -41,7 +41,9 @@ export function RecipeDetailView({
     reset: resetAiEdit,
   } = useRecipeAiEditor();
 
-  const [logStatus, setLogStatus] = useState<"idle" | "logging" | "logged" | "error">("idle");
+  const [logStatus, setLogStatus] = useState<
+    "idle" | "logging" | "logged" | "error"
+  >("idle");
   const [logError, setLogError] = useState<string | null>(null);
   const [showAiEdit, setShowAiEdit] = useState(false);
   const [aiEditInstruction, setAiEditInstruction] = useState("");
@@ -92,16 +94,18 @@ export function RecipeDetailView({
   };
 
   const handleDelete = () => {
-    void toast.ask({
-      title: `Delete "${recipe.title}"?`,
-      message: "This cannot be undone.",
-      confirmLabel: "Delete",
-      tone: "danger",
-    }).then((confirmed) => {
-      if (!confirmed) return;
-      deleteRecipe(recipeId);
-      onBack();
-    });
+    void toast
+      .ask({
+        title: `Delete "${recipe.title}"?`,
+        message: "This cannot be undone.",
+        confirmLabel: "Delete",
+        tone: "danger",
+      })
+      .then((confirmed) => {
+        if (!confirmed) return;
+        deleteRecipe(recipeId);
+        onBack();
+      });
   };
 
   const handleLogCook = async () => {
@@ -117,8 +121,7 @@ export function RecipeDetailView({
       });
       setLogStatus("logged");
     } catch (err: unknown) {
-      const errMsg =
-        err instanceof Error ? err.message : "Failed to log meal.";
+      const errMsg = err instanceof Error ? err.message : "Failed to log meal.";
       setLogStatus("error");
       setLogError(errMsg);
     }
@@ -169,8 +172,7 @@ export function RecipeDetailView({
               style={styles.primaryLogBtn}
               onClick={() => void handleLogCook()}
             >
-              <Icon name="check" size={16} strokeWidth={3} />
-              I Cooked This!
+              <Icon name="check" size={16} strokeWidth={3} />I Cooked This!
             </button>
           )}
           {logStatus === "logging" && (
@@ -252,9 +254,7 @@ export function RecipeDetailView({
         </div>
       </section>
 
-      {clipboardError && (
-        <p style={styles.clipboardError}>{clipboardError}</p>
-      )}
+      {clipboardError && <p style={styles.clipboardError}>{clipboardError}</p>}
 
       {showAiEdit && (
         <section style={styles.aiEditPanel}>
@@ -280,7 +280,9 @@ export function RecipeDetailView({
             placeholder="e.g. Make this dairy-free, halve the salt, and add an air fryer option"
             style={styles.aiEditTextarea}
             rows={3}
-            disabled={aiEditStatus === "generating" || aiEditStatus === "applying"}
+            disabled={
+              aiEditStatus === "generating" || aiEditStatus === "applying"
+            }
           />
 
           <div style={styles.aiEditActions}>
@@ -295,13 +297,17 @@ export function RecipeDetailView({
                 aiEditStatus === "applying"
               }
             >
-              {aiEditStatus === "generating" ? "Generating…" : "Preview Changes"}
+              {aiEditStatus === "generating"
+                ? "Generating…"
+                : "Preview Changes"}
             </button>
             <button
               type="button"
               style={styles.aiEditCancelButton}
               onClick={handleCancelAiEdit}
-              disabled={aiEditStatus === "generating" || aiEditStatus === "applying"}
+              disabled={
+                aiEditStatus === "generating" || aiEditStatus === "applying"
+              }
             >
               Clear
             </button>
@@ -318,7 +324,9 @@ export function RecipeDetailView({
           {draftRecipe && (
             <div style={styles.aiEditPreview}>
               <h3 style={styles.aiEditPreviewTitle}>Preview</h3>
-              <h4 style={styles.aiEditPreviewRecipeTitle}>{draftRecipe.title}</h4>
+              <h4 style={styles.aiEditPreviewRecipeTitle}>
+                {draftRecipe.title}
+              </h4>
               {draftRecipe.description && (
                 <p style={styles.aiEditPreviewDescription}>
                   {draftRecipe.description}

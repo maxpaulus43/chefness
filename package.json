@@ -10,6 +10,8 @@
     "deploy": "bun run build && wrangler deploy",
     "lint": "eslint src/",
     "lint:fix": "eslint src/ --fix",
+    "format": "biome format --write .",
+    "format:check": "biome format .",
     "test": "bun test",
     "prepare": "simple-git-hooks",
     "start": "expo start",
@@ -21,6 +23,9 @@
     "pre-commit": "bunx lint-staged"
   },
   "lint-staged": {
+    "*.{js,cjs,mjs,jsx,ts,tsx,json,jsonc,css,html}": [
+      "biome format --write"
+    ],
     "src/**/*.{ts,tsx}": [
       "eslint --fix --max-warnings=0"
     ]
@@ -30,6 +35,8 @@
     "@clinebot/core": "^0.0.32",
     "@clinebot/llms": "^0.0.32",
     "@clinebot/shared": "^0.0.32",
+    "@expo-google-fonts/fraunces": "^0.4.1",
+    "@expo-google-fonts/inter": "^0.4.2",
     "@expo/vector-icons": "^15.1.1",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-menu/menu": "^2.0.0",
@@ -60,6 +67,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@biomejs/biome": "2.5.9",
     "@cloudflare/vite-plugin": "^1.29.0",
     "@eslint/js": "^10.0.1",
     "@react-navigation/core": "^7.21.13",

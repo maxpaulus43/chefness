@@ -2,15 +2,31 @@ import { useEffect, useState } from "react";
 import { Alert, Pressable, ScrollView, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { NavigationContainer } from "@react-navigation/native";
-import { createBottomTabNavigator, type BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
-import { createNativeStackNavigator, type NativeStackScreenProps } from "@react-navigation/native-stack";
+import {
+  createBottomTabNavigator,
+  type BottomTabNavigationProp,
+} from "@react-navigation/bottom-tabs";
+import {
+  createNativeStackNavigator,
+  type NativeStackScreenProps,
+} from "@react-navigation/native-stack";
 import { useChat } from "@/hooks/useChat";
 import { useChatSessions } from "@/hooks/useChatSessions";
 import { ChatScreen } from "@/native/ChatScreen";
 import { HistoryScreen } from "@/native/HistoryScreen";
-import { RecipeDetailScreen, RecipeEditScreen, RecipeListScreen } from "@/native/RecipesScreen";
+import {
+  RecipeDetailScreen,
+  RecipeEditScreen,
+  RecipeListScreen,
+} from "@/native/RecipesScreen";
 import { ModelSelectionScreen, SettingsScreen } from "@/native/SettingsScreen";
-import { linking, type ChatStackParamList, type RecipesStackParamList, type RootTabParamList, type SettingsStackParamList } from "@/native/navigation-routes";
+import {
+  linking,
+  type ChatStackParamList,
+  type RecipesStackParamList,
+  type RootTabParamList,
+  type SettingsStackParamList,
+} from "@/native/navigation-routes";
 import { ListInteractionRow } from "@/native/ListInteractionRow";
 import { Button, Field, nativeStyles } from "@/native/ui";
 import { useAccessibilityPreferences } from "@/native/accessibility";
@@ -20,97 +36,338 @@ const Tabs = createBottomTabNavigator<RootTabParamList>();
 const ChatStack = createNativeStackNavigator<ChatStackParamList>();
 const RecipesStack = createNativeStackNavigator<RecipesStackParamList>();
 const SettingsStack = createNativeStackNavigator<SettingsStackParamList>();
-const stackScreenOptions = { gestureEnabled: true, headerStyle: { backgroundColor: colors.cream as string }, headerTitleStyle: { fontFamily: nativeFonts.serifBold }, headerBackTitleStyle: { fontFamily: nativeFonts.sans }, headerTintColor: colors.espresso as string, contentStyle: { backgroundColor: colors.cream } } as const;
+const stackScreenOptions = {
+  gestureEnabled: true,
+  headerStyle: { backgroundColor: colors.cream as string },
+  headerTitleStyle: { fontFamily: nativeFonts.serifBold },
+  headerBackTitleStyle: { fontFamily: nativeFonts.sans },
+  headerTintColor: colors.espresso as string,
+  contentStyle: { backgroundColor: colors.cream },
+} as const;
 
-function ChatNavigator({ navigation }: { navigation: BottomTabNavigationProp<RootTabParamList, "ChatTab"> }) {
+function ChatNavigator({
+  navigation,
+}: {
+  navigation: BottomTabNavigationProp<RootTabParamList, "ChatTab">;
+}) {
   const chat = useChat();
   const newChat = () => {
     if (!chat.messages.length) return chat.clearChat();
-    Alert.alert("Start a new chat?", "This conversation stays in your history.", [{ text: "Cancel", style: "cancel" }, { text: "New Chat", onPress: chat.clearChat }]);
+    Alert.alert(
+      "Start a new chat?",
+      "This conversation stays in your history.",
+      [
+        { text: "Cancel", style: "cancel" },
+        { text: "New Chat", onPress: chat.clearChat },
+      ],
+    );
   };
 
-  return <ChatStack.Navigator screenOptions={stackScreenOptions}>
-    <ChatStack.Screen name="Chat" options={({ navigation: stackNavigation }) => ({
-      title: "Chefness",
-      headerRight: () => <View style={{ flexDirection: "row", gap: 4 }}><Pressable accessibilityRole="button" accessibilityLabel="Chat history" accessibilityHint="Opens saved conversations" style={styles.headerButton} onPress={() => stackNavigation.navigate("ChatHistory")}><Ionicons accessible={false} name="time-outline" size={25} color={colors.espresso} /></Pressable><Pressable accessibilityRole="button" accessibilityLabel="New chat" accessibilityHint="Starts a new conversation" style={styles.headerButton} onPress={newChat}><Ionicons accessible={false} name="add-circle-outline" size={27} color={colors.saffronDeep} /></Pressable></View>,
-    })}>
-      {(props) => <ChatRoute {...props} chat={chat} openSettings={() => navigation.navigate("SettingsTab", { screen: "Settings" })} />}
-    </ChatStack.Screen>
-    <ChatStack.Screen name="ChatHistory" options={{ title: "Chat History", presentation: "formSheet" }}>
-      {(props) => <ChatHistorySheet {...props} chat={chat} />}
-    </ChatStack.Screen>
-    <ChatStack.Screen name="EditMessage" options={{ title: "Edit Message", presentation: "formSheet" }}>
-      {(props) => <EditMessageSheet {...props} chat={chat} />}
-    </ChatStack.Screen>
-  </ChatStack.Navigator>;
+  return (
+    <ChatStack.Navigator screenOptions={stackScreenOptions}>
+      <ChatStack.Screen
+        name="Chat"
+        options={({ navigation: stackNavigation }) => ({
+          title: "Chefness",
+          headerRight: () => (
+            <View style={{ flexDirection: "row", gap: 4 }}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Chat history"
+                accessibilityHint="Opens saved conversations"
+                style={styles.headerButton}
+                onPress={() => stackNavigation.navigate("ChatHistory")}
+              >
+                <Ionicons
+                  accessible={false}
+                  name="time-outline"
+                  size={25}
+                  color={colors.espresso}
+                />
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="New chat"
+                accessibilityHint="Starts a new conversation"
+                style={styles.headerButton}
+                onPress={newChat}
+              >
+                <Ionicons
+                  accessible={false}
+                  name="add-circle-outline"
+                  size={27}
+                  color={colors.saffronDeep}
+                />
+              </Pressable>
+            </View>
+          ),
+        })}
+      >
+        {(props) => (
+          <ChatRoute
+            {...props}
+            chat={chat}
+            openSettings={() =>
+              navigation.navigate("SettingsTab", { screen: "Settings" })
+            }
+          />
+        )}
+      </ChatStack.Screen>
+      <ChatStack.Screen
+        name="ChatHistory"
+        options={{ title: "Chat History", presentation: "formSheet" }}
+      >
+        {(props) => <ChatHistorySheet {...props} chat={chat} />}
+      </ChatStack.Screen>
+      <ChatStack.Screen
+        name="EditMessage"
+        options={{ title: "Edit Message", presentation: "formSheet" }}
+      >
+        {(props) => <EditMessageSheet {...props} chat={chat} />}
+      </ChatStack.Screen>
+    </ChatStack.Navigator>
+  );
 }
 
 type ChatValue = ReturnType<typeof useChat>;
-function ChatRoute({ route, navigation, chat, openSettings }: NativeStackScreenProps<ChatStackParamList, "Chat"> & { chat: ChatValue; openSettings: () => void }) {
+function ChatRoute({
+  route,
+  navigation,
+  chat,
+  openSettings,
+}: NativeStackScreenProps<ChatStackParamList, "Chat"> & {
+  chat: ChatValue;
+  openSettings: () => void;
+}) {
   const sessionId = route.params?.sessionId;
   useEffect(() => {
-    if (sessionId && sessionId !== chat.currentSessionId) chat.loadSession(sessionId);
+    if (sessionId && sessionId !== chat.currentSessionId)
+      chat.loadSession(sessionId);
   }, [chat, sessionId]);
-  return <ChatScreen chat={chat} openSettings={openSettings} openEdit={(index, content) => navigation.navigate("EditMessage", { index, content })} />;
+  return (
+    <ChatScreen
+      chat={chat}
+      openSettings={openSettings}
+      openEdit={(index, content) =>
+        navigation.navigate("EditMessage", { index, content })
+      }
+    />
+  );
 }
 
-function ChatHistorySheet({ navigation, chat }: NativeStackScreenProps<ChatStackParamList, "ChatHistory"> & { chat: ChatValue }) {
+function ChatHistorySheet({
+  navigation,
+  chat,
+}: NativeStackScreenProps<ChatStackParamList, "ChatHistory"> & {
+  chat: ChatValue;
+}) {
   const { sessions, deleteSession } = useChatSessions();
-  const openSession = (sessionId: string) => { chat.loadSession(sessionId); navigation.goBack(); };
-  const confirmDelete = (sessionId: string, title: string) => Alert.alert("Delete conversation?", title, [
-    { text: "Cancel", style: "cancel" },
-    { text: "Delete", style: "destructive", onPress: () => deleteSession(sessionId) },
-  ]);
-  return <View style={nativeStyles.screen}><ScrollView contentContainerStyle={nativeStyles.scroll}>
-    {sessions.length === 0 && <Text style={nativeStyles.muted}>No saved conversations yet.</Text>}
-    {sessions.map((session) => <ListInteractionRow
-      key={session.id}
-      menuActions={[
-        { id: "open", title: "Open Conversation", image: "bubble.left.and.bubble.right" },
-        { id: "delete", title: "Delete", image: "trash", attributes: { destructive: true } },
-      ]}
-      onDelete={() => confirmDelete(session.id, session.title)}
-      onPress={() => openSession(session.id)}
-      onMenuAction={(id) => {
-        if (id === "open") openSession(session.id);
-        if (id === "delete") confirmDelete(session.id, session.title);
-      }}
-    ><View accessible accessibilityRole="button" accessibilityLabel={`${session.title}. Updated ${new Date(session.updatedAt).toLocaleDateString()}. ${session.messages.length} messages`} accessibilityHint="Opens conversation; long press for more actions" style={{ padding: 15, backgroundColor: colors.white, borderRadius: 14 }}><Text style={nativeStyles.label}>{session.title}</Text><Text style={nativeStyles.muted}>{new Date(session.updatedAt).toLocaleDateString()} · {session.messages.length} messages</Text></View></ListInteractionRow>)}
-  </ScrollView></View>;
+  const openSession = (sessionId: string) => {
+    chat.loadSession(sessionId);
+    navigation.goBack();
+  };
+  const confirmDelete = (sessionId: string, title: string) =>
+    Alert.alert("Delete conversation?", title, [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: () => deleteSession(sessionId),
+      },
+    ]);
+  return (
+    <View style={nativeStyles.screen}>
+      <ScrollView contentContainerStyle={nativeStyles.scroll}>
+        {sessions.length === 0 && (
+          <Text style={nativeStyles.muted}>No saved conversations yet.</Text>
+        )}
+        {sessions.map((session) => (
+          <ListInteractionRow
+            key={session.id}
+            menuActions={[
+              {
+                id: "open",
+                title: "Open Conversation",
+                image: "bubble.left.and.bubble.right",
+              },
+              {
+                id: "delete",
+                title: "Delete",
+                image: "trash",
+                attributes: { destructive: true },
+              },
+            ]}
+            onDelete={() => confirmDelete(session.id, session.title)}
+            onPress={() => openSession(session.id)}
+            onMenuAction={(id) => {
+              if (id === "open") openSession(session.id);
+              if (id === "delete") confirmDelete(session.id, session.title);
+            }}
+          >
+            <View
+              accessible
+              accessibilityRole="button"
+              accessibilityLabel={`${session.title}. Updated ${new Date(session.updatedAt).toLocaleDateString()}. ${session.messages.length} messages`}
+              accessibilityHint="Opens conversation; long press for more actions"
+              style={{
+                padding: 15,
+                backgroundColor: colors.white,
+                borderRadius: 14,
+              }}
+            >
+              <Text style={nativeStyles.label}>{session.title}</Text>
+              <Text style={nativeStyles.muted}>
+                {new Date(session.updatedAt).toLocaleDateString()} ·{" "}
+                {session.messages.length} messages
+              </Text>
+            </View>
+          </ListInteractionRow>
+        ))}
+      </ScrollView>
+    </View>
+  );
 }
 
-function EditMessageSheet({ route, navigation, chat }: NativeStackScreenProps<ChatStackParamList, "EditMessage"> & { chat: ChatValue }) {
+function EditMessageSheet({
+  route,
+  navigation,
+  chat,
+}: NativeStackScreenProps<ChatStackParamList, "EditMessage"> & {
+  chat: ChatValue;
+}) {
   const { index, content } = route.params;
   const [draft, setDraft] = useState(content);
-  return <View style={[nativeStyles.screen, nativeStyles.scroll]}><Field accessibilityLabel="Message to edit" autoFocus multiline value={draft} onChangeText={setDraft} /><Button label="Save & Regenerate" disabled={!draft.trim()} onPress={() => { navigation.goBack(); void chat.editUserMessageAndRegenerate(index, draft.trim()); }} /><Button label="Cancel" variant="secondary" onPress={navigation.goBack} /></View>;
+  return (
+    <View style={[nativeStyles.screen, nativeStyles.scroll]}>
+      <Field
+        accessibilityLabel="Message to edit"
+        autoFocus
+        multiline
+        value={draft}
+        onChangeText={setDraft}
+      />
+      <Button
+        label="Save & Regenerate"
+        disabled={!draft.trim()}
+        onPress={() => {
+          navigation.goBack();
+          void chat.editUserMessageAndRegenerate(index, draft.trim());
+        }}
+      />
+      <Button label="Cancel" variant="secondary" onPress={navigation.goBack} />
+    </View>
+  );
 }
 
 function RecipesNavigator() {
-  return <RecipesStack.Navigator screenOptions={stackScreenOptions}>
-    <RecipesStack.Screen name="RecipeList" component={RecipeListScreen} options={{ title: "Recipes" }} />
-    <RecipesStack.Screen name="RecipeDetail" component={RecipeDetailScreen} options={{ title: "Recipe" }} />
-    <RecipesStack.Screen name="RecipeEdit" component={RecipeEditScreen} options={{ title: "Edit Recipe" }} />
-  </RecipesStack.Navigator>;
+  return (
+    <RecipesStack.Navigator screenOptions={stackScreenOptions}>
+      <RecipesStack.Screen
+        name="RecipeList"
+        component={RecipeListScreen}
+        options={{ title: "Recipes" }}
+      />
+      <RecipesStack.Screen
+        name="RecipeDetail"
+        component={RecipeDetailScreen}
+        options={{ title: "Recipe" }}
+      />
+      <RecipesStack.Screen
+        name="RecipeEdit"
+        component={RecipeEditScreen}
+        options={{ title: "Edit Recipe" }}
+      />
+    </RecipesStack.Navigator>
+  );
 }
 
 function SettingsNavigator() {
-  return <SettingsStack.Navigator screenOptions={stackScreenOptions}>
-    <SettingsStack.Screen name="Settings" component={SettingsScreen} options={{ title: "Settings" }} />
-    <SettingsStack.Screen name="ModelSelection" component={ModelSelectionScreen} options={{ title: "Choose Model", presentation: "formSheet" }} />
-  </SettingsStack.Navigator>;
+  return (
+    <SettingsStack.Navigator screenOptions={stackScreenOptions}>
+      <SettingsStack.Screen
+        name="Settings"
+        component={SettingsScreen}
+        options={{ title: "Settings" }}
+      />
+      <SettingsStack.Screen
+        name="ModelSelection"
+        component={ModelSelectionScreen}
+        options={{ title: "Choose Model", presentation: "formSheet" }}
+      />
+    </SettingsStack.Navigator>
+  );
 }
 
-const tabIcons: Record<keyof RootTabParamList, keyof typeof Ionicons.glyphMap> = { ChatTab: "chatbubble-outline", RecipesTab: "book-outline", HistoryTab: "time-outline", SettingsTab: "settings-outline" };
+const tabIcons: Record<keyof RootTabParamList, keyof typeof Ionicons.glyphMap> =
+  {
+    ChatTab: "chatbubble-outline",
+    RecipesTab: "book-outline",
+    HistoryTab: "time-outline",
+    SettingsTab: "settings-outline",
+  };
 export function NativeNavigation() {
   const { reduceTransparency } = useAccessibilityPreferences();
-  return <NavigationContainer linking={linking}>
-    <Tabs.Navigator screenOptions={({ route }) => ({ headerShown: false, tabBarActiveTintColor: colors.saffronDeep as string, tabBarInactiveTintColor: colors.stone500 as string, tabBarAllowFontScaling: true, tabBarLabelStyle: { fontFamily: nativeFonts.sansSemiBold }, tabBarStyle: { backgroundColor: reduceTransparency ? colors.white : colors.glassStrong, borderTopColor: colors.stone300 }, tabBarIcon: ({ color, size }) => <Ionicons accessible={false} name={tabIcons[route.name]} color={color} size={size} /> })}>
-      <Tabs.Screen name="ChatTab" component={ChatNavigator} options={{ title: "Chat" }} />
-      <Tabs.Screen name="RecipesTab" component={RecipesNavigator} options={{ title: "Recipes" }} />
-      <Tabs.Screen name="HistoryTab" component={HistoryScreen} options={{ title: "History", headerShown: true, headerStyle: { backgroundColor: colors.cream }, headerTitleStyle: { fontFamily: nativeFonts.serifBold }, headerTintColor: colors.espresso as string }} />
-      <Tabs.Screen name="SettingsTab" component={SettingsNavigator} options={{ title: "Settings" }} />
-    </Tabs.Navigator>
-  </NavigationContainer>;
+  return (
+    <NavigationContainer linking={linking}>
+      <Tabs.Navigator
+        screenOptions={({ route }) => ({
+          headerShown: false,
+          tabBarActiveTintColor: colors.saffronDeep as string,
+          tabBarInactiveTintColor: colors.stone500 as string,
+          tabBarAllowFontScaling: true,
+          tabBarLabelStyle: { fontFamily: nativeFonts.sansSemiBold },
+          tabBarStyle: {
+            backgroundColor: reduceTransparency
+              ? colors.white
+              : colors.glassStrong,
+            borderTopColor: colors.stone300,
+          },
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons
+              accessible={false}
+              name={tabIcons[route.name]}
+              color={color}
+              size={size}
+            />
+          ),
+        })}
+      >
+        <Tabs.Screen
+          name="ChatTab"
+          component={ChatNavigator}
+          options={{ title: "Chat" }}
+        />
+        <Tabs.Screen
+          name="RecipesTab"
+          component={RecipesNavigator}
+          options={{ title: "Recipes" }}
+        />
+        <Tabs.Screen
+          name="HistoryTab"
+          component={HistoryScreen}
+          options={{
+            title: "History",
+            headerShown: true,
+            headerStyle: { backgroundColor: colors.cream },
+            headerTitleStyle: { fontFamily: nativeFonts.serifBold },
+            headerTintColor: colors.espresso as string,
+          }}
+        />
+        <Tabs.Screen
+          name="SettingsTab"
+          component={SettingsNavigator}
+          options={{ title: "Settings" }}
+        />
+      </Tabs.Navigator>
+    </NavigationContainer>
+  );
 }
 
-const styles = { headerButton: { width: 44, minHeight: 44, alignItems: "center", justifyContent: "center" } } as const;
+const styles = {
+  headerButton: {
+    width: 44,
+    minHeight: 44,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+} as const;

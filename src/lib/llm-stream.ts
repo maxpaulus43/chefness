@@ -96,7 +96,9 @@ function openAIMessageContent(message: StreamMessage) {
   if (!message.imageDataUrl) return message.content;
 
   return [
-    ...(message.content ? [{ type: "text" as const, text: message.content }] : []),
+    ...(message.content
+      ? [{ type: "text" as const, text: message.content }]
+      : []),
     {
       type: "image_url" as const,
       image_url: { url: message.imageDataUrl },
@@ -115,7 +117,10 @@ async function streamOpenAI(
 ): Promise<string> {
   const apiMessages = [
     { role: "system" as const, content: systemPrompt },
-    ...messages.map((m) => ({ role: m.role, content: openAIMessageContent(m) })),
+    ...messages.map((m) => ({
+      role: m.role,
+      content: openAIMessageContent(m),
+    })),
   ];
 
   const url = `${baseUrl.replace(/\/+$/, "")}/chat/completions`;
@@ -126,13 +131,19 @@ async function streamOpenAI(
       "Content-Type": "application/json",
       Authorization: `Bearer ${apiKey}`,
     },
-    body: JSON.stringify({ model: modelId, messages: apiMessages, stream: true }),
+    body: JSON.stringify({
+      model: modelId,
+      messages: apiMessages,
+      stream: true,
+    }),
     signal,
   });
 
   if (!response.ok) {
     const body = await response.text().catch(() => "");
-    throw new Error(`${response.status} ${response.statusText}${body ? `: ${body}` : ""}`);
+    throw new Error(
+      `${response.status} ${response.statusText}${body ? `: ${body}` : ""}`,
+    );
   }
 
   if (!response.body) {
@@ -177,7 +188,10 @@ async function streamAnthropic(
   onToken: (token: string, accumulated: string) => void,
   signal?: AbortSignal,
 ): Promise<string> {
-  const apiMessages = messages.map((m) => ({ role: m.role, content: m.content }));
+  const apiMessages = messages.map((m) => ({
+    role: m.role,
+    content: m.content,
+  }));
   const url = `${baseUrl.replace(/\/+$/, "")}/messages`;
 
   const response = await fetch(url, {
@@ -200,7 +214,9 @@ async function streamAnthropic(
 
   if (!response.ok) {
     const body = await response.text().catch(() => "");
-    throw new Error(`${response.status} ${response.statusText}${body ? `: ${body}` : ""}`);
+    throw new Error(
+      `${response.status} ${response.statusText}${body ? `: ${body}` : ""}`,
+    );
   }
 
   if (!response.body) {
@@ -280,7 +296,11 @@ async function callWithToolsOpenAI(
 
   const openaiTools = tools.map((t) => ({
     type: "function" as const,
-    function: { name: t.name, description: t.description, parameters: t.parameters },
+    function: {
+      name: t.name,
+      description: t.description,
+      parameters: t.parameters,
+    },
   }));
 
   const onlyTool = tools[0];
@@ -308,7 +328,9 @@ async function callWithToolsOpenAI(
 
   if (!response.ok) {
     const body = await response.text().catch(() => "");
-    throw new Error(`${response.status} ${response.statusText}${body ? `: ${body}` : ""}`);
+    throw new Error(
+      `${response.status} ${response.statusText}${body ? `: ${body}` : ""}`,
+    );
   }
 
   const json = (await response.json()) as {
@@ -330,7 +352,10 @@ async function callWithToolsOpenAI(
 
   let parsedArgs: Record<string, unknown>;
   try {
-    parsedArgs = JSON.parse(toolCall.function.arguments) as Record<string, unknown>;
+    parsedArgs = JSON.parse(toolCall.function.arguments) as Record<
+      string,
+      unknown
+    >;
   } catch {
     throw new Error("Failed to parse the extracted recipe data.");
   }
@@ -351,7 +376,10 @@ async function callWithToolsAnthropic(
   tools: ToolDefinition[],
   signal?: AbortSignal,
 ): Promise<ToolCallResult> {
-  const apiMessages = messages.map((m) => ({ role: m.role, content: m.content }));
+  const apiMessages = messages.map((m) => ({
+    role: m.role,
+    content: m.content,
+  }));
 
   const anthropicTools = tools.map((t) => ({
     name: t.name,
@@ -455,12 +483,24 @@ export async function callWithTools(
 
   if (protocol === "anthropic") {
     return callWithToolsAnthropic(
-      baseUrl, apiKey, modelId, systemPrompt, messages, tools, signal,
+      baseUrl,
+      apiKey,
+      modelId,
+      systemPrompt,
+      messages,
+      tools,
+      signal,
     );
   }
 
   return callWithToolsOpenAI(
-    baseUrl, apiKey, modelId, systemPrompt, messages, tools, signal,
+    baseUrl,
+    apiKey,
+    modelId,
+    systemPrompt,
+    messages,
+    tools,
+    signal,
   );
 }
 
@@ -478,7 +518,15 @@ export async function callWithTools(
  * @returns The full accumulated response text.
  */
 export async function streamChat(options: StreamOptions): Promise<string> {
-  const { providerId, modelId, apiKey, systemPrompt, messages, onToken, signal } = options;
+  const {
+    providerId,
+    modelId,
+    apiKey,
+    systemPrompt,
+    messages,
+    onToken,
+    signal,
+  } = options;
 
   // Fetch provider registry info (base URL, client type) first.
   let providerInfo: ProviderInfo | undefined;
@@ -492,7 +540,11 @@ export async function streamChat(options: StreamOptions): Promise<string> {
   // omits it for non-compatible ones (anthropic, gemini, etc.) because the
   // browser build's internal lookup table filters those out. Fall back to
   // the provider registry's baseUrl when that happens.
-  const config = toProviderConfig({ provider: providerId, model: modelId, apiKey });
+  const config = toProviderConfig({
+    provider: providerId,
+    model: modelId,
+    apiKey,
+  });
   // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- empty string should also fall through
   const baseUrl = config.baseUrl || providerInfo?.baseUrl;
 
@@ -506,8 +558,24 @@ export async function streamChat(options: StreamOptions): Promise<string> {
   const protocol = detectProtocol(providerInfo);
 
   if (protocol === "anthropic") {
-    return streamAnthropic(baseUrl, apiKey, modelId, systemPrompt, messages, onToken, signal);
+    return streamAnthropic(
+      baseUrl,
+      apiKey,
+      modelId,
+      systemPrompt,
+      messages,
+      onToken,
+      signal,
+    );
   }
 
-  return streamOpenAI(baseUrl, apiKey, modelId, systemPrompt, messages, onToken, signal);
+  return streamOpenAI(
+    baseUrl,
+    apiKey,
+    modelId,
+    systemPrompt,
+    messages,
+    onToken,
+    signal,
+  );
 }

@@ -47,7 +47,11 @@ export function useOpenRouterOAuth() {
       sessionStorage.setItem(METHOD_SESSION_KEY, challenge.method);
 
       const callbackUrl = window.location.origin + window.location.pathname;
-      const authUrl = buildAuthUrl(callbackUrl, challenge.value, challenge.method);
+      const authUrl = buildAuthUrl(
+        callbackUrl,
+        challenge.value,
+        challenge.method,
+      );
 
       // Suppress referrer-based app attribution. OpenRouter derives the app
       // from callback_url; sending the PWA referrer can conflict with an
@@ -59,9 +63,10 @@ export function useOpenRouterOAuth() {
       link.click();
       link.remove();
     } catch (error) {
-      const message = error instanceof Error
-        ? error.message
-        : "Unable to start OpenRouter sign-in.";
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Unable to start OpenRouter sign-in.";
       setOauthError(message);
       setIsStartingOAuth(false);
     }
@@ -81,10 +86,13 @@ export function useOpenRouterOAuth() {
 
     const verifier = sessionStorage.getItem(VERIFIER_SESSION_KEY);
     const storedMethod = sessionStorage.getItem(METHOD_SESSION_KEY);
-    const method: CodeChallengeMethod = storedMethod === "plain" ? "plain" : "S256";
+    const method: CodeChallengeMethod =
+      storedMethod === "plain" ? "plain" : "S256";
 
     if (!verifier) {
-      setOauthError("OAuth callback received but no code verifier found in session. Please try again.");
+      setOauthError(
+        "OAuth callback received but no code verifier found in session. Please try again.",
+      );
       // Clean up the URL even on error so the param doesn't linger.
       cleanUpUrl(params);
       return;
@@ -97,7 +105,10 @@ export function useOpenRouterOAuth() {
         updateSettings({ openRouterOAuthKey: key });
       })
       .catch((err: unknown) => {
-        const message = err instanceof Error ? err.message : "Unknown error during OAuth exchange.";
+        const message =
+          err instanceof Error
+            ? err.message
+            : "Unknown error during OAuth exchange.";
         setOauthError(message);
       })
       .finally(() => {

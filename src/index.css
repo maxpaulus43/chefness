@@ -18,8 +18,9 @@
 }
 
 body {
-  font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-    Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-family:
+    "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
   color: var(--color-espresso);
   background: linear-gradient(180deg, #faf7f2 0%, #f5f1ea 100%);
   background-attachment: fixed;
@@ -52,4 +53,3 @@ body::before {
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(200, 146, 59, 0.35);
 }
-

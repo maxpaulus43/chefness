@@ -7,7 +7,9 @@ export interface ImageAttachment {
 }
 
 /** Resize a user-selected image before storing it or sending it to OpenRouter. */
-export async function prepareImageAttachment(file: File): Promise<ImageAttachment> {
+export async function prepareImageAttachment(
+  file: File,
+): Promise<ImageAttachment> {
   if (!file.type.startsWith("image/")) {
     throw new Error("Please choose an image file.");
   }
@@ -16,7 +18,10 @@ export async function prepareImageAttachment(file: File): Promise<ImageAttachmen
 
   try {
     const image = await loadImage(objectUrl);
-    const scale = Math.min(1, MAX_IMAGE_DIMENSION / Math.max(image.naturalWidth, image.naturalHeight));
+    const scale = Math.min(
+      1,
+      MAX_IMAGE_DIMENSION / Math.max(image.naturalWidth, image.naturalHeight),
+    );
     const width = Math.max(1, Math.round(image.naturalWidth * scale));
     const height = Math.max(1, Math.round(image.naturalHeight * scale));
     const canvas = document.createElement("canvas");
@@ -42,7 +47,8 @@ function loadImage(url: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const image = new Image();
     image.onload = () => resolve(image);
-    image.onerror = () => reject(new Error("Chefness could not read that image."));
+    image.onerror = () =>
+      reject(new Error("Chefness could not read that image."));
     image.src = url;
   });
 }
@@ -50,7 +56,10 @@ function loadImage(url: string): Promise<HTMLImageElement> {
 function canvasToBlob(canvas: HTMLCanvasElement): Promise<Blob> {
   return new Promise((resolve, reject) => {
     canvas.toBlob(
-      (blob) => blob ? resolve(blob) : reject(new Error("Chefness could not prepare that image.")),
+      (blob) =>
+        blob
+          ? resolve(blob)
+          : reject(new Error("Chefness could not prepare that image.")),
       "image/jpeg",
       JPEG_QUALITY,
     );
@@ -64,7 +73,8 @@ function blobToDataUrl(blob: Blob): Promise<string> {
       if (typeof reader.result === "string") resolve(reader.result);
       else reject(new Error("Chefness could not encode the prepared image."));
     };
-    reader.onerror = () => reject(new Error("Chefness could not read the prepared image."));
+    reader.onerror = () =>
+      reject(new Error("Chefness could not read the prepared image."));
     reader.readAsDataURL(blob);
   });
 }

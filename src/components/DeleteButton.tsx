@@ -2,41 +2,41 @@ import { colors } from "@/theme";
 import { Icon } from "@/components/Icon";
 
 export default function DeleteButton(props: {
-    onDelete: (e: React.MouseEvent) => void;
+  onDelete: (e: React.MouseEvent) => void;
 }) {
-    return (
-        <button
-            style={styles.deleteBtn}
-            role="button"
-            tabIndex={0}
-            aria-label="Delete entry"
-            onClick={(e) => props.onDelete(e)}
-            onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    props.onDelete(e as unknown as React.MouseEvent);
-                }
-            }}
-        >
-            <Icon name="trash" size={18} />
-        </button>
-    );
+  return (
+    <button
+      style={styles.deleteBtn}
+      role="button"
+      tabIndex={0}
+      aria-label="Delete entry"
+      onClick={(e) => props.onDelete(e)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          props.onDelete(e as unknown as React.MouseEvent);
+        }
+      }}
+    >
+      <Icon name="trash" size={18} />
+    </button>
+  );
 }
 
 const styles: Record<string, React.CSSProperties> = {
-    deleteBtn: {
-        backgroundColor: "transparent",
-        border: "none",
-        color: colors.roseText,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        minWidth: 44,
-        minHeight: 44,
-        fontSize: "1.25rem",
-        fontWeight: 700,
-        cursor: "pointer",
-        flexShrink: 0,
-        userSelect: "none" as const,
-    },
+  deleteBtn: {
+    backgroundColor: "transparent",
+    border: "none",
+    color: colors.roseText,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    minWidth: 44,
+    minHeight: 44,
+    fontSize: "1.25rem",
+    fontWeight: 700,
+    cursor: "pointer",
+    flexShrink: 0,
+    userSelect: "none" as const,
+  },
 };

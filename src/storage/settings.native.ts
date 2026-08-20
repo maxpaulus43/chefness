@@ -2,7 +2,11 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as SecureStore from "expo-secure-store";
 import { IndexedDBRepository } from "@/storage/indexed-db";
 import type { StorageRepository } from "@/storage/interface";
-import type { CreateSettingsInput, Settings, UpdateSettingsInput } from "@/types/settings";
+import type {
+  CreateSettingsInput,
+  Settings,
+  UpdateSettingsInput,
+} from "@/types/settings";
 
 export type SettingsRepository = StorageRepository<
   Settings,
@@ -63,7 +67,11 @@ async function migrateLegacyCredential(): Promise<void> {
     if (Array.isArray(parsed)) {
       let legacyKey = "";
       const scrubbed = parsed.map((value: unknown) => {
-        if (typeof value !== "object" || value === null || !("openRouterOAuthKey" in value)) {
+        if (
+          typeof value !== "object" ||
+          value === null ||
+          !("openRouterOAuthKey" in value)
+        ) {
           return value;
         }
         const record = value as Record<string, unknown>;
@@ -75,7 +83,11 @@ async function migrateLegacyCredential(): Promise<void> {
       });
 
       if (legacyKey && !(await SecureStore.getItemAsync(SECURE_STORE_KEY))) {
-        await SecureStore.setItemAsync(SECURE_STORE_KEY, legacyKey, SECURE_STORE_OPTIONS);
+        await SecureStore.setItemAsync(
+          SECURE_STORE_KEY,
+          legacyKey,
+          SECURE_STORE_OPTIONS,
+        );
       }
       await AsyncStorage.setItem(ASYNC_STORAGE_KEY, JSON.stringify(scrubbed));
     }

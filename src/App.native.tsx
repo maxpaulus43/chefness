@@ -13,8 +13,28 @@ import { AccessibilityPreferencesProvider } from "@/native/accessibility";
 import { nativeColors } from "@/native/theme";
 
 export default function NativeApp() {
-  const [fontsLoaded] = useFonts({ Inter_400Regular, Inter_600SemiBold, Inter_700Bold, Fraunces_700Bold });
+  const [fontsLoaded] = useFonts({
+    Inter_400Regular,
+    Inter_600SemiBold,
+    Inter_700Bold,
+    Fraunces_700Bold,
+  });
   if (!fontsLoaded) return <View style={styles.root} />;
-  return <GestureHandlerRootView style={styles.root}><SafeAreaProvider><AccessibilityPreferencesProvider><StatusBar style="dark" /><View style={styles.root}><TRPCProvider><NativeNavigation /></TRPCProvider></View></AccessibilityPreferencesProvider></SafeAreaProvider></GestureHandlerRootView>;
+  return (
+    <GestureHandlerRootView style={styles.root}>
+      <SafeAreaProvider>
+        <AccessibilityPreferencesProvider>
+          <StatusBar style="dark" />
+          <View style={styles.root}>
+            <TRPCProvider>
+              <NativeNavigation />
+            </TRPCProvider>
+          </View>
+        </AccessibilityPreferencesProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
+  );
 }
-const styles = StyleSheet.create({ root: { flex: 1, backgroundColor: nativeColors.cream } });
+const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: nativeColors.cream },
+});

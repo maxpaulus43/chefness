@@ -6,19 +6,29 @@ const secureValues = new Map<string, string>();
 mock.module("@react-native-async-storage/async-storage", () => ({
   default: {
     getItem: async (key: string) => asyncValues.get(key) ?? null,
-    setItem: async (key: string, value: string) => { asyncValues.set(key, value); },
+    setItem: async (key: string, value: string) => {
+      asyncValues.set(key, value);
+    },
   },
 }));
 
 mock.module("expo-secure-store", () => ({
   WHEN_UNLOCKED_THIS_DEVICE_ONLY: 1,
   getItemAsync: async (key: string) => secureValues.get(key) ?? null,
-  setItemAsync: async (key: string, value: string) => { secureValues.set(key, value); },
-  deleteItemAsync: async (key: string) => { secureValues.delete(key); },
+  setItemAsync: async (key: string, value: string) => {
+    secureValues.set(key, value);
+  },
+  deleteItemAsync: async (key: string) => {
+    secureValues.delete(key);
+  },
 }));
 
 mock.module("@/storage/indexed-db", () => ({
-  IndexedDBRepository: class<TEntity extends { id: string }, TCreate, TUpdate extends { id: string }> {
+  IndexedDBRepository: class<
+    TEntity extends { id: string },
+    TCreate,
+    TUpdate extends { id: string },
+  > {
     private readonly key: string;
     private readonly buildEntity: (data: TCreate) => TEntity;
     private readonly applyUpdate: (existing: TEntity, data: TUpdate) => TEntity;
@@ -41,8 +51,12 @@ mock.module("@/storage/indexed-db", () => ({
       asyncValues.set(this.key, JSON.stringify(values));
     }
 
-    async getAll() { return this.read(); }
-    async getById(id: string) { return this.read().find((value) => value.id === id); }
+    async getAll() {
+      return this.read();
+    }
+    async getById(id: string) {
+      return this.read().find((value) => value.id === id);
+    }
     async create(data: TCreate) {
       const entity = this.buildEntity(data);
       this.write([entity]);
@@ -71,24 +85,33 @@ mock.module("@/storage/indexed-db", () => ({
 let settingsRepository: typeof import("../src/storage/settings.native").settingsRepository;
 
 beforeAll(async () => {
-  asyncValues.set("chefness:settings", JSON.stringify([{
-    id: "user-settings",
-    llmModel: "openrouter/free",
-    openRouterOAuthKey: "legacy-secret",
-    dietaryRestrictions: [],
-    otherDietaryNotes: "",
-    createdAt: "2026-01-01T00:00:00.000Z",
-    updatedAt: "2026-01-01T00:00:00.000Z",
-  }]));
+  asyncValues.set(
+    "chefness:settings",
+    JSON.stringify([
+      {
+        id: "user-settings",
+        llmModel: "openrouter/free",
+        openRouterOAuthKey: "legacy-secret",
+        dietaryRestrictions: [],
+        otherDietaryNotes: "",
+        createdAt: "2026-01-01T00:00:00.000Z",
+        updatedAt: "2026-01-01T00:00:00.000Z",
+      },
+    ]),
+  );
   ({ settingsRepository } = await import("../src/storage/settings.native"));
 });
 
 test("migrates, persists, and removes OpenRouter credentials securely", async () => {
   const migrated = await settingsRepository.getById("user-settings");
   expect(migrated?.openRouterOAuthKey).toBe("legacy-secret");
-  expect(secureValues.get("chefness.openrouter-oauth-key")).toBe("legacy-secret");
+  expect(secureValues.get("chefness.openrouter-oauth-key")).toBe(
+    "legacy-secret",
+  );
   expect(asyncValues.get("chefness:settings")).not.toContain("legacy-secret");
-  expect(asyncValues.get("chefness:settings")).not.toContain("openRouterOAuthKey");
+  expect(asyncValues.get("chefness:settings")).not.toContain(
+    "openRouterOAuthKey",
+  );
 
   const connected = await settingsRepository.update({
     id: "user-settings",

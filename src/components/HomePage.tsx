@@ -11,72 +11,72 @@ import RecipeView from "./RecipeView";
 // ---------------------------------------------------------------------------
 
 function TabPanel({
-    active,
-    children,
+  active,
+  children,
 }: {
-    active: boolean;
-    children: ReactNode;
+  active: boolean;
+  children: ReactNode;
 }) {
-    return (
-        <div
-            style={{
-                display: active ? "flex" : "none",
-                flexDirection: "column",
-                flex: 1,
-                minHeight: 0,
-                overflowY: "auto",
-            }}
-        >
-            {children}
-        </div>
-    );
+  return (
+    <div
+      style={{
+        display: active ? "flex" : "none",
+        flexDirection: "column",
+        flex: 1,
+        minHeight: 0,
+        overflowY: "auto",
+      }}
+    >
+      {children}
+    </div>
+  );
 }
 
 export function HomePage() {
-    const [activeTab, setActiveTab] = useState<Tab>("chat");
+  const [activeTab, setActiveTab] = useState<Tab>("chat");
 
-    const navigateToSettings = useCallback(() => {
-        setActiveTab("settings");
-    }, []);
+  const navigateToSettings = useCallback(() => {
+    setActiveTab("settings");
+  }, []);
 
-    return (
-        <div style={styles.root}>
-            <div style={styles.content}>
-                <TabPanel active={activeTab === "chat"}>
-                    <ChatView onNavigateToSettings={navigateToSettings} />
-                </TabPanel>
-                <TabPanel active={activeTab === "recipes"}>
-                    <RecipeView />
-                </TabPanel>
-                <TabPanel active={activeTab === "history"}>
-                    <HistoryView />
-                </TabPanel>
-                <TabPanel active={activeTab === "settings"}>
-                    <SettingsView />
-                </TabPanel>
-            </div>
-            <BottomNavBar activeTab={activeTab} onTabChange={setActiveTab} />
-        </div>
-    );
+  return (
+    <div style={styles.root}>
+      <div style={styles.content}>
+        <TabPanel active={activeTab === "chat"}>
+          <ChatView onNavigateToSettings={navigateToSettings} />
+        </TabPanel>
+        <TabPanel active={activeTab === "recipes"}>
+          <RecipeView />
+        </TabPanel>
+        <TabPanel active={activeTab === "history"}>
+          <HistoryView />
+        </TabPanel>
+        <TabPanel active={activeTab === "settings"}>
+          <SettingsView />
+        </TabPanel>
+      </div>
+      <BottomNavBar activeTab={activeTab} onTabChange={setActiveTab} />
+    </div>
+  );
 }
 
 const styles: Record<string, React.CSSProperties> = {
-    root: {
-        height: "100vh",
-        display: "flex",
-        flexDirection: "column",
-        width: "100%",
-        maxWidth: 480,
-        margin: "0 auto",
-        position: "relative",
-        background: "transparent",
-        color: colors.espresso,
-    },
-    content: {
-        flex: 1,
-        display: "flex",
-        flexDirection: "column",
-        minHeight: 0,
-        paddingBottom: 64,
-    },
+  root: {
+    height: "100vh",
+    display: "flex",
+    flexDirection: "column",
+    width: "100%",
+    maxWidth: 480,
+    margin: "0 auto",
+    position: "relative",
+    background: "transparent",
+    color: colors.espresso,
+  },
+  content: {
+    flex: 1,
+    display: "flex",
+    flexDirection: "column",
+    minHeight: 0,
+    paddingBottom: 64,
+  },
 };

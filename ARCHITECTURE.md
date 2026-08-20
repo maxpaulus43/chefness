@@ -30,6 +30,7 @@ small, sanitized JSON responses.
 | RPC layer        | tRPC (client + server)          | 11      |
 | Server state     | TanStack React Query            | 5       |
 | Validation       | Zod                             | 4       |
+| Formatting       | Biome                           | 2       |
 | Package manager  | Bun                             |         |
 
 ### Platform structure

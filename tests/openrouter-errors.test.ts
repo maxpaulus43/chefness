@@ -21,10 +21,12 @@ test("OAuth exchange errors exclude provider response bodies", async () => {
   globalThis.fetch = (async () => failedResponse) as typeof fetch;
   const { exchangeCodeForKey } = await import("../src/lib/openrouter-oauth");
 
-  await expect(exchangeCodeForKey("code", "verifier", "S256"))
-    .rejects.toThrow("OpenRouter key exchange failed (401).");
-  await expect(exchangeCodeForKey("code", "verifier", "S256"))
-    .rejects.not.toThrow(echoedSecret);
+  await expect(exchangeCodeForKey("code", "verifier", "S256")).rejects.toThrow(
+    "OpenRouter key exchange failed (401).",
+  );
+  await expect(
+    exchangeCodeForKey("code", "verifier", "S256"),
+  ).rejects.not.toThrow(echoedSecret);
 });
 
 test("native chat errors exclude provider response bodies", async () => {

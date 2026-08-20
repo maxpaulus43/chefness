@@ -15,37 +15,40 @@ export function useClipboard() {
   /** Ref to the pending reset timeout so we can clear it on unmount or re-copy. */
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const copyToClipboard = useCallback(async (text: string): Promise<boolean> => {
-    // Clear any previous state.
-    setError(null);
-    setCopied(false);
+  const copyToClipboard = useCallback(
+    async (text: string): Promise<boolean> => {
+      // Clear any previous state.
+      setError(null);
+      setCopied(false);
 
-    if (timeoutRef.current !== null) {
-      clearTimeout(timeoutRef.current);
-      timeoutRef.current = null;
-    }
-
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- clipboard API may be unavailable in insecure contexts
-    if (!navigator.clipboard) {
-      setError("Clipboard not available in this browser.");
-      return false;
-    }
-
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopied(true);
-      timeoutRef.current = setTimeout(() => {
-        setCopied(false);
+      if (timeoutRef.current !== null) {
+        clearTimeout(timeoutRef.current);
         timeoutRef.current = null;
-      }, 2000);
-      return true;
-    } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "Failed to copy to clipboard.";
-      setError(message);
-      return false;
-    }
-  }, []);
+      }
+
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- clipboard API may be unavailable in insecure contexts
+      if (!navigator.clipboard) {
+        setError("Clipboard not available in this browser.");
+        return false;
+      }
+
+      try {
+        await navigator.clipboard.writeText(text);
+        setCopied(true);
+        timeoutRef.current = setTimeout(() => {
+          setCopied(false);
+          timeoutRef.current = null;
+        }, 2000);
+        return true;
+      } catch (err: unknown) {
+        const message =
+          err instanceof Error ? err.message : "Failed to copy to clipboard.";
+        setError(message);
+        return false;
+      }
+    },
+    [],
+  );
 
   return { copyToClipboard, copied, error } as const;
 }

@@ -15,9 +15,7 @@ export function useRecipeSearch(recipes: Recipe[]) {
       ? recipes.filter((recipe) => recipeMatchesSearch(recipe, normalizedQuery))
       : recipes;
 
-    return [...filteredRecipes].sort((a, b) =>
-      sortRecipes(a, b, sortOption),
-    );
+    return [...filteredRecipes].sort((a, b) => sortRecipes(a, b, sortOption));
   }, [recipes, searchQuery, sortOption]);
 
   return {
@@ -30,7 +28,11 @@ export function useRecipeSearch(recipes: Recipe[]) {
 }
 
 function recipeMatchesSearch(recipe: Recipe, normalizedQuery: string): boolean {
-  const searchableText = [recipe.title, recipe.description, ...recipe.ingredients]
+  const searchableText = [
+    recipe.title,
+    recipe.description,
+    ...recipe.ingredients,
+  ]
     .join(" ")
     .toLowerCase();
 

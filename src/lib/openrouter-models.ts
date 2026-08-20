@@ -1,4 +1,7 @@
-import { openRouterModelsResponseSchema, type OpenRouterModel } from "@/types/openrouter-model";
+import {
+  openRouterModelsResponseSchema,
+  type OpenRouterModel,
+} from "@/types/openrouter-model";
 
 const OPENROUTER_MODELS_URL = "https://openrouter.ai/api/v1/models";
 
@@ -6,14 +9,18 @@ const OPENROUTER_MODELS_URL = "https://openrouter.ai/api/v1/models";
 export const OPENROUTER_DEFAULT_MODEL = "openrouter/free";
 
 /** Fetch the current public OpenRouter model catalog. */
-export async function fetchOpenRouterModels(signal?: AbortSignal): Promise<OpenRouterModel[]> {
+export async function fetchOpenRouterModels(
+  signal?: AbortSignal,
+): Promise<OpenRouterModel[]> {
   const response = await fetch(OPENROUTER_MODELS_URL, {
     headers: { Accept: "application/json" },
     signal,
   });
 
   if (!response.ok) {
-    throw new Error(`OpenRouter model catalog request failed (${response.status}).`);
+    throw new Error(
+      `OpenRouter model catalog request failed (${response.status}).`,
+    );
   }
 
   const parsed = openRouterModelsResponseSchema.parse(await response.json());
@@ -21,7 +28,9 @@ export async function fetchOpenRouterModels(signal?: AbortSignal): Promise<OpenR
 }
 
 export function isFreeOpenRouterModel(model: OpenRouterModel): boolean {
-  return Number(model.pricing.prompt) === 0 && Number(model.pricing.completion) === 0;
+  return (
+    Number(model.pricing.prompt) === 0 && Number(model.pricing.completion) === 0
+  );
 }
 
 export function supportsVision(model: OpenRouterModel): boolean {

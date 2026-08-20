@@ -18,7 +18,10 @@ export interface CodeChallenge {
 function base64urlEncode(bytes: Uint8Array): string {
   let binary = "";
   for (const byte of bytes) binary += String.fromCharCode(byte);
-  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  return btoa(binary)
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
 }
 
 /** Generate an RFC 7636 code verifier. */
@@ -34,10 +37,14 @@ export function generateCodeVerifier(): string {
  * OpenRouter officially supports the `plain` method, which is used for older
  * Safari/PWA contexts that provide secure random values but not SubtleCrypto.
  */
-export async function createCodeChallenge(verifier: string): Promise<CodeChallenge> {
-  const subtle = (crypto as unknown as {
-    subtle?: { digest?: SubtleCrypto["digest"] };
-  }).subtle;
+export async function createCodeChallenge(
+  verifier: string,
+): Promise<CodeChallenge> {
+  const subtle = (
+    crypto as unknown as {
+      subtle?: { digest?: SubtleCrypto["digest"] };
+    }
+  ).subtle;
 
   if (typeof subtle?.digest !== "function") {
     return { value: verifier, method: "plain" };
@@ -99,7 +106,9 @@ export async function exchangeCodeForKey(
   const data: unknown = await response.json();
 
   if (typeof data !== "object" || data === null || !("key" in data)) {
-    throw new Error("OpenRouter key exchange returned an unexpected response shape.");
+    throw new Error(
+      "OpenRouter key exchange returned an unexpected response shape.",
+    );
   }
 
   const { key } = data as { key: string };

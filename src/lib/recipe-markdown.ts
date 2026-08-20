@@ -44,9 +44,7 @@ export function recipeToMarkdown(recipe: Recipe): string {
 
   // Steps
   if (recipe.steps.length > 0) {
-    const items = recipe.steps
-      .map((step, i) => `${i + 1}. ${step}`)
-      .join("\n");
+    const items = recipe.steps.map((step, i) => `${i + 1}. ${step}`).join("\n");
     sections.push(`## Steps\n\n${items}`);
   }
 

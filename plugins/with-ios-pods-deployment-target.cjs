@@ -1,5 +1,7 @@
 const { withPodfile } = require("@expo/config-plugins");
-const { mergeContents } = require("@expo/config-plugins/build/utils/generateCode");
+const {
+  mergeContents,
+} = require("@expo/config-plugins/build/utils/generateCode");
 
 module.exports = function withIosPodsDeploymentTarget(config) {
   return withPodfile(config, (podfileConfig) => {

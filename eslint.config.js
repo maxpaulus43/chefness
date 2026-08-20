@@ -65,7 +65,10 @@ export default tseslint.config(
       ],
 
       // The codebase uses void for fire-and-forget promises (e.g. void sendMessage(text))
-      "@typescript-eslint/no-floating-promises": ["error", { ignoreVoid: true }],
+      "@typescript-eslint/no-floating-promises": [
+        "error",
+        { ignoreVoid: true },
+      ],
 
       // Allow empty catch blocks (used in the codebase for intentional swallowing)
       "@typescript-eslint/no-empty-function": "off",
@@ -75,7 +78,10 @@ export default tseslint.config(
       "@typescript-eslint/no-non-null-assertion": "warn",
 
       // Some strict rules are too noisy for this project — relax:
-      "@typescript-eslint/restrict-template-expressions": ["error", { allowNumber: true }],
+      "@typescript-eslint/restrict-template-expressions": [
+        "error",
+        { allowNumber: true },
+      ],
       "@typescript-eslint/no-confusing-void-expression": "off",
       "@typescript-eslint/no-misused-promises": [
         "error",

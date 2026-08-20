@@ -1,7 +1,11 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import type { StorageRepository } from "@/storage/interface";
 
-interface NativeRepositoryOptions<TEntity extends { id: string }, TCreate, TUpdate extends { id: string }> {
+interface NativeRepositoryOptions<
+  TEntity extends { id: string },
+  TCreate,
+  TUpdate extends { id: string },
+> {
   storeName: string;
   buildEntity: (data: TCreate) => TEntity;
   applyUpdate: (existing: TEntity, data: TUpdate) => TEntity;
@@ -12,7 +16,8 @@ export class IndexedDBRepository<
   TEntity extends { id: string },
   TCreate,
   TUpdate extends { id: string },
-> implements StorageRepository<TEntity, TCreate, TUpdate> {
+> implements StorageRepository<TEntity, TCreate, TUpdate>
+{
   private readonly key: string;
   private readonly buildEntity: (data: TCreate) => TEntity;
   private readonly applyUpdate: (existing: TEntity, data: TUpdate) => TEntity;
@@ -27,7 +32,7 @@ export class IndexedDBRepository<
     const value = await AsyncStorage.getItem(this.key);
     if (!value) return [];
     const parsed: unknown = JSON.parse(value);
-    return Array.isArray(parsed) ? parsed as TEntity[] : [];
+    return Array.isArray(parsed) ? (parsed as TEntity[]) : [];
   }
 
   private writeAll(entities: TEntity[]): Promise<void> {
@@ -45,7 +50,10 @@ export class IndexedDBRepository<
   async create(data: TCreate): Promise<TEntity> {
     const entity = this.buildEntity(data);
     const entities = await this.readAll();
-    await this.writeAll([...entities.filter((item) => item.id !== entity.id), entity]);
+    await this.writeAll([
+      ...entities.filter((item) => item.id !== entity.id),
+      entity,
+    ]);
     return entity;
   }
 
@@ -72,5 +80,9 @@ export class IndexedDBRepository<
 
 /** Compatibility export; native repositories open AsyncStorage lazily. */
 export function getDB(): Promise<never> {
-  return Promise.reject(new Error("IndexedDB is unavailable on native; AsyncStorage is used instead."));
+  return Promise.reject(
+    new Error(
+      "IndexedDB is unavailable on native; AsyncStorage is used instead.",
+    ),
+  );
 }

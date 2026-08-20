@@ -8,7 +8,11 @@
  * depends on the `StorageRepository` interface.
  */
 import type { StorageRepository } from "@/storage/interface";
-import type { Settings, CreateSettingsInput, UpdateSettingsInput } from "@/types/settings";
+import type {
+  Settings,
+  CreateSettingsInput,
+  UpdateSettingsInput,
+} from "@/types/settings";
 import { IndexedDBRepository } from "@/storage/indexed-db";
 
 /** Concrete type alias so consumers don't need to spell out the generics. */
@@ -42,12 +46,20 @@ export const settingsRepository: SettingsRepository = new IndexedDBRepository<
     const { id: _, ...patch } = data;
     return {
       ...existing,
-      ...(patch.llmProvider !== undefined && { llmProvider: patch.llmProvider }),
+      ...(patch.llmProvider !== undefined && {
+        llmProvider: patch.llmProvider,
+      }),
       ...(patch.llmModel !== undefined && { llmModel: patch.llmModel }),
       ...(patch.llmApiKey !== undefined && { llmApiKey: patch.llmApiKey }),
-      ...(patch.openRouterOAuthKey !== undefined && { openRouterOAuthKey: patch.openRouterOAuthKey }),
-      ...(patch.dietaryRestrictions !== undefined && { dietaryRestrictions: patch.dietaryRestrictions }),
-      ...(patch.otherDietaryNotes !== undefined && { otherDietaryNotes: patch.otherDietaryNotes }),
+      ...(patch.openRouterOAuthKey !== undefined && {
+        openRouterOAuthKey: patch.openRouterOAuthKey,
+      }),
+      ...(patch.dietaryRestrictions !== undefined && {
+        dietaryRestrictions: patch.dietaryRestrictions,
+      }),
+      ...(patch.otherDietaryNotes !== undefined && {
+        otherDietaryNotes: patch.otherDietaryNotes,
+      }),
       updatedAt: new Date().toISOString(),
     };
   },

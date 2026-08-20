@@ -6,50 +6,54 @@ import path from "path";
 import { cloudflare } from "@cloudflare/vite-plugin";
 
 export default defineConfig({
-  plugins: [react(), VitePWA({
-    registerType: "autoUpdate",
-    workbox: {
-      globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
-      navigateFallback: "index.html",
-      navigateFallbackDenylist: [
-        // Do not serve cached index.html for OAuth callback navigations.
-        // Prevents iOS Safari "response served by service worker has
-        // redirections" error when returning from OpenRouter with ?code=.
-        /[?&]code=/,
-      ],
-    },
-    devOptions: {
-      enabled: true,
-    },
-    manifest: {
-      name: "Chefness",
-      short_name: "Chefness",
-      description: "Your personal offline cooking companion",
-      theme_color: "#C8923B",
-      background_color: "#FAF7F2",
-      display: "standalone",
-      scope: "/",
-      start_url: "/",
-      icons: [
-        {
-          src: "pwa-192x192.png",
-          sizes: "192x192",
-          type: "image/png",
-        },
-        {
-          src: "pwa-512x512.png",
-          sizes: "512x512",
-          type: "image/png",
-        },
-        {
-          src: "pwa-512x512.png",
-          sizes: "512x512",
-          type: "image/png",
-          purpose: "any maskable",
-        },
-      ],
-    },
-  }), cloudflare()],
+  plugins: [
+    react(),
+    VitePWA({
+      registerType: "autoUpdate",
+      workbox: {
+        globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
+        navigateFallback: "index.html",
+        navigateFallbackDenylist: [
+          // Do not serve cached index.html for OAuth callback navigations.
+          // Prevents iOS Safari "response served by service worker has
+          // redirections" error when returning from OpenRouter with ?code=.
+          /[?&]code=/,
+        ],
+      },
+      devOptions: {
+        enabled: true,
+      },
+      manifest: {
+        name: "Chefness",
+        short_name: "Chefness",
+        description: "Your personal offline cooking companion",
+        theme_color: "#C8923B",
+        background_color: "#FAF7F2",
+        display: "standalone",
+        scope: "/",
+        start_url: "/",
+        icons: [
+          {
+            src: "pwa-192x192.png",
+            sizes: "192x192",
+            type: "image/png",
+          },
+          {
+            src: "pwa-512x512.png",
+            sizes: "512x512",
+            type: "image/png",
+          },
+          {
+            src: "pwa-512x512.png",
+            sizes: "512x512",
+            type: "image/png",
+            purpose: "any maskable",
+          },
+        ],
+      },
+    }),
+    cloudflare(),
+  ],
   server: {
     allowedHosts: ["maxs-macbook-pro.tail55b40a.ts.net"],
   },

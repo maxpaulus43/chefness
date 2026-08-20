@@ -8,7 +8,11 @@
  * depends on the `StorageRepository` interface.
  */
 import type { StorageRepository } from "@/storage/interface";
-import type { Recipe, CreateRecipeInput, UpdateRecipeInput } from "@/types/recipe";
+import type {
+  Recipe,
+  CreateRecipeInput,
+  UpdateRecipeInput,
+} from "@/types/recipe";
 import { IndexedDBRepository } from "@/storage/indexed-db";
 import { generateUUID } from "@/lib/uuid";
 
@@ -42,8 +46,12 @@ export const recipeRepository: RecipeRepository = new IndexedDBRepository<
       ...existing,
       // Only overwrite fields that were explicitly provided
       ...(patch.title !== undefined && { title: patch.title }),
-      ...(patch.description !== undefined && { description: patch.description }),
-      ...(patch.ingredients !== undefined && { ingredients: patch.ingredients }),
+      ...(patch.description !== undefined && {
+        description: patch.description,
+      }),
+      ...(patch.ingredients !== undefined && {
+        ingredients: patch.ingredients,
+      }),
       ...(patch.steps !== undefined && { steps: patch.steps }),
       updatedAt: new Date().toISOString(),
     };

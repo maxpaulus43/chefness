@@ -34,7 +34,8 @@ export function SettingsView() {
     updateSettings,
   } = useSettings();
 
-  const { startOAuth, isStartingOAuth, isProcessingCallback, oauthError } = useOpenRouterOAuth();
+  const { startOAuth, isStartingOAuth, isProcessingCallback, oauthError } =
+    useOpenRouterOAuth();
 
   const {
     preferences: aiPreferences,
@@ -49,7 +50,8 @@ export function SettingsView() {
   const [newPreferenceText, setNewPreferenceText] = useState("");
 
   // Local state for the OpenRouter model picker.
-  const [selectedOpenRouterModel, setSelectedOpenRouterModel] = useState(llmModel);
+  const [selectedOpenRouterModel, setSelectedOpenRouterModel] =
+    useState(llmModel);
   const hasAppliedOpenRouterDefault = useRef(false);
   const {
     models: openRouterModels,
@@ -69,8 +71,10 @@ export function SettingsView() {
 
   // Local state so the UI reacts synchronously to user selection instead
   // of waiting for the async tRPC mutation round-trip.
-  const [selectedRestrictions, setSelectedRestrictions] = useState<string[]>(dietaryRestrictions);
-  const [selectedOtherNotes, setSelectedOtherNotes] = useState(otherDietaryNotes);
+  const [selectedRestrictions, setSelectedRestrictions] =
+    useState<string[]>(dietaryRestrictions);
+  const [selectedOtherNotes, setSelectedOtherNotes] =
+    useState(otherDietaryNotes);
 
   // Keep local state in sync when the hook value changes (initial load,
   // external updates, page refresh).
@@ -103,7 +107,9 @@ export function SettingsView() {
     );
   }, [isOpenRouterConnected, llmModel]);
 
-  const handleOpenRouterModelChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  const handleOpenRouterModelChange = (
+    e: React.ChangeEvent<HTMLSelectElement>,
+  ) => {
     const newModel = e.target.value;
     setSelectedOpenRouterModel(newModel);
     updateSettings({ llmModel: newModel });
@@ -125,24 +131,32 @@ export function SettingsView() {
       ? selectedRestrictions.filter((r) => r !== restriction)
       : [...selectedRestrictions, restriction];
     setSelectedRestrictions(updated);
-    updateSettings({ dietaryRestrictions: updated, otherDietaryNotes: selectedOtherNotes });
+    updateSettings({
+      dietaryRestrictions: updated,
+      otherDietaryNotes: selectedOtherNotes,
+    });
   };
 
   const handleOtherNotesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setSelectedOtherNotes(value);
-    updateSettings({ dietaryRestrictions: selectedRestrictions, otherDietaryNotes: value });
+    updateSettings({
+      dietaryRestrictions: selectedRestrictions,
+      otherDietaryNotes: value,
+    });
   };
 
   const handleDeletePreference = (id: string, text: string) => {
-    void toast.ask({
-      title: "Remove preference?",
-      message: `"${text}"`,
-      confirmLabel: "Remove",
-      tone: "danger",
-    }).then((confirmed) => {
-      if (confirmed) deletePreference(id);
-    });
+    void toast
+      .ask({
+        title: "Remove preference?",
+        message: `"${text}"`,
+        confirmLabel: "Remove",
+        tone: "danger",
+      })
+      .then((confirmed) => {
+        if (confirmed) deletePreference(id);
+      });
   };
 
   const handleSavePreference = async () => {
@@ -219,7 +233,9 @@ export function SettingsView() {
                 id="openrouter-model"
                 value={selectedOpenRouterModel}
                 onChange={handleOpenRouterModelChange}
-                disabled={loadingOpenRouterModels || openRouterModelsError !== null}
+                disabled={
+                  loadingOpenRouterModels || openRouterModelsError !== null
+                }
                 style={styles.select}
               >
                 <option value="">
@@ -249,7 +265,11 @@ export function SettingsView() {
               {openRouterModelsError && (
                 <div style={styles.modelErrorRow}>
                   <p style={styles.openRouterError}>{openRouterModelsError}</p>
-                  <button type="button" onClick={retryOpenRouterModels} style={styles.retryButton}>
+                  <button
+                    type="button"
+                    onClick={retryOpenRouterModels}
+                    style={styles.retryButton}
+                  >
                     Retry
                   </button>
                 </div>
@@ -267,11 +287,14 @@ export function SettingsView() {
         ) : (
           <>
             <p style={styles.sectionDescription}>
-              Sign in with your OpenRouter account to use 300+ AI models without an API key.
+              Sign in with your OpenRouter account to use 300+ AI models without
+              an API key.
             </p>
 
             {isProcessingCallback ? (
-              <p style={styles.openRouterProcessing}>Connecting to OpenRouter…</p>
+              <p style={styles.openRouterProcessing}>
+                Connecting to OpenRouter…
+              </p>
             ) : (
               <button
                 type="button"
@@ -279,7 +302,9 @@ export function SettingsView() {
                 disabled={isStartingOAuth}
                 style={styles.openRouterSignInButton}
               >
-                {isStartingOAuth ? "Opening OpenRouter…" : "Sign in with OpenRouter"}
+                {isStartingOAuth
+                  ? "Opening OpenRouter…"
+                  : "Sign in with OpenRouter"}
               </button>
             )}
 
@@ -323,12 +348,14 @@ export function SettingsView() {
       <section style={styles.section}>
         <h2 style={styles.sectionTitle}>AI Memory</h2>
         <p style={styles.sectionDescription}>
-          Things Chefness remembers about you. These are automatically included in every conversation.
+          Things Chefness remembers about you. These are automatically included
+          in every conversation.
         </p>
 
         {aiPreferences.length === 0 ? (
           <p style={styles.emptyText}>
-            No saved preferences yet. As you chat, Chefness may ask to remember things about you.
+            No saved preferences yet. As you chat, Chefness may ask to remember
+            things about you.
           </p>
         ) : (
           <ul style={styles.preferenceList}>

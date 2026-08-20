@@ -4,19 +4,23 @@ import { useState } from "react";
 import { useRecipes } from "@/hooks/useRecipes";
 import { useSettings } from "@/hooks/useSettings";
 
-type AiEditStatus = "idle" | "generating" | "preview" | "applying" | "applied" | "error";
+type AiEditStatus =
+  | "idle"
+  | "generating"
+  | "preview"
+  | "applying"
+  | "applied"
+  | "error";
 
 export function useRecipeAiEditor() {
   const { updateRecipeAsync } = useRecipes();
-  const {
-    effectiveProvider,
-    effectiveModel,
-    effectiveApiKey,
-    isConfigured,
-  } = useSettings();
+  const { effectiveProvider, effectiveModel, effectiveApiKey, isConfigured } =
+    useSettings();
 
   const [status, setStatus] = useState<AiEditStatus>("idle");
-  const [draftRecipe, setDraftRecipe] = useState<CreateRecipeInput | null>(null);
+  const [draftRecipe, setDraftRecipe] = useState<CreateRecipeInput | null>(
+    null,
+  );
   const [error, setError] = useState<string | null>(null);
 
   const generateEdit = async (recipe: Recipe, instruction: string) => {

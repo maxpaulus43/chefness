@@ -1,4 +1,7 @@
-import { prepareImageAttachment, type ImageAttachment } from "@/lib/image-attachment";
+import {
+  prepareImageAttachment,
+  type ImageAttachment,
+} from "@/lib/image-attachment";
 import { useCallback, useState } from "react";
 
 export function useImageAttachment() {
@@ -13,7 +16,9 @@ export function useImageAttachment() {
     try {
       setAttachment(await prepareImageAttachment(file));
     } catch (cause: unknown) {
-      setError(cause instanceof Error ? cause.message : "Unable to attach that image.");
+      setError(
+        cause instanceof Error ? cause.message : "Unable to attach that image.",
+      );
     } finally {
       setIsPreparing(false);
     }

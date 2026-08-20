@@ -12,7 +12,7 @@ const chatMessageSchema = z.object({
   // the recipe plus conversational edits.
   importedRecipeContext: z.string().optional().default(""),
   // Per-message action flags — only relevant for assistant messages
-  savedRecipeId: z.string().optional().default(""),  // empty = not saved
+  savedRecipeId: z.string().optional().default(""), // empty = not saved
   memorySaved: z.boolean().optional().default(false),
 });
 
