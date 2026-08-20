@@ -5,6 +5,7 @@ import {
   Alert,
   FlatList,
   Image,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -76,6 +77,28 @@ export function ChatScreen({
       list.current?.scrollToEnd({ animated: false });
     });
   }, [chat.currentSessionId]);
+
+  useEffect(() => {
+    if (editingIndex === null) return;
+
+    const scrollToEditor = () => {
+      list.current?.scrollToIndex({
+        index: editingIndex,
+        animated: true,
+        viewPosition: 0.5,
+      });
+    };
+    const frame = requestAnimationFrame(scrollToEditor);
+    const keyboardSubscription = Keyboard.addListener(
+      "keyboardDidShow",
+      scrollToEditor,
+    );
+
+    return () => {
+      cancelAnimationFrame(frame);
+      keyboardSubscription.remove();
+    };
+  }, [editingIndex]);
 
   useEffect(() => {
     if (
@@ -414,7 +437,7 @@ export function ChatScreen({
           ) : null
         }
       />
-      {image ? (
+      {editingIndex === null && image ? (
         <View style={styles.preview}>
           <Image
             accessible
@@ -438,54 +461,56 @@ export function ChatScreen({
           </Pressable>
         </View>
       ) : null}
-      <View
-        style={[styles.composer, reduceTransparency && styles.opaqueComposer]}
-      >
-        {chat.canAttachImage && (
+      {editingIndex === null ? (
+        <View
+          style={[styles.composer, reduceTransparency && styles.opaqueComposer]}
+        >
+          {chat.canAttachImage && (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Attach photo"
+              accessibilityHint="Choose the camera or photo library"
+              style={styles.iconButton}
+              onPress={chooseImage}
+            >
+              <Ionicons
+                accessible={false}
+                name="camera-outline"
+                size={27}
+                color={colors.saffronDeep}
+              />
+            </Pressable>
+          )}
+          <Field
+            accessibilityLabel="Message"
+            value={text}
+            onChangeText={setText}
+            placeholder="Ask your cooking guru…"
+            multiline
+            style={styles.composerField}
+          />
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Attach photo"
-            accessibilityHint="Choose the camera or photo library"
+            accessibilityLabel={
+              chat.isStreaming ? "Stop response" : "Send message"
+            }
+            accessibilityHint={
+              chat.isStreaming
+                ? "Stops Chefness from generating more text"
+                : "Sends your message to Chefness"
+            }
             style={styles.iconButton}
-            onPress={chooseImage}
+            onPress={chat.isStreaming ? chat.stopStreaming : submit}
           >
             <Ionicons
               accessible={false}
-              name="camera-outline"
-              size={27}
+              name={chat.isStreaming ? "stop-circle" : "send"}
+              size={28}
               color={colors.saffronDeep}
             />
           </Pressable>
-        )}
-        <Field
-          accessibilityLabel="Message"
-          value={text}
-          onChangeText={setText}
-          placeholder="Ask your cooking guru…"
-          multiline
-          style={styles.composerField}
-        />
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={
-            chat.isStreaming ? "Stop response" : "Send message"
-          }
-          accessibilityHint={
-            chat.isStreaming
-              ? "Stops Chefness from generating more text"
-              : "Sends your message to Chefness"
-          }
-          style={styles.iconButton}
-          onPress={chat.isStreaming ? chat.stopStreaming : submit}
-        >
-          <Ionicons
-            accessible={false}
-            name={chat.isStreaming ? "stop-circle" : "send"}
-            size={28}
-            color={colors.saffronDeep}
-          />
-        </Pressable>
-      </View>
+        </View>
+      ) : null}
     </KeyboardAvoidingView>
   );
 }

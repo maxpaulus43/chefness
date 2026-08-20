@@ -203,7 +203,7 @@
 - [x] Virtualize recipes, cooking history, chat sessions, and the model catalog.
 - [x] Preserve empty, loading, and error states.
 - [x] Preserve reliable chat auto-scroll during streaming.
-- [ ] Verify keyboard and accessibility behavior.
+- [x] Verify keyboard and accessibility behavior.
 
 **Status:** In progress pending manual iPhone verification.
 
