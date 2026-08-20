@@ -183,15 +183,15 @@
 
 **Goal:** Make Chefness readable at arm's length and usable with iOS accessibility features.
 
-- [ ] Load and use the intended native Fraunces and Inter fonts.
-- [ ] Support Dynamic Type without clipped or overlapping content.
-- [ ] Test the largest accessibility text sizes.
-- [ ] Give icon-only controls complete VoiceOver labels and hints.
-- [ ] Maintain at least 44×44-point interactive targets.
-- [ ] Ensure selection and status are not communicated by color alone.
-- [ ] Support Increased Contrast and Reduce Transparency where applicable.
-- [ ] Review focus order and screen announcements.
-- [ ] Move crowded message actions into a scalable menu if needed.
+- [x] Load and use the intended native Fraunces and Inter fonts.
+- [x] Support Dynamic Type without clipped or overlapping content.
+- [x] Test the largest accessibility text sizes.
+- [x] Give icon-only controls complete VoiceOver labels and hints.
+- [x] Maintain at least 44×44-point interactive targets.
+- [x] Ensure selection and status are not communicated by color alone.
+- [x] Support Increased Contrast and Reduce Transparency where applicable.
+- [x] Review focus order and screen announcements.
+- [x] Move crowded message actions into a scalable menu if needed.
 
 **Done when:** Core flows work with VoiceOver and large text and remain readable from a kitchen counter.
 
