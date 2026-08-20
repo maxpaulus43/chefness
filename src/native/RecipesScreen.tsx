@@ -210,7 +210,12 @@ export function RecipeDetailScreen({
     ]);
   return (
     <View style={nativeStyles.screen}>
-      <ScrollView contentContainerStyle={nativeStyles.scroll}>
+      <ScrollView
+        automaticallyAdjustKeyboardInsets
+        contentContainerStyle={nativeStyles.scroll}
+        keyboardDismissMode="interactive"
+        keyboardShouldPersistTaps="handled"
+      >
         <Text accessibilityRole="header" style={styles.detailTitle}>
           {recipe.title}
         </Text>
@@ -419,7 +424,9 @@ function RecipeEditForm({
   return (
     <View style={nativeStyles.screen}>
       <ScrollView
+        automaticallyAdjustKeyboardInsets
         contentContainerStyle={nativeStyles.scroll}
+        keyboardDismissMode="interactive"
         keyboardShouldPersistTaps="handled"
       >
         <Text style={nativeStyles.label}>Title</Text>
