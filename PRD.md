@@ -95,6 +95,12 @@ what you've cooked.**
 - Recipes use list → detail → edit stack destinations with standard back
   transitions and swipe-back. Chat history, message editing, and model
   selection use native form sheets.
+- Recipe, cooking-history, and chat-session rows support familiar iOS swipe
+  actions and native long-press context menus while keeping their primary tap
+  and inline actions visible. Destructive list actions are labeled and confirmed.
+- Photo attachment source choices use the iOS action sheet. Model selection
+  marks the current choice with a checkmark and allows pull-to-refresh because
+  its OpenRouter catalog is remote; device-local lists do not offer refresh.
 - The `chefness://` URL scheme has destinations for recipes, chats, history,
   settings, and model selection so navigation is ready for external links.
 
@@ -757,7 +763,9 @@ fully functional in Settings, with both AI-detected and manual preference saving
 ### Native Migration Status: ✅ Complete (iOS)
 
 The product now has a native Expo/React Native iOS presentation layer while
-retaining the existing PWA target. Chat and streaming, OpenRouter OAuth/model
+retaining the existing PWA target. Its saved-item lists use native swipe actions
+and context menus, photo source selection uses an iOS action sheet, and remote
+model selection uses checkmarks and pull-to-refresh. Chat and streaming, OpenRouter OAuth/model
 selection, camera or photo-library attachments, persisted session history,
 recipe import/save/search/detail/edit/delete/share and AI edits, cooking history,
 dietary restrictions, and AI memory all use native screens and controls.

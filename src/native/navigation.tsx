@@ -11,6 +11,7 @@ import { HistoryScreen } from "@/native/HistoryScreen";
 import { RecipeDetailScreen, RecipeEditScreen, RecipeListScreen } from "@/native/RecipesScreen";
 import { ModelSelectionScreen, SettingsScreen } from "@/native/SettingsScreen";
 import { linking, type ChatStackParamList, type RecipesStackParamList, type RootTabParamList, type SettingsStackParamList } from "@/native/navigation-routes";
+import { ListInteractionRow } from "@/native/ListInteractionRow";
 import { Button, Field, nativeStyles } from "@/native/ui";
 import { colors } from "@/theme";
 
@@ -54,9 +55,26 @@ function ChatRoute({ route, navigation, chat, openSettings }: NativeStackScreenP
 
 function ChatHistorySheet({ navigation, chat }: NativeStackScreenProps<ChatStackParamList, "ChatHistory"> & { chat: ChatValue }) {
   const { sessions, deleteSession } = useChatSessions();
+  const openSession = (sessionId: string) => { chat.loadSession(sessionId); navigation.goBack(); };
+  const confirmDelete = (sessionId: string, title: string) => Alert.alert("Delete conversation?", title, [
+    { text: "Cancel", style: "cancel" },
+    { text: "Delete", style: "destructive", onPress: () => deleteSession(sessionId) },
+  ]);
   return <View style={nativeStyles.screen}><ScrollView contentContainerStyle={nativeStyles.scroll}>
     {sessions.length === 0 && <Text style={nativeStyles.muted}>No saved conversations yet.</Text>}
-    {sessions.map((session) => <Pressable key={session.id} style={{ padding: 15, backgroundColor: colors.white, borderRadius: 14, flexDirection: "row", alignItems: "center", gap: 12 }} onPress={() => { chat.loadSession(session.id); navigation.goBack(); }}><View style={{ flex: 1 }}><Text style={nativeStyles.label}>{session.title}</Text><Text style={nativeStyles.muted}>{new Date(session.updatedAt).toLocaleDateString()} · {session.messages.length} messages</Text></View><Pressable accessibilityLabel="Delete chat" onPress={() => Alert.alert("Delete conversation?", session.title, [{ text: "Cancel", style: "cancel" }, { text: "Delete", style: "destructive", onPress: () => deleteSession(session.id) }])}><Ionicons name="trash-outline" size={22} color={colors.danger} /></Pressable></Pressable>)}
+    {sessions.map((session) => <ListInteractionRow
+      key={session.id}
+      menuActions={[
+        { id: "open", title: "Open Conversation", image: "bubble.left.and.bubble.right" },
+        { id: "delete", title: "Delete", image: "trash", attributes: { destructive: true } },
+      ]}
+      onDelete={() => confirmDelete(session.id, session.title)}
+      onPress={() => openSession(session.id)}
+      onMenuAction={(id) => {
+        if (id === "open") openSession(session.id);
+        if (id === "delete") confirmDelete(session.id, session.title);
+      }}
+    ><View accessibilityRole="button" accessibilityHint="Opens conversation; long press for more actions" style={{ padding: 15, backgroundColor: colors.white, borderRadius: 14 }}><Text style={nativeStyles.label}>{session.title}</Text><Text style={nativeStyles.muted}>{new Date(session.updatedAt).toLocaleDateString()} · {session.messages.length} messages</Text></View></ListInteractionRow>)}
   </ScrollView></View>;
 }
 

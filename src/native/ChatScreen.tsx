@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Alert, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActionSheetIOS, Alert, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { Ionicons } from "@expo/vector-icons";
 import Markdown from "react-native-markdown-display";
@@ -41,10 +41,19 @@ export function ChatScreen({ chat, openSettings, openEdit }: { chat: ReturnType<
   };
 
   const chooseImage = () => {
+    const takePhoto = () => void ImagePicker.launchCameraAsync({ mediaTypes: ["images"], quality: 0.72, base64: true }).then(receiveImage);
+    const chooseFromLibrary = () => void ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: 0.72, base64: true }).then(receiveImage);
+    if (Platform.OS === "ios") {
+      ActionSheetIOS.showActionSheetWithOptions(
+        { title: "Attach a photo", options: ["Cancel", "Take Photo", "Photo Library"], cancelButtonIndex: 0 },
+        (index) => { if (index === 1) takePhoto(); if (index === 2) chooseFromLibrary(); },
+      );
+      return;
+    }
     Alert.alert("Attach a photo", undefined, [
       { text: "Cancel", style: "cancel" },
-      { text: "Take Photo", onPress: () => void ImagePicker.launchCameraAsync({ mediaTypes: ["images"], quality: 0.72, base64: true }).then(receiveImage) },
-      { text: "Photo Library", onPress: () => void ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: 0.72, base64: true }).then(receiveImage) },
+      { text: "Take Photo", onPress: takePhoto },
+      { text: "Photo Library", onPress: chooseFromLibrary },
     ]);
   };
 

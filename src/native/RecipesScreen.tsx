@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Alert, Pressable, ScrollView, Share, StyleSheet, Text, View } from "react-native";
+import { Alert, ScrollView, Share, StyleSheet, Text, View } from "react-native";
 import * as Clipboard from "expo-clipboard";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useRecipes } from "@/hooks/useRecipes";
@@ -9,17 +9,36 @@ import { recipeToMarkdown } from "@/lib/recipe-markdown";
 import type { Recipe, UpdateRecipeInput } from "@/types/recipe";
 import type { RecipesStackParamList } from "@/native/navigation-routes";
 import { colors } from "@/theme";
+import { ListInteractionRow } from "@/native/ListInteractionRow";
 import { Button, Card, Chip, Empty, Field, Loading, nativeStyles } from "@/native/ui";
 
 export function RecipeListScreen({ navigation }: NativeStackScreenProps<RecipesStackParamList, "RecipeList">) {
-  const { recipes, isLoading } = useRecipes();
+  const { recipes, isLoading, deleteRecipe } = useRecipes();
   const search = useRecipeSearch(recipes);
+  const confirmDelete = (recipe: Recipe) => Alert.alert("Delete recipe?", recipe.title, [
+    { text: "Cancel", style: "cancel" },
+    { text: "Delete", style: "destructive", onPress: () => deleteRecipe(recipe.id) },
+  ]);
   if (isLoading) return <View style={nativeStyles.screen}><Loading /></View>;
   return <View style={nativeStyles.screen}><ScrollView contentContainerStyle={nativeStyles.scroll} keyboardShouldPersistTaps="handled">
     {recipes.length > 0 && <><Field value={search.searchQuery} onChangeText={search.setSearchQuery} placeholder="Search recipes and ingredients…" /><View style={nativeStyles.row}><Chip label="Newest" selected={search.sortOption === "newest"} onPress={() => search.setSortOption("newest")} /><Chip label="Oldest" selected={search.sortOption === "oldest"} onPress={() => search.setSortOption("oldest")} /><Chip label="A–Z" selected={search.sortOption === "title-asc"} onPress={() => search.setSortOption("title-asc")} /></View></>}
     {recipes.length === 0 && <Empty title="No saved recipes yet" body="Chat with your cooking guru and save recipes you like!" />}
     {recipes.length > 0 && search.visibleRecipes.length === 0 && <Empty title="No matching recipes" body="Try another title, description, or ingredient." />}
-    {search.visibleRecipes.map((recipe) => <Pressable accessibilityRole="button" key={recipe.id} onPress={() => navigation.navigate("RecipeDetail", { recipeId: recipe.id })}><Card><Text style={styles.recipeTitle}>{recipe.title}</Text><Text numberOfLines={3} style={nativeStyles.muted}>{recipe.description}</Text><Text style={styles.meta}>{recipe.ingredients.length} ingredients · {recipe.steps.length} steps</Text></Card></Pressable>)}
+    {search.visibleRecipes.map((recipe) => <ListInteractionRow
+      key={recipe.id}
+      menuActions={[
+        { id: "open", title: "Open", image: "book" },
+        { id: "edit", title: "Edit", image: "pencil" },
+        { id: "delete", title: "Delete", image: "trash", attributes: { destructive: true } },
+      ]}
+      onDelete={() => confirmDelete(recipe)}
+      onPress={() => navigation.navigate("RecipeDetail", { recipeId: recipe.id })}
+      onMenuAction={(id) => {
+        if (id === "open") navigation.navigate("RecipeDetail", { recipeId: recipe.id });
+        if (id === "edit") navigation.navigate("RecipeEdit", { recipeId: recipe.id });
+        if (id === "delete") confirmDelete(recipe);
+      }}
+    ><View accessibilityRole="button" accessibilityHint="Opens recipe details; long press for more actions"><Card><Text style={styles.recipeTitle}>{recipe.title}</Text><Text numberOfLines={3} style={nativeStyles.muted}>{recipe.description}</Text><Text style={styles.meta}>{recipe.ingredients.length} ingredients · {recipe.steps.length} steps</Text></Card></View></ListInteractionRow>)}
   </ScrollView></View>;
 }
 

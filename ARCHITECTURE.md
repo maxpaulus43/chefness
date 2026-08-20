@@ -41,7 +41,12 @@ small, sanitized JSON responses.
   first visit, preserving expected tab state. Native stacks provide standard
   headers, transitions, and edge swipe-back for recipe list/detail/edit.
   Chat history, message editing, and model selection are stack-presented iOS
-  form sheets. Recipe details use React Native's `Share` API for the iOS system
+  form sheets. Recipe, cooking-history, and chat-session rows share a native
+  interaction wrapper backed by Gesture Handler swipe actions and iOS `UIMenu`
+  context menus; destructive choices return through React Native confirmation
+  alerts. The remote OpenRouter model catalog alone supports pull-to-refresh,
+  and its single selection is shown with a checkmark. Photo attachment source
+  selection uses `ActionSheetIOS`. Recipe details use React Native's `Share` API for the iOS system
   share sheet and keep clipboard export as a separate action. Chat uses
   frame-based keyboard avoidance with no hard-coded vertical offset so its
   composer follows the keyboard correctly.

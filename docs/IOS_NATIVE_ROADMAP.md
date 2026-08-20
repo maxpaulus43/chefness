@@ -146,14 +146,38 @@
 
 **Goal:** Make common actions discoverable and familiar.
 
-- [ ] Add swipe actions to recipes, cooking history, and chat sessions where appropriate.
-- [ ] Add context menus for secondary actions.
-- [ ] Use native action sheets for choices such as Camera or Photo Library.
-- [ ] Use checkmarks for single-selection lists such as model selection.
-- [ ] Add pull to refresh only where remote data can actually change.
-- [ ] Keep destructive actions clearly labeled and confirmed when necessary.
+- [x] Add swipe actions to recipes, cooking history, and chat sessions where appropriate.
+- [x] Add context menus for secondary actions.
+- [x] Use native action sheets for choices such as Camera or Photo Library.
+- [x] Use checkmarks for single-selection lists such as model selection.
+- [x] Add pull to refresh only where remote data can actually change.
+- [x] Keep destructive actions clearly labeled and confirmed when necessary.
 
 **Done when:** Lists and choices behave like standard iOS interfaces without hiding essential actions.
+
+**Manual verification checklist:**
+
+- In Recipes, History, and Chat History, swipe a row left and verify the red
+  Delete action appears; tap it and verify deletion still requires confirmation.
+- Long-press rows in those three lists and verify their native context menus
+  expose relevant open/edit/rating/note actions plus a clearly destructive
+  Delete action. Verify tapping a recipe or chat row still opens its detail
+  view and all visible inline controls still work.
+- With a vision-capable model, tap Attach Photo and verify the iOS action sheet
+  offers Take Photo, Photo Library, and Cancel; verify Cancel has no effect.
+- Open Choose Model and verify the current model has a trailing checkmark and
+  VoiceOver selected state. Pull down and verify the remote OpenRouter catalog
+  refreshes; verify local Recipes, History, and Chat History do not offer refresh.
+
+**Verification:**
+
+- Installed and launched the Release build on the iPhone 17 Pro simulator.
+  Verified a recipe row tap opens its detail screen, the row menu presents
+  Open/Edit/destructive Delete, the swipe action reveals Delete, and both delete
+  paths require the native confirmation alert.
+- Automated/build coverage: `bun test`, `bun run typecheck:native`, `bun run lint`,
+  `bunx expo-doctor`, iOS Expo export, the iOS native Release build, and the
+  retained web production build pass.
 
 #### 7. Improve typography and accessibility
 
@@ -332,3 +356,4 @@ Add one entry when an item starts or finishes.
 | 2026-08-19 | 2. Correct bottom safe-area handling | Complete | Added inset-aware native tab-bar sizing, corrected keyboard avoidance, automated inset coverage, and open/closed keyboard verification on Home-indicator and non-Home-indicator iPhones. |
 | 2026-08-19 | 3. Adopt native navigation | Complete | Replaced absolute-positioned tabs and state-swapped recipe views with React Navigation bottom tabs, native stacks and form sheets; added `chefness://` recipe, chat, and settings destinations and simulator verification. |
 | 2026-08-19 | 4. Use native sharing | Complete | Replaced the misleading clipboard-only “Copy / Share” action with the iOS system share sheet, retained a separate Copy Markdown action, and made cancellation silent and failures explicit. |
+| 2026-08-19 | 6. Adopt standard iOS list interactions | Complete | Added native swipe actions and context menus to saved-item lists, an attachment action sheet, model-selection checkmarks, remote-catalog pull-to-refresh, and confirmed destructive actions. |
