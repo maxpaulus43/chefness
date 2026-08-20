@@ -42,12 +42,25 @@
 
 **Goal:** Keep the tab bar and controls clear of the Home indicator on every supported iPhone.
 
-- [ ] Include the bottom safe-area inset in the tab bar.
-- [ ] Verify content does not hide behind the tab bar.
-- [ ] Test a Home-indicator device and an older non-Home-indicator device.
-- [ ] Test with the keyboard open and closed.
+- [x] Include the bottom safe-area inset in the tab bar.
+- [x] Verify content does not hide behind the tab bar.
+- [x] Test a Home-indicator device and an older non-Home-indicator device.
+- [x] Test with the keyboard open and closed.
 
 **Done when:** Navigation and composer controls remain fully visible and comfortable to tap on supported iPhones.
+
+**Verification:**
+
+- Home indicator: verified the signed Release build on an iPhone 12 Pro Max and
+  the iPhone 17 Pro simulator. The 62-point tab row stays above the indicator
+  while the bar background extends through the bottom inset.
+- No Home indicator: verified on the iPhone SE (3rd generation) simulator. The
+  tab bar remains 62 points tall with no extra bottom gap.
+- Keyboard: verified open and closed on both simulator device classes. The chat
+  composer remains directly above the keyboard when open, and screen content
+  ends above the complete tab bar when closed.
+- Automated coverage: `tests/native-layout.test.ts` covers representative
+  34-point and zero-point bottom insets.
 
 #### 3. Adopt native navigation
 
@@ -275,3 +288,4 @@ Add one entry when an item starts or finishes.
 | --- | --- | --- | --- |
 | 2026-04-12 | Roadmap created | Complete | Initial prioritized roadmap based on the current native implementation. |
 | 2026-08-19 | 1. Secure OpenRouter credentials | Complete | Added Keychain storage, automatic AsyncStorage migration/scrubbing, sanitized request errors, accurate settings copy, and a manual verification checklist. |
+| 2026-08-19 | 2. Correct bottom safe-area handling | Complete | Added inset-aware native tab-bar sizing, corrected keyboard avoidance, automated inset coverage, and open/closed keyboard verification on Home-indicator and non-Home-indicator iPhones. |

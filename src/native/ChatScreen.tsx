@@ -98,7 +98,7 @@ export function ChatScreen({ openSettings }: { openSettings: () => void }) {
     Alert.alert("Start a new chat?", "This conversation stays in your history.", [{ text: "Cancel", style: "cancel" }, { text: "New Chat", onPress: chat.clearChat }]);
   };
 
-  return <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} keyboardVerticalOffset={78} style={nativeStyles.screen}>
+  return <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={nativeStyles.screen}>
     <ScreenHeader title="Chefness" action={<View style={styles.headerActions}><Pressable accessibilityLabel="Chat history" onPress={() => setSessionsOpen(true)}><Ionicons name="time-outline" size={25} color={colors.espresso} /></Pressable><Pressable accessibilityLabel="New chat" onPress={newChat}><Ionicons name="add-circle-outline" size={27} color={colors.saffronDeep} /></Pressable></View>} />
     <ScrollView ref={scroll} contentContainerStyle={styles.messages} keyboardShouldPersistTaps="handled">
       {!chat.messages.length && <View style={styles.welcome}><Text style={styles.welcomeTitle}>What are we cooking?</Text><Text style={nativeStyles.muted}>Ask your personal cooking guru for ideas, recipes, substitutions, or step-by-step help.</Text>

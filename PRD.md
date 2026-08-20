@@ -1,6 +1,6 @@
 # Chefness — Product Requirements Document
 
-> **Last updated:** 2026-04-12
+> **Last updated:** 2026-08-19
 >
 > This document is the single source of truth for **product requirements**.
 > For technical architecture details, see [ARCHITECTURE.md](./ARCHITECTURE.md).
@@ -88,7 +88,10 @@ what you've cooked.**
   router in MVP — tabs swap content in-place.
 - The Chat tab is the default/home tab when the app launches.
 - Each tab preserves its scroll position when the user switches away and back.
-- The bottom nav bar is always visible (fixed to bottom of viewport).
+- The bottom nav bar is fixed to the bottom of the viewport. On iOS, its
+  62-point interactive row sits above the device bottom safe-area inset while
+  the bar background extends behind the Home indicator. When the keyboard is
+  open, the chat composer moves directly above it.
 
 ### Layout Structure
 

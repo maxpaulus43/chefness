@@ -36,6 +36,11 @@ small, sanitized JSON responses.
 
 - `src/App.native.tsx` is the native entry UI; `src/App.tsx` remains the web entry.
 - `src/native/` contains React Native presentation screens and shared controls.
+  The native app shell leaves the bottom edge to `Home`, whose tab bar adds the
+  device bottom safe-area inset beneath a fixed 62-point interactive row. The
+  content region therefore ends above the complete bar on both Home-indicator
+  and older zero-inset iPhones. Chat uses frame-based keyboard avoidance with
+  no hard-coded vertical offset so its composer follows the keyboard correctly.
 - Metro resolves `.native.ts` before `.ts`. This supplies native implementations
   of persistence (`indexed-db.native.ts`), UUID generation, and OpenRouter
   streaming without branching the shared hooks/router/domain model.
