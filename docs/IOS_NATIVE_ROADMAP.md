@@ -98,12 +98,35 @@
 
 **Goal:** Let users share recipes through the iOS share sheet.
 
-- [ ] Replace the combined “Copy / Share” behavior with a system share action.
-- [ ] Keep “Copy Markdown” as a separate action if useful.
-- [ ] Share readable recipe text with the title and recipe contents.
-- [ ] Handle cancellation and failures without false success messages.
+- [x] Replace the combined “Copy / Share” behavior with a system share action.
+- [x] Keep “Copy Markdown” as a separate action if useful.
+- [x] Share readable recipe text with the title and recipe contents.
+- [x] Handle cancellation and failures without false success messages.
 
 **Done when:** A recipe can be sent to Messages, Mail, Notes, AirDrop, and other installed share targets.
+
+**Manual verification checklist:**
+
+- Open a saved recipe on iPhone, tap Share, and verify the iOS share sheet opens
+  with the recipe title, description, ingredients, and numbered steps.
+- Send the recipe to Messages, Mail, and Notes; verify the readable text arrives
+  intact. Verify AirDrop and any other installed targets are available when the
+  receiving device or app is eligible.
+- Dismiss the share sheet and verify Chefness shows no success or error message.
+- Force a share failure and verify Chefness shows only the “Unable to share”
+  error. Tap Copy Markdown and verify “Copied” appears only after a successful
+  clipboard write.
+
+**Verification:**
+
+- User verified the native share flow on iPhone.
+- A signed Release build was installed and launched on an iPhone 12 Pro Max.
+- On the iPhone 17 Pro simulator, the Share action opened the iOS system share
+  sheet with installed targets, dismissal returned silently, and Copy Markdown
+  produced the complete title, description, ingredient list, and numbered steps.
+- Automated/build coverage: `bun test`, `bun run typecheck:native`, `bun run lint`,
+  `bunx expo-doctor`, iOS Expo export, signed Release builds, and the retained
+  web production build all pass.
 
 #### 5. Add intentional haptic feedback
 
@@ -308,3 +331,4 @@ Add one entry when an item starts or finishes.
 | 2026-08-19 | 1. Secure OpenRouter credentials | Complete | Added Keychain storage, automatic AsyncStorage migration/scrubbing, sanitized request errors, accurate settings copy, and a manual verification checklist. |
 | 2026-08-19 | 2. Correct bottom safe-area handling | Complete | Added inset-aware native tab-bar sizing, corrected keyboard avoidance, automated inset coverage, and open/closed keyboard verification on Home-indicator and non-Home-indicator iPhones. |
 | 2026-08-19 | 3. Adopt native navigation | Complete | Replaced absolute-positioned tabs and state-swapped recipe views with React Navigation bottom tabs, native stacks and form sheets; added `chefness://` recipe, chat, and settings destinations and simulator verification. |
+| 2026-08-19 | 4. Use native sharing | Complete | Replaced the misleading clipboard-only “Copy / Share” action with the iOS system share sheet, retained a separate Copy Markdown action, and made cancellation silent and failures explicit. |

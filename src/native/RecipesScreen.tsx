@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Alert, Pressable, ScrollView, Share, StyleSheet, Text, View } from "react-native";
 import * as Clipboard from "expo-clipboard";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useRecipes } from "@/hooks/useRecipes";
@@ -31,10 +31,27 @@ export function RecipeDetailScreen({ route, navigation }: NativeStackScreenProps
   useEffect(() => { if (recipe) navigation.setOptions({ title: recipe.title }); }, [navigation, recipe]);
   if (isLoading) return <View style={nativeStyles.screen}><Loading /></View>;
   if (!recipe) return <View style={nativeStyles.screen}><Empty title="Recipe not found" body="It may have been deleted from this device." /></View>;
-  const share = async () => { await Clipboard.setStringAsync(recipeToMarkdown(recipe)); Alert.alert("Copied", "Recipe copied as Markdown."); };
+  const shareRecipe = async () => {
+    try {
+      await Share.share(
+        { title: recipe.title, message: recipeToMarkdown(recipe) },
+        { subject: recipe.title },
+      );
+    } catch {
+      Alert.alert("Unable to share", "The recipe could not be shared. Please try again.");
+    }
+  };
+  const copyMarkdown = async () => {
+    try {
+      await Clipboard.setStringAsync(recipeToMarkdown(recipe));
+      Alert.alert("Copied", "Recipe copied as Markdown.");
+    } catch {
+      Alert.alert("Unable to copy", "The recipe could not be copied. Please try again.");
+    }
+  };
   const confirmDelete = () => Alert.alert("Delete recipe?", recipe.title, [{ text: "Cancel", style: "cancel" }, { text: "Delete", style: "destructive", onPress: () => { deleteRecipe(recipe.id); navigation.popToTop(); } }]);
   return <View style={nativeStyles.screen}><ScrollView contentContainerStyle={nativeStyles.scroll}>
-    <Text style={styles.detailTitle}>{recipe.title}</Text><Text style={styles.description}>{recipe.description}</Text><View style={nativeStyles.row}><Button label="Edit" variant="secondary" onPress={() => navigation.navigate("RecipeEdit", { recipeId: recipe.id })} /><Button label="Copy / Share" variant="secondary" onPress={() => void share()} /><Button label="Delete" variant="danger" onPress={confirmDelete} /></View>
+    <Text style={styles.detailTitle}>{recipe.title}</Text><Text style={styles.description}>{recipe.description}</Text><View style={nativeStyles.row}><Button label="Edit" variant="secondary" onPress={() => navigation.navigate("RecipeEdit", { recipeId: recipe.id })} /><Button label="Share" variant="secondary" onPress={() => void shareRecipe()} /><Button label="Copy Markdown" variant="secondary" onPress={() => void copyMarkdown()} /><Button label="Delete" variant="danger" onPress={confirmDelete} /></View>
     <Card><Text style={nativeStyles.sectionTitle}>Edit with AI</Text><Text style={nativeStyles.muted}>Describe a change, preview the complete updated recipe, then apply it.</Text><Field value={instruction} onChangeText={setInstruction} multiline placeholder="Make it vegetarian and reduce prep time…" /><Button disabled={ai.status === "generating"} label={ai.status === "generating" ? "Generating…" : "Generate Preview"} onPress={() => void ai.generateEdit(recipe, instruction)} />{ai.error && <Text style={nativeStyles.error}>{ai.error}</Text>}{ai.draftRecipe && <View style={styles.preview}><Text style={styles.recipeTitle}>{ai.draftRecipe.title}</Text><Text style={nativeStyles.muted}>{ai.draftRecipe.description}</Text><Text style={nativeStyles.label}>{ai.draftRecipe.ingredients.length} ingredients · {ai.draftRecipe.steps.length} steps</Text><Button label={ai.status === "applying" ? "Applying…" : "Apply AI Edit"} disabled={ai.status === "applying"} onPress={() => void ai.applyEdit(recipe.id)} /></View>}</Card>
     <Text style={nativeStyles.sectionTitle}>Ingredients</Text>{recipe.ingredients.map((item, index) => <View key={`${item}-${index}`} style={styles.line}><Text style={styles.bullet}>•</Text><Text style={styles.lineText}>{item}</Text></View>)}
     <Text style={nativeStyles.sectionTitle}>Steps</Text>{recipe.steps.map((item, index) => <View key={`${item}-${index}`} style={styles.line}><Text style={styles.step}>{index + 1}</Text><Text style={styles.lineText}>{item}</Text></View>)}

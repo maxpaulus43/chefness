@@ -372,23 +372,26 @@ success or a clear extraction error in chat.
 
 #### Description
 
-Users can copy a saved recipe to the clipboard as formatted Markdown text.
+Users can share a saved recipe as readable text. On iOS, Share opens the system
+share sheet; Copy Markdown remains a separate action. The retained web app copies
+formatted Markdown to the clipboard.
 
 #### User Stories
 
 | ID | Story |
 | --- | --- |
-| **SH-1** | As a user, I can tap a "Share" or "Copy" button on a saved recipe to copy it to my clipboard as Markdown. |
-| **SH-2** | As a user, I see a brief confirmation (e.g., "Copied!") after the copy action. |
+| **SH-1** | As an iOS user, I can send a saved recipe to Messages, Mail, Notes, AirDrop, or another installed share target through the system share sheet. |
+| **SH-2** | As a user, I can separately copy a saved recipe to my clipboard as Markdown and see confirmation only after the copy succeeds. |
 
 #### Acceptance Criteria
 
-- [x] The share button is available on the recipe detail view.
-- [x] The Markdown output includes: title (as `#`), description, ingredients
-      (as bullet list), steps (as numbered list).
-- [x] Uses the platform clipboard (`expo-clipboard` on native and
-      `navigator.clipboard.writeText` on web).
-- [x] Graceful fallback or error message if clipboard access is unavailable.
+- [x] The iOS recipe detail view has separate “Share” and “Copy Markdown” actions.
+- [x] The shared or copied text includes the title, description, ingredients as
+      bullets, and steps as a numbered list.
+- [x] iOS Share uses React Native's system `Share` API; clipboard export uses
+      `expo-clipboard` on native and `navigator.clipboard.writeText` on web.
+- [x] Cancelling the iOS share sheet is silent, and share or clipboard failures
+      show an error without a false success message.
 
 ### 5.3 Cooking Log & History
 
@@ -673,7 +676,7 @@ A clear checklist of everything included in v1:
 - [x] **Recipe List View** — scrollable card list in Recipes tab with empty/loading states
 - [x] **Recipe Detail View** — kitchen-friendly full recipe display (large text, ingredients bullet list, numbered steps)
 - [x] **Recipe Edit & Delete** — edit form with pre-populated fields, delete with confirmation
-- [x] **Share Recipe as Markdown** — copy-to-clipboard with `navigator.clipboard.writeText`
+- [x] **Share Recipe** — iOS system share sheet plus separate Markdown clipboard export
 
 ### ✅ Phase 3 (Complete)
 
@@ -704,13 +707,13 @@ Each phase builds on the previous one.
 
 All 5 Phase 2 items have been implemented. Recipe saving uses user-triggered LLM
 extraction via native tool calling. The Recipes tab now provides full list, detail,
-edit, and delete flows plus copy-to-clipboard sharing.
+edit, and delete flows plus the iOS system share sheet and Markdown clipboard export.
 
 1. ~~**Save Recipe from Chat** (§5.1) — Recipe detection, parsing, save action~~
 2. ~~**Recipe List View** — Browse saved recipes in the Recipes tab~~
 3. ~~**Recipe Detail View** — Full recipe display with kitchen-friendly layout~~
 4. ~~**Recipe Edit & Delete** — Modify or remove saved recipes~~
-5. ~~**Share Recipe as Markdown** (§5.2) — Copy to clipboard~~
+5. ~~**Share Recipe** (§5.2) — iOS system share sheet and separate Markdown copy~~
 
 ### Phase 3 — Cooking History ✅ Complete
 
@@ -824,7 +827,7 @@ now fully functional with save, list, detail, edit, delete, and share flows.
 | Recipe detail view | `src/components/RecipeDetailView.tsx` | ✅ Kitchen-friendly full recipe display: large text, ingredients as bullet list, numbered steps, back/edit/delete/copy buttons. |
 | Recipe edit view | `src/components/RecipeEditView.tsx` | ✅ Edit form with pre-populated fields (title, description, ingredients, steps as textareas). |
 | Recipe tab navigation | `src/components/HomePage.tsx` | ✅ Added `selectedRecipeId` + `recipeViewMode` state for list/detail/edit navigation within the Recipes tab. |
-| Share as Markdown | `src/lib/recipe-markdown.ts` | ✅ Pure function `recipeToMarkdown(recipe)` — converts Recipe to Markdown text. |
+| Recipe sharing | `src/native/RecipesScreen.tsx`, `src/lib/recipe-markdown.ts` | ✅ iOS system share sheet with readable recipe text plus a separate Markdown clipboard action. |
 | Clipboard hook | `src/hooks/useClipboard.ts` | ✅ Reusable hook: `copyToClipboard`, `copied` (2s timer), `error`. |
 | UUID generation | `src/lib/uuid.ts` | ✅ `generateUUID()` with `crypto.randomUUID()` fallback for older iOS Safari. |
 | Async mutations | `src/hooks/useRecipes.ts` | ✅ Added `createRecipeAsync`, `updateRecipeAsync` (via `mutateAsync`) + `onError` callbacks. |

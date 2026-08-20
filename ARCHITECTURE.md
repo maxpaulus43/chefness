@@ -41,8 +41,10 @@ small, sanitized JSON responses.
   first visit, preserving expected tab state. Native stacks provide standard
   headers, transitions, and edge swipe-back for recipe list/detail/edit.
   Chat history, message editing, and model selection are stack-presented iOS
-  form sheets. Chat uses frame-based keyboard avoidance with no hard-coded
-  vertical offset so its composer follows the keyboard correctly.
+  form sheets. Recipe details use React Native's `Share` API for the iOS system
+  share sheet and keep clipboard export as a separate action. Chat uses
+  frame-based keyboard avoidance with no hard-coded vertical offset so its
+  composer follows the keyboard correctly.
 - `src/native/navigation-routes.ts` is the typed route/deep-link contract.
   The `chefness://` scheme resolves recipe IDs, chat-session IDs, history,
   settings, and model selection to nested tab/stack destinations. The retained
