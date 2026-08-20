@@ -3,6 +3,7 @@ import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import {
   AccessibilityInfo,
   Alert,
+  FlatList,
   Modal,
   Pressable,
   RefreshControl,
@@ -370,13 +371,9 @@ export function ModelSelectionScreen({
   const [query, setQuery] = useState("");
   const filtered = useMemo(
     () =>
-      catalog.models
-        .filter((model) =>
-          `${model.name} ${model.id}`
-            .toLowerCase()
-            .includes(query.toLowerCase()),
-        )
-        .slice(0, 150),
+      catalog.models.filter((model) =>
+        `${model.name} ${model.id}`.toLowerCase().includes(query.toLowerCase()),
+      ),
     [catalog.models, query],
   );
   return (
@@ -408,8 +405,15 @@ export function ModelSelectionScreen({
       {catalog.isLoading && catalog.totalModelCount === 0 ? (
         <Loading />
       ) : (
-        <ScrollView
+        <FlatList
+          data={filtered}
+          initialNumToRender={10}
+          maxToRenderPerBatch={10}
+          windowSize={7}
+          keyExtractor={(model) => model.id}
           contentContainerStyle={nativeStyles.scroll}
+          keyboardDismissMode="interactive"
+          keyboardShouldPersistTaps="handled"
           refreshControl={
             <RefreshControl
               refreshing={catalog.isLoading}
@@ -417,8 +421,7 @@ export function ModelSelectionScreen({
               tintColor={colors.saffronDeep}
             />
           }
-        >
-          {filtered.map((model) => {
+          renderItem={({ item: model }) => {
             const selected = model.id === settings.effectiveModel;
             return (
               <Pressable
@@ -426,7 +429,6 @@ export function ModelSelectionScreen({
                 accessibilityLabel={`${model.name}, ${model.id}${selected ? ", selected" : ""}`}
                 accessibilityHint="Selects this model and closes the sheet"
                 accessibilityState={{ selected }}
-                key={model.id}
                 style={[styles.model, selected && styles.selectedModel]}
                 onPress={() => {
                   settings.updateSettings({ llmModel: model.id });
@@ -447,8 +449,8 @@ export function ModelSelectionScreen({
                 )}
               </Pressable>
             );
-          })}
-        </ScrollView>
+          }}
+        />
       )}
     </View>
   );

@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Alert, Pressable, ScrollView, Text, View } from "react-native";
+import { Alert, FlatList, Pressable, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { NavigationContainer } from "@react-navigation/native";
 import {
@@ -162,13 +162,18 @@ function ChatHistorySheet({
     ]);
   return (
     <View style={nativeStyles.screen}>
-      <ScrollView contentContainerStyle={nativeStyles.scroll}>
-        {sessions.length === 0 && (
+      <FlatList
+        data={sessions}
+        initialNumToRender={10}
+        maxToRenderPerBatch={8}
+        windowSize={7}
+        keyExtractor={(session) => session.id}
+        contentContainerStyle={nativeStyles.scroll}
+        ListEmptyComponent={
           <Text style={nativeStyles.muted}>No saved conversations yet.</Text>
-        )}
-        {sessions.map((session) => (
+        }
+        renderItem={({ item: session }) => (
           <ListInteractionRow
-            key={session.id}
             menuActions={[
               {
                 id: "open",
@@ -208,8 +213,8 @@ function ChatHistorySheet({
               </Text>
             </View>
           </ListInteractionRow>
-        ))}
-      </ScrollView>
+        )}
+      />
     </View>
   );
 }

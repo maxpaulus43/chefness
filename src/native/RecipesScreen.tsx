@@ -1,5 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
-import { Alert, ScrollView, Share, StyleSheet, Text, View } from "react-native";
+import {
+  Alert,
+  FlatList,
+  ScrollView,
+  Share,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useRecipes } from "@/hooks/useRecipes";
 import { useCookingLog } from "@/hooks/useCookingLog";
@@ -42,51 +50,58 @@ export function RecipeListScreen({
     );
   return (
     <View style={nativeStyles.screen}>
-      <ScrollView
+      <FlatList
+        data={search.visibleRecipes}
+        initialNumToRender={8}
+        maxToRenderPerBatch={8}
+        windowSize={7}
+        keyExtractor={(recipe) => recipe.id}
         contentContainerStyle={nativeStyles.scroll}
+        keyboardDismissMode="interactive"
         keyboardShouldPersistTaps="handled"
-      >
-        {recipes.length > 0 && (
-          <>
-            <Field
-              value={search.searchQuery}
-              onChangeText={search.setSearchQuery}
-              placeholder="Search recipes and ingredients…"
-            />
-            <View style={nativeStyles.row}>
-              <Chip
-                label="Newest"
-                selected={search.sortOption === "newest"}
-                onPress={() => search.setSortOption("newest")}
+        ListHeaderComponent={
+          recipes.length > 0 ? (
+            <View style={styles.listControls}>
+              <Field
+                value={search.searchQuery}
+                onChangeText={search.setSearchQuery}
+                placeholder="Search recipes and ingredients…"
               />
-              <Chip
-                label="Oldest"
-                selected={search.sortOption === "oldest"}
-                onPress={() => search.setSortOption("oldest")}
-              />
-              <Chip
-                label="A–Z"
-                selected={search.sortOption === "title-asc"}
-                onPress={() => search.setSortOption("title-asc")}
-              />
+              <View style={nativeStyles.row}>
+                <Chip
+                  label="Newest"
+                  selected={search.sortOption === "newest"}
+                  onPress={() => search.setSortOption("newest")}
+                />
+                <Chip
+                  label="Oldest"
+                  selected={search.sortOption === "oldest"}
+                  onPress={() => search.setSortOption("oldest")}
+                />
+                <Chip
+                  label="A–Z"
+                  selected={search.sortOption === "title-asc"}
+                  onPress={() => search.setSortOption("title-asc")}
+                />
+              </View>
             </View>
-          </>
-        )}
-        {recipes.length === 0 && (
-          <Empty
-            title="No saved recipes yet"
-            body="Chat with your cooking guru and save recipes you like!"
-          />
-        )}
-        {recipes.length > 0 && search.visibleRecipes.length === 0 && (
-          <Empty
-            title="No matching recipes"
-            body="Try another title, description, or ingredient."
-          />
-        )}
-        {search.visibleRecipes.map((recipe) => (
+          ) : null
+        }
+        ListEmptyComponent={
+          recipes.length === 0 ? (
+            <Empty
+              title="No saved recipes yet"
+              body="Chat with your cooking guru and save recipes you like!"
+            />
+          ) : (
+            <Empty
+              title="No matching recipes"
+              body="Try another title, description, or ingredient."
+            />
+          )
+        }
+        renderItem={({ item: recipe }) => (
           <ListInteractionRow
-            key={recipe.id}
             menuActions={[
               { id: "open", title: "Open", image: "book" },
               { id: "edit", title: "Edit", image: "pencil" },
@@ -125,8 +140,8 @@ export function RecipeListScreen({
               </Card>
             </View>
           </ListInteractionRow>
-        ))}
-      </ScrollView>
+        )}
+      />
     </View>
   );
 }
@@ -470,6 +485,7 @@ function lines(value: string) {
     .filter(Boolean);
 }
 const styles = StyleSheet.create({
+  listControls: { gap: 12 },
   recipeTitle: {
     fontSize: 19,
     color: colors.espresso,

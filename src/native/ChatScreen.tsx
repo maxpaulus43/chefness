@@ -3,26 +3,29 @@ import {
   AccessibilityInfo,
   ActionSheetIOS,
   Alert,
+  FlatList,
   Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { Ionicons } from "@expo/vector-icons";
 import { useHeaderHeight } from "@react-navigation/elements";
 import Markdown from "react-native-markdown-display";
-import { useChat } from "@/hooks/useChat";
+import { useChat, type ChatMessage } from "@/hooks/useChat";
 import { useRecipes } from "@/hooks/useRecipes";
 import { useAiPreferences } from "@/hooks/useAiPreferences";
 import { useSettings } from "@/hooks/useSettings";
 import { extractRecipeFromConversation } from "@/lib/recipe-extractor";
 import { extractPreference } from "@/lib/preference-extractor";
 import { useAccessibilityPreferences } from "@/native/accessibility";
+import { isNearChatBottom } from "@/native/chat-scroll";
 import { nativeColors as colors, nativeFonts } from "@/native/theme";
 import { Button, Chip, Field, nativeStyles } from "@/native/ui";
 
@@ -49,14 +52,31 @@ export function ChatScreen({
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editDraft, setEditDraft] = useState("");
   const [busyAction, setBusyAction] = useState<string | null>(null);
-  const scroll = useRef<ScrollView>(null);
+  const list = useRef<FlatList<ChatMessage>>(null);
+  const shouldAutoScroll = useRef(true);
+  const hasUserScrolled = useRef(false);
   const wasStreaming = useRef(chat.isStreaming);
   const { reduceTransparency } = useAccessibilityPreferences();
   const headerHeight = useHeaderHeight();
 
+  const updateAutoScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    if (!hasUserScrolled.current) return;
+    const { contentSize, layoutMeasurement, contentOffset } = event.nativeEvent;
+    shouldAutoScroll.current = isNearChatBottom(
+      contentSize.height,
+      layoutMeasurement.height,
+      contentOffset.y,
+    );
+  };
+
   useEffect(() => {
-    scroll.current?.scrollToEnd({ animated: true });
-  }, [chat.messages]);
+    hasUserScrolled.current = false;
+    shouldAutoScroll.current = true;
+    requestAnimationFrame(() => {
+      list.current?.scrollToEnd({ animated: false });
+    });
+  }, [chat.currentSessionId]);
+
   useEffect(() => {
     if (
       wasStreaming.current &&
@@ -186,67 +206,87 @@ export function ChatScreen({
       keyboardVerticalOffset={headerHeight}
       style={nativeStyles.screen}
     >
-      <ScrollView
-        ref={scroll}
+      <FlatList
+        ref={list}
+        data={chat.messages}
+        initialNumToRender={10}
+        maxToRenderPerBatch={8}
+        windowSize={7}
+        keyExtractor={(_message, index) => String(index)}
         contentContainerStyle={styles.messages}
+        keyboardDismissMode="interactive"
         keyboardShouldPersistTaps="handled"
         scrollsToTop={false}
-      >
-        {!chat.messages.length && (
-          <View style={styles.welcome}>
-            <Text style={styles.welcomeTitle}>What are we cooking?</Text>
-            <Text style={nativeStyles.muted}>
-              Ask your personal cooking guru for ideas, recipes, substitutions,
-              or step-by-step help.
-            </Text>
-            <Text style={nativeStyles.label}>Meal type</Text>
-            <View style={nativeStyles.row}>
-              {mealTypes.map((item) => (
-                <Chip
-                  key={item}
-                  label={item}
-                  selected={chat.mealType === item}
-                  onPress={() => chat.setMealType(item)}
-                />
-              ))}
-            </View>
-            <Text style={nativeStyles.label}>Cooking for</Text>
-            <View style={nativeStyles.row}>
-              {mealSizes.map((item) => (
-                <Chip
-                  key={item}
-                  label={item === "6+" ? "6+ people" : item}
-                  selected={chat.mealSize === item}
-                  onPress={() => chat.setMealSize(item)}
-                />
-              ))}
-            </View>
-            {prompts.map((prompt) => (
+        scrollEventThrottle={16}
+        onScroll={updateAutoScroll}
+        onScrollBeginDrag={() => {
+          hasUserScrolled.current = true;
+          shouldAutoScroll.current = false;
+        }}
+        onContentSizeChange={() => {
+          if (shouldAutoScroll.current) {
+            list.current?.scrollToEnd({ animated: !chat.isStreaming });
+          }
+        }}
+        ListHeaderComponent={
+          <>
+            {!chat.messages.length && (
+              <View style={styles.welcome}>
+                <Text style={styles.welcomeTitle}>What are we cooking?</Text>
+                <Text style={nativeStyles.muted}>
+                  Ask your personal cooking guru for ideas, recipes,
+                  substitutions, or step-by-step help.
+                </Text>
+                <Text style={nativeStyles.label}>Meal type</Text>
+                <View style={nativeStyles.row}>
+                  {mealTypes.map((item) => (
+                    <Chip
+                      key={item}
+                      label={item}
+                      selected={chat.mealType === item}
+                      onPress={() => chat.setMealType(item)}
+                    />
+                  ))}
+                </View>
+                <Text style={nativeStyles.label}>Cooking for</Text>
+                <View style={nativeStyles.row}>
+                  {mealSizes.map((item) => (
+                    <Chip
+                      key={item}
+                      label={item === "6+" ? "6+ people" : item}
+                      selected={chat.mealSize === item}
+                      onPress={() => chat.setMealSize(item)}
+                    />
+                  ))}
+                </View>
+                {prompts.map((prompt) => (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityHint="Fills the message field with this suggestion"
+                    key={prompt}
+                    style={styles.prompt}
+                    onPress={() => setText(prompt)}
+                  >
+                    <Text style={styles.promptText}>{prompt}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            )}
+            {!chat.isConfigured && (
               <Pressable
                 accessibilityRole="button"
-                accessibilityHint="Fills the message field with this suggestion"
-                key={prompt}
-                style={styles.prompt}
-                onPress={() => setText(prompt)}
+                accessibilityHint="Opens OpenRouter connection settings"
+                onPress={openSettings}
+                style={styles.setup}
               >
-                <Text style={styles.promptText}>{prompt}</Text>
+                <Text style={styles.setupText}>
+                  Connect OpenRouter in Settings to start chatting →
+                </Text>
               </Pressable>
-            ))}
-          </View>
-        )}
-        {!chat.isConfigured && (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityHint="Opens OpenRouter connection settings"
-            onPress={openSettings}
-            style={styles.setup}
-          >
-            <Text style={styles.setupText}>
-              Connect OpenRouter in Settings to start chatting →
-            </Text>
-          </Pressable>
-        )}
-        {chat.messages.map((message, index) => (
+            )}
+          </>
+        }
+        renderItem={({ item: message, index }) => (
           <View
             key={`${message.role}-${index}`}
             style={[
@@ -360,18 +400,20 @@ export function ChatScreen({
               </View>
             ) : null}
           </View>
-        ))}
-        {chat.error && (
-          <View accessibilityLiveRegion="assertive" style={styles.errorBox}>
-            <Text style={nativeStyles.error}>{chat.error}</Text>
-            <Button
-              label="Retry"
-              variant="secondary"
-              onPress={retryLastMessage}
-            />
-          </View>
         )}
-      </ScrollView>
+        ListFooterComponent={
+          chat.error ? (
+            <View accessibilityLiveRegion="assertive" style={styles.errorBox}>
+              <Text style={nativeStyles.error}>{chat.error}</Text>
+              <Button
+                label="Retry"
+                variant="secondary"
+                onPress={retryLastMessage}
+              />
+            </View>
+          ) : null
+        }
+      />
       {image ? (
         <View style={styles.preview}>
           <Image

@@ -166,7 +166,9 @@ the user refreshes or closes the app.
       is active, focus the input; when a conversation exists, show the input
       at the bottom).
 - [ ] The chat auto-scrolls to the latest message as the AI streams a
-      response.
+      response while the user is at the bottom. Dragging upward pauses
+      autoscroll so older messages remain readable during streaming; returning
+      to the bottom resumes autoscroll.
 - [x] The image attachment control appears only when the selected OpenRouter
       model supports image input.
 - [x] The attachment control opens the device image chooser, allowing users to
@@ -768,6 +770,7 @@ retaining the existing PWA target. Its saved-item lists use native swipe actions
 and context menus, photo source selection uses an iOS action sheet, and remote
 model selection uses checkmarks and pull-to-refresh. Chat and streaming, OpenRouter OAuth/model
 selection, camera or photo-library attachments, persisted session history,
+virtualized long collections with user-controlled streaming chat autoscroll,
 recipe import/save/search/detail/edit/delete/share and AI edits, cooking history,
 dietary restrictions, and AI memory all use native screens and controls.
 

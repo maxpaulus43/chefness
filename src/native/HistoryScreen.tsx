@@ -1,8 +1,8 @@
 import { useState } from "react";
 import {
   Alert,
+  FlatList,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -42,15 +42,23 @@ export function HistoryScreen() {
     ]);
   return (
     <View style={nativeStyles.screen}>
-      <ScrollView contentContainerStyle={nativeStyles.scroll}>
-        {entries.length === 0 && (
+      <FlatList
+        data={entries}
+        initialNumToRender={8}
+        maxToRenderPerBatch={8}
+        windowSize={7}
+        keyExtractor={(entry) => entry.id}
+        contentContainerStyle={nativeStyles.scroll}
+        keyboardDismissMode="interactive"
+        keyboardShouldPersistTaps="handled"
+        ListEmptyComponent={
           <Empty
             title="No cooking history yet"
             body="Chat with your guru, cook something great, and log it here!"
           />
-        )}
-        {entries.map((entry) => (
-          <SwipeActionRow key={entry.id} onDelete={() => confirmDelete(entry)}>
+        }
+        renderItem={({ item: entry }) => (
+          <SwipeActionRow onDelete={() => confirmDelete(entry)}>
             <Card>
               <View style={styles.top}>
                 <LongPressMenu
@@ -224,8 +232,8 @@ export function HistoryScreen() {
               </View>
             </Card>
           </SwipeActionRow>
-        ))}
-      </ScrollView>
+        )}
+      />
     </View>
   );
 }

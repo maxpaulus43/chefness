@@ -43,8 +43,12 @@ small, sanitized JSON responses.
   headers, transitions, and edge swipe-back for recipe list/detail/edit.
   Chat history and model selection are stack-presented iOS form sheets. Chat
   messages are edited inline in their bubbles before regeneration, matching
-  cooking-history note editing. Recipe, cooking-history, and chat-session rows
-  share a native interaction wrapper backed by Gesture Handler swipe actions and iOS `UIMenu`
+  cooking-history note editing. Chat messages, recipes, cooking history, chat
+  sessions, and the OpenRouter model catalog use native virtualized lists. Chat
+  follows streaming text only while the user is near the bottom; dragging upward
+  pauses autoscroll immediately, and returning to the bottom resumes it. Recipe,
+  cooking-history, and chat-session rows share a native interaction wrapper
+  backed by Gesture Handler swipe actions and iOS `UIMenu`
   context menus; each row also exposes the same menu from a lower-right ellipsis
   button, and destructive choices return through React Native confirmation alerts.
   The remote OpenRouter model catalog alone supports pull-to-refresh,

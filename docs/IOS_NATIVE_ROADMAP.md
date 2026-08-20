@@ -199,13 +199,31 @@
 
 **Goal:** Keep performance smooth as user data grows.
 
-- [ ] Replace message history `ScrollView` rendering with `FlatList` or another suitable virtualized list.
-- [ ] Virtualize recipes, cooking history, chat sessions, and the model catalog.
-- [ ] Preserve empty, loading, and error states.
-- [ ] Preserve reliable chat auto-scroll during streaming.
+- [x] Replace message history `ScrollView` rendering with `FlatList` or another suitable virtualized list.
+- [x] Virtualize recipes, cooking history, chat sessions, and the model catalog.
+- [x] Preserve empty, loading, and error states.
+- [x] Preserve reliable chat auto-scroll during streaming.
 - [ ] Verify keyboard and accessibility behavior.
 
+**Status:** In progress pending manual iPhone verification.
+
 **Done when:** Long collections scroll smoothly without rendering every item at once.
+
+**Manual verification checklist:**
+
+- Open a long chat and start a response long enough to stream for several
+  seconds. While it streams at the bottom, verify the latest text remains in
+  view without jumpy animated scrolling.
+- While that response is still streaming, drag upward and stop well above the
+  bottom. Verify incoming text does not pull the conversation back down and the
+  older messages remain scrollable.
+- Scroll back to the bottom before streaming finishes. Verify autoscroll resumes
+  and follows the remaining text.
+- Repeat with the keyboard open and closed. Verify interactive keyboard dismissal,
+  composer placement, taps, and VoiceOver reading/order still work.
+- Populate long Recipes, History, Chat History, and model lists. Verify smooth
+  scrolling plus search/filter, swipe actions, context menus, empty states,
+  model selection, and model pull-to-refresh.
 
 #### 9. Decide and implement the iPad experience
 
@@ -357,3 +375,4 @@ Add one entry when an item starts or finishes.
 | 2026-08-19 | 3. Adopt native navigation | Complete | Replaced absolute-positioned tabs and state-swapped recipe views with React Navigation bottom tabs, native stacks and form sheets; added `chefness://` recipe, chat, and settings destinations and simulator verification. |
 | 2026-08-19 | 4. Use native sharing | Complete | Replaced the misleading clipboard-only “Copy / Share” action with the iOS system share sheet, retained a separate Copy Markdown action, and made cancellation silent and failures explicit. |
 | 2026-08-19 | 6. Adopt standard iOS list interactions | Complete | Added native swipe actions and context menus to saved-item lists, an attachment action sheet, model-selection checkmarks, remote-catalog pull-to-refresh, and confirmed destructive actions. |
+| 2026-08-20 | 8. Virtualize long collections | In progress | Replaced chat, recipe, history, chat-session, and model collection rendering with `FlatList`. Streaming chat now pauses autoscroll as soon as the user drags upward and resumes when they return near the bottom. Automated/build checks pass; awaiting manual iPhone verification. |
