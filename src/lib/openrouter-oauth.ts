@@ -91,10 +91,9 @@ export async function exchangeCodeForKey(
   });
 
   if (!response.ok) {
-    const text = await response.text().catch(() => "");
-    throw new Error(
-      `OpenRouter key exchange failed (${response.status}): ${text || response.statusText}`,
-    );
+    // Do not include the provider response body: it is untrusted and could
+    // echo authorization material into UI errors or logs.
+    throw new Error(`OpenRouter key exchange failed (${response.status}).`);
   }
 
   const data: unknown = await response.json();

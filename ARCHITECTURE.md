@@ -43,7 +43,10 @@ small, sanitized JSON responses.
 - Native OpenRouter connection uses OpenRouter's documented no-callback PKCE
   flow: S256 authorization opens in a secure browser sheet, the user copies the
   one-time code back into Chefness, and the app exchanges it locally for the key.
-  The PWA retains its normal HTTP callback flow.
+  `settings.native.ts` persists that key in iOS Keychain through
+  `expo-secure-store`; it automatically migrates and scrubs the former
+  AsyncStorage settings field. The PWA retains its normal HTTP callback flow
+  and IndexedDB-backed credential storage.
 - The local config plugin `plugins/with-ios-scene-lifecycle.cjs` adds the scene
   lifecycle required by the iOS 27 SDK during prebuild.
 - The generated `ios/` directory is ignored; run `bunx expo prebuild --platform ios`
@@ -284,8 +287,12 @@ The repository is responsible for generating `id`, `createdAt`, and `updatedAt`
 inside `buildEntity` — the tRPC router just passes user input through.
 
 Native and web records are intentionally device-local and are not synchronized.
-Secrets such as the OpenRouter OAuth key remain in the settings record on that
-device, matching the existing single-user product requirement.
+On iOS, non-secret settings remain in AsyncStorage while the OpenRouter OAuth key
+is stored separately in iOS Keychain by the native settings repository. Repository
+reads hydrate the key in memory for existing hooks, while writes strip it from the
+AsyncStorage record. The repository performs an idempotent one-time migration of
+legacy plaintext keys before any settings operation. The web target continues to
+store its credential in the IndexedDB settings record.
 
 ### How to swap to a real backend
 

@@ -187,8 +187,8 @@ conversational.
 #### Description
 
 The user connects an OpenRouter account through OAuth and selects an OpenRouter
-model in Settings. OpenRouter is the sole LLM inference provider. The OAuth key
-is stored on-device.
+model in Settings. OpenRouter is the sole LLM inference provider. On iOS, the
+OAuth key is stored in iOS Keychain; non-secret settings remain in AsyncStorage.
 
 #### User Stories
 
@@ -204,7 +204,8 @@ is stored on-device.
 
 - [x] OpenRouter connection uses OAuth PKCE.
 - [x] Model selection is limited to OpenRouter models.
-- [x] The OAuth key is stored through the existing settings storage layer.
+- [x] On iOS, the OAuth key is stored in iOS Keychain through
+      `expo-secure-store`; legacy AsyncStorage keys are migrated and scrubbed.
 - [x] The OAuth key is **never** logged to the console or included in error
       reports.
 - [x] Settings persist across app restarts.
@@ -221,10 +222,12 @@ is stored on-device.
 
 | Key | Value |
 | --- | --- |
-| `chefness:settings` | Settings singleton containing `llmModel` and `openRouterOAuthKey` |
+| `chefness:settings` | Non-secret settings singleton. On web, it also contains `openRouterOAuthKey`. |
+| `chefness.openrouter-oauth-key` | iOS Keychain entry containing the OpenRouter OAuth key. |
 
 Legacy `llmProvider` and `llmApiKey` fields remain parseable for existing
-records but are ignored at runtime.
+records but are ignored at runtime. Existing iOS `openRouterOAuthKey` values are
+migrated from AsyncStorage into Keychain and removed from the settings record.
 
 ### 4.3 Settings Page (MVP Scope)
 
@@ -749,8 +752,9 @@ recipe import/save/search/detail/edit/delete/share and AI edits, cooking history
 dietary restrictions, and AI memory all use native screens and controls.
 
 Shared hooks, Zod schemas, the local tRPC router, and domain helpers remain the
-single business-logic implementation. Native records use AsyncStorage; web
-records use IndexedDB. Expo platform extension resolution selects native
+single business-logic implementation. Native non-secret records use
+AsyncStorage, the OpenRouter OAuth key uses iOS Keychain, and web records use
+IndexedDB. Expo platform extension resolution selects native settings,
 persistence, UUID, and OpenRouter streaming implementations. The app uses the
 documented no-callback S256 PKCE flow on native (copying OpenRouter's one-time
 authorization code back into the app) and an iOS scene lifecycle config plugin

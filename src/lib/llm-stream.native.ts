@@ -15,7 +15,7 @@ function headers(apiKey: string) { return { "Content-Type": "application/json", 
 
 export async function streamChat(options: StreamOptions): Promise<string> {
   const response = await fetch(endpoint, { method: "POST", headers: headers(options.apiKey), body: JSON.stringify({ model: options.modelId, stream: true, messages: [{ role: "system", content: options.systemPrompt }, ...options.messages.map((message) => ({ role: message.role, content: content(message) }))] }), signal: options.signal });
-  if (!response.ok) throw new Error(`${response.status} ${response.statusText}: ${await response.text()}`);
+  if (!response.ok) throw new Error(`OpenRouter request failed (${response.status}).`);
   const body = response.body as ReadableStream<Uint8Array>;
   const reader = body.getReader(); const decoder = new TextDecoder(); let buffer = ""; let accumulated = "";
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- stream read loop ends on `done`
@@ -36,7 +36,7 @@ export async function callWithTools(options: ToolCallOptions): Promise<ToolCallR
   const firstTool = options.tools[0];
   if (!firstTool) throw new Error("At least one tool is required.");
   const response = await fetch(endpoint, { method: "POST", headers: headers(options.apiKey), body: JSON.stringify({ model: options.modelId, stream: false, messages: [{ role: "system", content: options.systemPrompt }, ...options.messages.map((message) => ({ role: message.role, content: message.content }))], tools, tool_choice: tools.length === 1 ? { type: "function", function: { name: firstTool.name } } : "required" }), signal: options.signal });
-  if (!response.ok) throw new Error(`${response.status} ${response.statusText}: ${await response.text()}`);
+  if (!response.ok) throw new Error(`OpenRouter request failed (${response.status}).`);
   const data = await response.json() as { choices?: { message?: { tool_calls?: { function?: { name?: string; arguments?: string } }[] } }[] };
   const fn = data.choices?.[0]?.message?.tool_calls?.[0]?.function; if (!fn?.name) throw new Error("The model did not return the requested tool call.");
   let args: unknown; try { args = JSON.parse(fn.arguments ?? "{}"); } catch { throw new Error("The model returned invalid structured data."); }
