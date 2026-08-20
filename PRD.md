@@ -96,8 +96,9 @@ what you've cooked.**
   transitions and swipe-back. Chat history, message editing, and model
   selection use native form sheets.
 - Recipe, cooking-history, and chat-session rows support familiar iOS swipe
-  actions and native long-press context menus while keeping their primary tap
-  and inline actions visible. Destructive list actions are labeled and confirmed.
+  actions and native long-press context menus. A lower-right ellipsis button on
+  every row exposes the same menu without requiring a long press. Destructive
+  list actions are labeled and confirmed.
 - Photo attachment source choices use the iOS action sheet. Model selection
   marks the current choice with a checkmark and allows pull-to-refresh because
   its OpenRouter catalog is remote; device-local lists do not offer refresh.
@@ -379,23 +380,23 @@ success or a clear extraction error in chat.
 #### Description
 
 Users can share a saved recipe as readable text. On iOS, Share opens the system
-share sheet; Copy Markdown remains a separate action. The retained web app copies
-formatted Markdown to the clipboard.
+share sheet and is the only export action in recipe details. The retained web app
+copies formatted Markdown to the clipboard.
 
 #### User Stories
 
 | ID | Story |
 | --- | --- |
 | **SH-1** | As an iOS user, I can send a saved recipe to Messages, Mail, Notes, AirDrop, or another installed share target through the system share sheet. |
-| **SH-2** | As a user, I can separately copy a saved recipe to my clipboard as Markdown and see confirmation only after the copy succeeds. |
+| **SH-2** | As a web user, I can copy a saved recipe to my clipboard as Markdown and see confirmation only after the copy succeeds. |
 
 #### Acceptance Criteria
 
-- [x] The iOS recipe detail view has separate “Share” and “Copy Markdown” actions.
+- [x] The iOS recipe detail view has a single “Share” export action.
 - [x] The shared or copied text includes the title, description, ingredients as
       bullets, and steps as a numbered list.
 - [x] iOS Share uses React Native's system `Share` API; clipboard export uses
-      `expo-clipboard` on native and `navigator.clipboard.writeText` on web.
+      `navigator.clipboard.writeText` on web.
 - [x] Cancelling the iOS share sheet is silent, and share or clipboard failures
       show an error without a false success message.
 
@@ -411,8 +412,8 @@ AI context about recent meals.
 
 | ID | Story |
 | --- | --- |
-| **HL-1** | As a user, at the end of a chat conversation (or at any point), I see an "I cooked this!" button when the AI has provided a recipe. |
-| **HL-2** | As a user, when I tap "I cooked this!", the meal is added to my cooking log with today's date. |
+| **HL-1** | As a user, I see an “I Cooked This” button on a saved recipe’s detail view. |
+| **HL-2** | As a user, when I tap “I Cooked This”, the saved recipe is added to my cooking log with today's date. |
 | **HL-3** | As a user, I can give the logged meal a thumbs up 👍 or thumbs down 👎 rating. |
 | **HL-4** | As a user, I can add an optional freeform comment to the log entry (e.g., "Added extra garlic, was great"). |
 | **HL-5** | As a user, I can view my cooking history in the History tab as a chronological list (most recent first). |
@@ -440,9 +441,8 @@ AI context about recent meals.
       guru, cook something great, and log it here!"
 
 > **Implementation notes:**
-> - "I Cooked This!" title is auto-populated from the first non-empty line of
->   the assistant message, stripped of Markdown formatting (resolves open
->   question #4). No LLM call required.
+> - “I Cooked This” uses the saved recipe title and links the cooking-log entry
+>   to that recipe. No LLM call is required.
 > - Rating (👍/👎 toggle) and comments are inline on history cards — no
 >   separate detail/edit sub-view.
 > - System prompt injection uses `Intl.DateTimeFormat` for human-readable day
@@ -569,7 +569,7 @@ src/
   ReloadPrompt.tsx              PWA service worker update prompt
   components/
     BottomNavBar.tsx             Bottom nav with 4 tabs (Chat, Recipes, History, Settings), active state, Tab type export
-    ChatView.tsx                 Chat UI: message list, input, meal type/size pills, empty states, error handling, streaming display, Save Recipe button, "I Cooked This!" button (Phase 3), "Save to Memory" button (Phase 4)
+    ChatView.tsx                 Chat UI: message list, input, meal type/size pills, empty states, error handling, streaming display, direct Save Recipe and Save to Memory actions
     HistoryView.tsx              History tab: reverse-chronological cooking log list with inline rating, comment, delete (Phase 3)
     HomePage.tsx                 Tab content switching + recipe tab navigation (list/detail/edit via selectedRecipeId + recipeViewMode state)
     RecipeDetailView.tsx         Full recipe display with ingredients, steps, back/edit/delete/copy buttons (Phase 2)
@@ -682,11 +682,11 @@ A clear checklist of everything included in v1:
 - [x] **Recipe List View** — scrollable card list in Recipes tab with empty/loading states
 - [x] **Recipe Detail View** — kitchen-friendly full recipe display (large text, ingredients bullet list, numbered steps)
 - [x] **Recipe Edit & Delete** — edit form with pre-populated fields, delete with confirmation
-- [x] **Share Recipe** — iOS system share sheet plus separate Markdown clipboard export
+- [x] **Share Recipe** — iOS system share sheet; Markdown clipboard export on web
 
 ### ✅ Phase 3 (Complete)
 
-- [x] **Cooking Log** — "I Cooked This!" button in Chat, auto-populated title from first line
+- [x] **Cooking Log** — “I Cooked This” button on saved recipe details
 - [x] **History Tab** — Reverse-chronological cooking log list with inline rating (👍/👎) and comments
 - [x] **AI History Context** — Last 7 days of cooking history injected into system prompt
 
@@ -713,7 +713,7 @@ Each phase builds on the previous one.
 
 All 5 Phase 2 items have been implemented. Recipe saving uses user-triggered LLM
 extraction via native tool calling. The Recipes tab now provides full list, detail,
-edit, and delete flows plus the iOS system share sheet and Markdown clipboard export.
+edit, and delete flows plus the iOS system share sheet (and Markdown clipboard export on web).
 
 1. ~~**Save Recipe from Chat** (§5.1) — Recipe detection, parsing, save action~~
 2. ~~**Recipe List View** — Browse saved recipes in the Recipes tab~~
@@ -726,7 +726,7 @@ edit, and delete flows plus the iOS system share sheet and Markdown clipboard ex
 All 4 Phase 3 items have been implemented. The History tab is now fully functional
 with cooking log entries, inline rating/comments, and AI context injection.
 
-6. ~~**Cooking Log** (§5.3) — "I cooked this!" action in chat~~
+6. ~~**Cooking Log** (§5.3) — “I Cooked This” action on recipe details~~
 7. ~~**History Tab** — Chronological cooking log display~~
 8. ~~**Rating & Comments** — Thumbs up/down + freeform notes on log entries~~
 9. ~~**AI History Context** — Inject last 7 days of history into system prompt~~
@@ -880,7 +880,7 @@ AI context injection.
 | Cooking log storage | `src/storage/cooking-log.ts` | ✅ localStorage repository (key: `chefness:cooking-log`). |
 | Cooking log tRPC router | `src/trpc/router.ts` | ✅ Added `cookingLog` sub-router with list, getById, create, update, delete procedures. |
 | Cooking log hook | `src/hooks/useCookingLog.ts` | ✅ CRUD hook with `recentEntries` convenience getter (filters to last 7 days). |
-| "I Cooked This!" button | `src/components/ChatView.tsx` | ✅ Added alongside Save Recipe button. Uses first-line title extraction (no LLM call). |
+| “I Cooked This” button | Recipe detail views | ✅ Adds the saved recipe to cooking history and links the resulting entry to the recipe. |
 | History tab | `src/components/HistoryView.tsx` | ✅ Reverse-chronological list with title, date, inline rating (👍/👎 toggle), comment add/edit, and delete. |
 | AI history context | `src/hooks/useChat.ts` | ✅ `buildSystemPrompt` injects last 7 days as "Recent cooking history" section. Uses `Intl.DateTimeFormat` for day names. |
 | History tab integration | `src/components/HomePage.tsx` | ✅ Replaced history empty state with `<HistoryView />`. |
@@ -961,6 +961,6 @@ and manual preference saving.
 | 1 | Which providers and models should be available? | LLM-1, LLM-2 | ✅ **Resolved** — OpenRouter is the sole provider. Models come from its live catalog and can be filtered by free pricing, vision support, and tool support. |
 | 2 | How should the OpenRouter OAuth key be stored? | LLM-3 | ✅ **Resolved** — Plaintext in the local settings store. No obfuscation for MVP. Acceptable given the single-user, no-server architecture. |
 | 3 | What heuristic or mechanism detects that an AI response contains a recipe vs. general conversation? Options: (a) structured output / tool call from the LLM, (b) regex-based detection, (c) a follow-up LLM call to classify. | SR-1 | ✅ **Resolved** — No auto-detection. User taps "Save Recipe" on any assistant message. The app uses native LLM tool/function calling (`callWithTools` with a `save_recipe` tool definition) to extract structured recipe data. This avoids fragile regex heuristics and gives provider-enforced structured output. |
-| 4 | Should the "I cooked this!" action auto-populate the title from the recipe, or let the user name it? | HL-2 | ✅ **Resolved** — Auto-populated from the first non-empty line of the assistant message, stripped of Markdown formatting. Editable later in the History tab. |
+| 4 | Should the “I Cooked This” action auto-populate the title from the recipe, or let the user name it? | HL-2 | ✅ **Resolved** — It uses the saved recipe title. The history note remains editable later in the History tab. |
 | 5 | For AI Memory (DR-3), should the AI proactively suggest saving preferences, or should there also be a manual "Remember this" button the user can press? | DR-3 | ✅ **Resolved** — Both. The AI proactively suggests remembering preferences via system prompt instructions, AND users can manually add preferences in the Settings > AI Memory section. |
 | 6 | Is there a maximum number of chat sessions to retain before auto-pruning old ones? localStorage has a ~5–10MB limit. | CP-2 | Open — Phase 5 |

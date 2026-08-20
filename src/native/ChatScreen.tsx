@@ -15,10 +15,8 @@ import {
 import * as ImagePicker from "expo-image-picker";
 import { Ionicons } from "@expo/vector-icons";
 import Markdown from "react-native-markdown-display";
-import { MenuView } from "@react-native-menu/menu";
 import { useChat } from "@/hooks/useChat";
 import { useRecipes } from "@/hooks/useRecipes";
-import { useCookingLog } from "@/hooks/useCookingLog";
 import { useAiPreferences } from "@/hooks/useAiPreferences";
 import { useSettings } from "@/hooks/useSettings";
 import { extractRecipeFromConversation } from "@/lib/recipe-extractor";
@@ -45,7 +43,6 @@ export function ChatScreen({
   openEdit: (index: number, content: string) => void;
 }) {
   const { createRecipeAsync } = useRecipes();
-  const { createEntryAsync } = useCookingLog();
   const { createPreferenceAsync } = useAiPreferences();
   const { effectiveProvider, effectiveModel, effectiveApiKey } = useSettings();
   const [text, setText] = useState("");
@@ -154,24 +151,6 @@ export function ChatScreen({
     }
   };
 
-  const logMeal = async (content: string) => {
-    const title =
-      content
-        .split("\n")
-        .find(Boolean)
-        ?.replace(/[#*_`]/g, "")
-        .trim()
-        .slice(0, 100) ?? "Cooked meal";
-    await createEntryAsync({
-      title,
-      date: new Date().toISOString().slice(0, 10),
-      rating: null,
-      comment: "",
-      recipeId: null,
-    });
-    Alert.alert("Added to history", title);
-  };
-
   const saveMemory = async (index: number) => {
     setBusyAction(`memory-${index}`);
     try {
@@ -208,6 +187,7 @@ export function ChatScreen({
         ref={scroll}
         contentContainerStyle={styles.messages}
         keyboardShouldPersistTaps="handled"
+        scrollsToTop={false}
       >
         {!chat.messages.length && (
           <View style={styles.welcome}>
@@ -310,65 +290,32 @@ export function ChatScreen({
               </Pressable>
             ) : null}
             {message.role === "assistant" && message.content ? (
-              <MenuView
-                actions={[
-                  {
-                    id: "recipe",
-                    title: message.savedRecipeId
-                      ? "Recipe Saved"
+              <View style={nativeStyles.row}>
+                <Button
+                  label={
+                    message.savedRecipeId
+                      ? "Recipe Saved ✓"
                       : busyAction === `recipe-${index}`
                         ? "Saving Recipe…"
-                        : "Save Recipe",
-                    image: "book",
-                    state: message.savedRecipeId ? "on" : "off",
-                    attributes: {
-                      disabled: !!message.savedRecipeId || !!busyAction,
-                    },
-                  },
-                  {
-                    id: "cooked",
-                    title: "I Cooked This",
-                    image: "fork.knife",
-                    attributes: { disabled: !!busyAction },
-                  },
-                  {
-                    id: "memory",
-                    title: message.memorySaved
-                      ? "Saved to Memory"
+                        : "Save Recipe"
+                  }
+                  variant="secondary"
+                  disabled={!!message.savedRecipeId || !!busyAction}
+                  onPress={() => void saveRecipe(index)}
+                />
+                <Button
+                  label={
+                    message.memorySaved
+                      ? "Saved to Memory ✓"
                       : busyAction === `memory-${index}`
                         ? "Saving Memory…"
-                        : "Save to Memory",
-                    image: "brain.head.profile",
-                    state: message.memorySaved ? "on" : "off",
-                    attributes: {
-                      disabled: !!message.memorySaved || !!busyAction,
-                    },
-                  },
-                ]}
-                onPressAction={({ nativeEvent }) => {
-                  if (nativeEvent.event === "recipe") void saveRecipe(index);
-                  if (nativeEvent.event === "cooked")
-                    void logMeal(message.content);
-                  if (nativeEvent.event === "memory") void saveMemory(index);
-                }}
-                shouldOpenOnLongPress={false}
-              >
-                <View
-                  accessible
-                  accessibilityRole="button"
-                  accessibilityLabel="Message actions"
-                  accessibilityHint="Opens actions to save this recipe, log the meal, or save a preference"
-                  style={styles.messageActions}
-                >
-                  <Ionicons
-                    accessible={false}
-                    name="ellipsis-horizontal-circle-outline"
-                    size={22}
-                    color={colors.saffronDeep}
-                  />
-                  <Text style={styles.messageActionsText}>Message actions</Text>
-                </View>
-              </MenuView>
+                        : "Save to Memory"
+                  }
+                  variant="secondary"
+                  disabled={!!message.memorySaved || !!busyAction}
+                  onPress={() => void saveMemory(index)}
+                />
+              </View>
             ) : null}
           </View>
         ))}
@@ -516,22 +463,6 @@ const styles = StyleSheet.create({
     fontFamily: nativeFonts.sans,
   },
   messageImage: { width: 220, height: 160, borderRadius: 12 },
-  messageActions: {
-    minHeight: 44,
-    alignSelf: "flex-start",
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 10,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.saffronTintBorder,
-    backgroundColor: colors.saffronTint,
-  },
-  messageActionsText: {
-    color: colors.saffronDeep,
-    fontFamily: nativeFonts.sansSemiBold,
-  },
   errorBox: {
     gap: 8,
     padding: 12,

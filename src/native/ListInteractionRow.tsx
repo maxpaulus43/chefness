@@ -1,5 +1,6 @@
 import type { PropsWithChildren } from "react";
-import { Pressable, StyleSheet, Text } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { MenuView, type MenuAction } from "@react-native-menu/menu";
 import Swipeable from "react-native-gesture-handler/ReanimatedSwipeable";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
@@ -21,6 +22,37 @@ export function LongPressMenu({
       onPressAction={({ nativeEvent }) => onMenuAction(nativeEvent.event)}
     >
       {children}
+    </MenuView>
+  );
+}
+
+export function MenuButton({
+  menuActions,
+  onMenuAction,
+}: {
+  menuActions: MenuAction[];
+  onMenuAction: (id: string) => void;
+}) {
+  return (
+    <MenuView
+      actions={menuActions}
+      onPressAction={({ nativeEvent }) => onMenuAction(nativeEvent.event)}
+      shouldOpenOnLongPress={false}
+    >
+      <View
+        accessible
+        accessibilityRole="button"
+        accessibilityLabel="More actions"
+        accessibilityHint="Opens the same actions available by long pressing"
+        style={styles.menuButton}
+      >
+        <Ionicons
+          accessible={false}
+          name="ellipsis-horizontal"
+          size={22}
+          color={colors.stone600}
+        />
+      </View>
     </MenuView>
   );
 }
@@ -71,13 +103,18 @@ export function ListInteractionRow({
   );
   return (
     <SwipeActionRow onDelete={onDelete}>
-      {onPress ? (
-        <GestureDetector gesture={Gesture.Tap().runOnJS(true).onEnd(onPress)}>
-          {content}
-        </GestureDetector>
-      ) : (
-        content
-      )}
+      <View style={styles.rowContainer}>
+        {onPress ? (
+          <GestureDetector gesture={Gesture.Tap().runOnJS(true).onEnd(onPress)}>
+            {content}
+          </GestureDetector>
+        ) : (
+          content
+        )}
+        <View style={styles.menuPosition}>
+          <MenuButton menuActions={menuActions} onMenuAction={onMenuAction} />
+        </View>
+      </View>
     </SwipeActionRow>
   );
 }
@@ -93,4 +130,12 @@ const styles = StyleSheet.create({
     borderRadius: 14,
   },
   deleteText: { color: colors.white, fontFamily: nativeFonts.sansBold },
+  rowContainer: { position: "relative" },
+  menuPosition: { position: "absolute", right: 4, bottom: 4 },
+  menuButton: {
+    width: 44,
+    minHeight: 44,
+    alignItems: "center",
+    justifyContent: "center",
+  },
 });

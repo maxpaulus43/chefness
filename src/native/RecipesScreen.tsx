@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Alert, ScrollView, Share, StyleSheet, Text, View } from "react-native";
-import * as Clipboard from "expo-clipboard";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useRecipes } from "@/hooks/useRecipes";
+import { useCookingLog } from "@/hooks/useCookingLog";
 import { useRecipeAiEditor } from "@/hooks/useRecipeAiEditor";
 import { useRecipeSearch } from "@/hooks/useRecipeSearch";
 import { recipeToMarkdown } from "@/lib/recipe-markdown";
@@ -115,7 +115,7 @@ export function RecipeListScreen({
               accessibilityLabel={`${recipe.title}. ${recipe.description}. ${recipe.ingredients.length} ingredients, ${recipe.steps.length} steps`}
               accessibilityHint="Opens recipe details; long press for more actions"
             >
-              <Card>
+              <Card style={styles.menuCard}>
                 <Text style={styles.recipeTitle}>{recipe.title}</Text>
                 <Text style={nativeStyles.muted}>{recipe.description}</Text>
                 <Text style={styles.meta}>
@@ -136,11 +136,15 @@ export function RecipeDetailScreen({
   navigation,
 }: NativeStackScreenProps<RecipesStackParamList, "RecipeDetail">) {
   const { recipes, isLoading, deleteRecipe } = useRecipes();
+  const { createEntryAsync } = useCookingLog();
   const recipe = useMemo(
     () => recipes.find((item) => item.id === route.params.recipeId),
     [recipes, route.params.recipeId],
   );
   const [instruction, setInstruction] = useState("");
+  const [logStatus, setLogStatus] = useState<"idle" | "logging" | "logged">(
+    "idle",
+  );
   const ai = useRecipeAiEditor();
   useEffect(() => {
     if (recipe) navigation.setOptions({ title: recipe.title });
@@ -173,14 +177,22 @@ export function RecipeDetailScreen({
       );
     }
   };
-  const copyMarkdown = async () => {
+  const logMeal = async () => {
+    setLogStatus("logging");
     try {
-      await Clipboard.setStringAsync(recipeToMarkdown(recipe));
-      Alert.alert("Copied", "Recipe copied as Markdown.");
-    } catch {
+      await createEntryAsync({
+        title: recipe.title,
+        date: new Date().toISOString().slice(0, 10),
+        rating: null,
+        comment: "",
+        recipeId: recipe.id,
+      });
+      setLogStatus("logged");
+    } catch (error) {
+      setLogStatus("idle");
       Alert.alert(
-        "Unable to copy",
-        "The recipe could not be copied. Please try again.",
+        "Couldn’t add to history",
+        error instanceof Error ? error.message : "Try again.",
       );
     }
   };
@@ -205,6 +217,17 @@ export function RecipeDetailScreen({
         <Text style={styles.description}>{recipe.description}</Text>
         <View style={nativeStyles.row}>
           <Button
+            label={
+              logStatus === "logged"
+                ? "Cooked ✓"
+                : logStatus === "logging"
+                  ? "Logging…"
+                  : "I Cooked This"
+            }
+            disabled={logStatus !== "idle"}
+            onPress={() => void logMeal()}
+          />
+          <Button
             label="Edit"
             variant="secondary"
             onPress={() =>
@@ -215,11 +238,6 @@ export function RecipeDetailScreen({
             label="Share"
             variant="secondary"
             onPress={() => void shareRecipe()}
-          />
-          <Button
-            label="Copy Markdown"
-            variant="secondary"
-            onPress={() => void copyMarkdown()}
           />
           <Button label="Delete" variant="danger" onPress={confirmDelete} />
         </View>
@@ -488,6 +506,7 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     fontFamily: nativeFonts.sans,
   },
+  menuCard: { paddingBottom: 48 },
   preview: {
     gap: 8,
     padding: 12,

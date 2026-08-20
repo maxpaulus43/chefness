@@ -211,6 +211,7 @@ function ChatHistorySheet({
               accessibilityHint="Opens conversation; long press for more actions"
               style={{
                 padding: 15,
+                paddingBottom: 48,
                 backgroundColor: colors.white,
                 borderRadius: 14,
               }}

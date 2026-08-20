@@ -44,12 +44,14 @@ small, sanitized JSON responses.
   Chat history, message editing, and model selection are stack-presented iOS
   form sheets. Recipe, cooking-history, and chat-session rows share a native
   interaction wrapper backed by Gesture Handler swipe actions and iOS `UIMenu`
-  context menus; destructive choices return through React Native confirmation
-  alerts. The remote OpenRouter model catalog alone supports pull-to-refresh,
+  context menus; each row also exposes the same menu from a lower-right ellipsis
+  button, and destructive choices return through React Native confirmation alerts.
+  The remote OpenRouter model catalog alone supports pull-to-refresh,
   and its single selection is shown with a checkmark. Photo attachment source
-  selection uses `ActionSheetIOS`. Recipe details use React Native's `Share` API for the iOS system
-  share sheet and keep clipboard export as a separate action. Chat uses
-  frame-based keyboard avoidance with no hard-coded vertical offset so its
+  selection uses `ActionSheetIOS`. Recipe details use React Native's `Share` API
+  for the iOS system share sheet and expose cooking-log creation there. Chat
+  shows Save Recipe and Save to Memory as direct assistant-message actions and
+  uses frame-based keyboard avoidance with no hard-coded vertical offset so its
   composer follows the keyboard correctly.
 - `src/native/navigation-routes.ts` is the typed route/deep-link contract.
   The `chefness://` scheme resolves recipe IDs, chat-session IDs, history,

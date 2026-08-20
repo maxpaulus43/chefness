@@ -7,10 +7,13 @@ import {
   Text,
   View,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
 import { useCookingLog } from "@/hooks/useCookingLog";
 import { nativeColors as colors, nativeFonts } from "@/native/theme";
-import { LongPressMenu, SwipeActionRow } from "@/native/ListInteractionRow";
+import {
+  LongPressMenu,
+  MenuButton,
+  SwipeActionRow,
+} from "@/native/ListInteractionRow";
 import type { CookingLogEntry } from "@/types/cooking-log";
 import { Button, Card, Empty, Field, Loading, nativeStyles } from "@/native/ui";
 
@@ -106,20 +109,6 @@ export function HistoryScreen() {
                     </Text>
                   </View>
                 </LongPressMenu>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={`Delete ${entry.title}`}
-                  accessibilityHint="Asks for confirmation before deleting this history entry"
-                  style={styles.iconButton}
-                  onPress={() => confirmDelete(entry)}
-                >
-                  <Ionicons
-                    accessible={false}
-                    name="trash-outline"
-                    size={21}
-                    color={colors.danger}
-                  />
-                </Pressable>
               </View>
               <View style={nativeStyles.row}>
                 <Button
@@ -187,6 +176,52 @@ export function HistoryScreen() {
                   </Text>
                 </Pressable>
               )}
+              <View style={styles.menuRow}>
+                <MenuButton
+                  menuActions={[
+                    {
+                      id: "like",
+                      title: entry.rating === "up" ? "Remove Like" : "Liked",
+                      image: "hand.thumbsup",
+                      state: entry.rating === "up" ? "on" : "off",
+                    },
+                    {
+                      id: "dislike",
+                      title:
+                        entry.rating === "down"
+                          ? "Remove Not for Me"
+                          : "Not for Me",
+                      image: "hand.thumbsdown",
+                      state: entry.rating === "down" ? "on" : "off",
+                    },
+                    {
+                      id: "note",
+                      title: entry.comment ? "Edit Note" : "Add Note",
+                      image: "square.and.pencil",
+                    },
+                    {
+                      id: "delete",
+                      title: "Delete",
+                      image: "trash",
+                      attributes: { destructive: true },
+                    },
+                  ]}
+                  onMenuAction={(id) => {
+                    if (id === "like")
+                      updateEntry({
+                        id: entry.id,
+                        rating: entry.rating === "up" ? null : "up",
+                      });
+                    if (id === "dislike")
+                      updateEntry({
+                        id: entry.id,
+                        rating: entry.rating === "down" ? null : "down",
+                      });
+                    if (id === "note") editNote(entry);
+                    if (id === "delete") confirmDelete(entry);
+                  }}
+                />
+              </View>
             </Card>
           </SwipeActionRow>
         ))}
@@ -203,12 +238,7 @@ const styles = StyleSheet.create({
     fontFamily: nativeFonts.serifBold,
   },
   date: { color: colors.stone500, marginTop: 3, fontFamily: nativeFonts.sans },
-  iconButton: {
-    width: 44,
-    minHeight: 44,
-    alignItems: "center",
-    justifyContent: "center",
-  },
+  menuRow: { alignItems: "flex-end", marginBottom: -10 },
   noteButton: { minHeight: 44, justifyContent: "center" },
   comment: {
     color: colors.espresso,
