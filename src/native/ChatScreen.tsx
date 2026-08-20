@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { ActionSheetIOS, Alert, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { AccessibilityInfo, ActionSheetIOS, Alert, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { Ionicons } from "@expo/vector-icons";
 import Markdown from "react-native-markdown-display";
+import { MenuView } from "@react-native-menu/menu";
 import { useChat } from "@/hooks/useChat";
 import { useRecipes } from "@/hooks/useRecipes";
 import { useCookingLog } from "@/hooks/useCookingLog";
@@ -10,7 +11,8 @@ import { useAiPreferences } from "@/hooks/useAiPreferences";
 import { useSettings } from "@/hooks/useSettings";
 import { extractRecipeFromConversation } from "@/lib/recipe-extractor";
 import { extractPreference } from "@/lib/preference-extractor";
-import { colors } from "@/theme";
+import { useAccessibilityPreferences } from "@/native/accessibility";
+import { nativeColors as colors, nativeFonts } from "@/native/theme";
 import { Button, Chip, Field, nativeStyles } from "@/native/ui";
 
 const mealTypes = ["breakfast", "lunch", "dinner", "snack", "dessert"] as const;
@@ -26,8 +28,16 @@ export function ChatScreen({ chat, openSettings, openEdit }: { chat: ReturnType<
   const [image, setImage] = useState("");
   const [busyAction, setBusyAction] = useState<string | null>(null);
   const scroll = useRef<ScrollView>(null);
+  const wasStreaming = useRef(chat.isStreaming);
+  const { reduceTransparency } = useAccessibilityPreferences();
 
   useEffect(() => { scroll.current?.scrollToEnd({ animated: true }); }, [chat.messages]);
+  useEffect(() => {
+    if (wasStreaming.current && !chat.isStreaming && chat.messages[chat.messages.length - 1]?.role === "assistant") {
+      AccessibilityInfo.announceForAccessibility("Chefness response complete");
+    }
+    wasStreaming.current = chat.isStreaming;
+  }, [chat.isStreaming, chat.messages]);
 
   const submit = () => {
     if ((!text.trim() && !image) || chat.isStreaming) return;
@@ -101,41 +111,51 @@ export function ChatScreen({ chat, openSettings, openEdit }: { chat: ReturnType<
       {!chat.messages.length && <View style={styles.welcome}><Text style={styles.welcomeTitle}>What are we cooking?</Text><Text style={nativeStyles.muted}>Ask your personal cooking guru for ideas, recipes, substitutions, or step-by-step help.</Text>
         <Text style={nativeStyles.label}>Meal type</Text><View style={nativeStyles.row}>{mealTypes.map((item) => <Chip key={item} label={item} selected={chat.mealType === item} onPress={() => chat.setMealType(item)} />)}</View>
         <Text style={nativeStyles.label}>Cooking for</Text><View style={nativeStyles.row}>{mealSizes.map((item) => <Chip key={item} label={item === "6+" ? "6+ people" : item} selected={chat.mealSize === item} onPress={() => chat.setMealSize(item)} />)}</View>
-        {prompts.map((prompt) => <Pressable key={prompt} style={styles.prompt} onPress={() => setText(prompt)}><Text style={styles.promptText}>{prompt}</Text></Pressable>)}
+        {prompts.map((prompt) => <Pressable accessibilityRole="button" accessibilityHint="Fills the message field with this suggestion" key={prompt} style={styles.prompt} onPress={() => setText(prompt)}><Text style={styles.promptText}>{prompt}</Text></Pressable>)}
       </View>}
-      {!chat.isConfigured && <Pressable onPress={openSettings} style={styles.setup}><Text style={styles.setupText}>Connect OpenRouter in Settings to start chatting →</Text></Pressable>}
+      {!chat.isConfigured && <Pressable accessibilityRole="button" accessibilityHint="Opens OpenRouter connection settings" onPress={openSettings} style={styles.setup}><Text style={styles.setupText}>Connect OpenRouter in Settings to start chatting →</Text></Pressable>}
       {chat.messages.map((message, index) => <View key={`${message.role}-${index}`} style={[styles.bubble, message.role === "user" ? styles.userBubble : styles.assistantBubble]}>
-        {message.imageDataUrl ? <Image source={{ uri: message.imageDataUrl }} style={styles.messageImage} /> : null}
-        {message.role === "assistant" && message.content ? <Markdown style={markdownStyles}>{message.content}</Markdown> : <Text selectable style={styles.messageText}>{message.content || (chat.isStreaming ? "Thinking…" : "")}</Text>}
-        {message.role === "user" && !chat.isStreaming ? <Pressable style={styles.editMessage} onPress={() => openEdit(index, message.content)}><Ionicons name="pencil-outline" size={15} color={colors.stone600} /><Text style={styles.editMessageText}>Edit & regenerate</Text></Pressable> : null}
-        {message.role === "assistant" && message.content ? <View style={nativeStyles.row}>
-          <Button label={message.savedRecipeId ? "Saved ✓" : busyAction === `recipe-${index}` ? "Saving…" : "Save Recipe"} disabled={!!message.savedRecipeId || !!busyAction} variant="secondary" onPress={() => void saveRecipe(index)} />
-          <Button label="I cooked this" variant="secondary" onPress={() => void logMeal(message.content)} />
-          <Button label={message.memorySaved ? "Remembered ✓" : busyAction === `memory-${index}` ? "Saving…" : "Save Memory"} disabled={!!message.memorySaved || !!busyAction} variant="secondary" onPress={() => void saveMemory(index)} />
-        </View> : null}
+        <View accessible accessibilityLabel={`${message.role === "user" ? "You" : "Chefness"}: ${message.content || (chat.isStreaming ? "Thinking" : "")}`}>
+          {message.imageDataUrl ? <Image accessible accessibilityLabel="Attached photo" source={{ uri: message.imageDataUrl }} style={styles.messageImage} /> : null}
+          {message.role === "assistant" && message.content ? <Markdown style={markdownStyles}>{message.content}</Markdown> : <Text selectable style={styles.messageText}>{message.content || (chat.isStreaming ? "Thinking…" : "")}</Text>}
+        </View>
+        {message.role === "user" && !chat.isStreaming ? <Pressable accessibilityRole="button" accessibilityHint="Opens this message for editing, then regenerates the response" style={styles.editMessage} onPress={() => openEdit(index, message.content)}><Ionicons accessible={false} name="pencil-outline" size={15} color={colors.stone600} /><Text style={styles.editMessageText}>Edit & regenerate</Text></Pressable> : null}
+        {message.role === "assistant" && message.content ? <MenuView
+          actions={[
+            { id: "recipe", title: message.savedRecipeId ? "Recipe Saved" : busyAction === `recipe-${index}` ? "Saving Recipe…" : "Save Recipe", image: "book", state: message.savedRecipeId ? "on" : "off", attributes: { disabled: !!message.savedRecipeId || !!busyAction } },
+            { id: "cooked", title: "I Cooked This", image: "fork.knife", attributes: { disabled: !!busyAction } },
+            { id: "memory", title: message.memorySaved ? "Saved to Memory" : busyAction === `memory-${index}` ? "Saving Memory…" : "Save to Memory", image: "brain.head.profile", state: message.memorySaved ? "on" : "off", attributes: { disabled: !!message.memorySaved || !!busyAction } },
+          ]}
+          onPressAction={({ nativeEvent }) => {
+            if (nativeEvent.event === "recipe") void saveRecipe(index);
+            if (nativeEvent.event === "cooked") void logMeal(message.content);
+            if (nativeEvent.event === "memory") void saveMemory(index);
+          }}
+          shouldOpenOnLongPress={false}
+        ><View accessible accessibilityRole="button" accessibilityLabel="Message actions" accessibilityHint="Opens actions to save this recipe, log the meal, or save a preference" style={styles.messageActions}><Ionicons accessible={false} name="ellipsis-horizontal-circle-outline" size={22} color={colors.saffronDeep} /><Text style={styles.messageActionsText}>Message actions</Text></View></MenuView> : null}
       </View>)}
-      {chat.error && <View style={styles.errorBox}><Text style={nativeStyles.error}>{chat.error}</Text><Button label="Retry" variant="secondary" onPress={retryLastMessage} /></View>}
+      {chat.error && <View accessibilityLiveRegion="assertive" style={styles.errorBox}><Text style={nativeStyles.error}>{chat.error}</Text><Button label="Retry" variant="secondary" onPress={retryLastMessage} /></View>}
     </ScrollView>
-    {image ? <View style={styles.preview}><Image source={{ uri: image }} style={styles.previewImage} /><Pressable onPress={() => setImage("")}><Ionicons name="close-circle" size={28} color={colors.danger} /></Pressable></View> : null}
-    <View style={styles.composer}>
-      {chat.canAttachImage && <Pressable accessibilityLabel="Attach photo" onPress={chooseImage}><Ionicons name="camera-outline" size={27} color={colors.saffronDeep} /></Pressable>}
-      <Field value={text} onChangeText={setText} placeholder="Ask your cooking guru…" multiline style={styles.composerField} />
-      <Pressable accessibilityLabel={chat.isStreaming ? "Stop response" : "Send message"} onPress={chat.isStreaming ? chat.stopStreaming : submit}><Ionicons name={chat.isStreaming ? "stop-circle" : "send"} size={28} color={colors.saffronDeep} /></Pressable>
+    {image ? <View style={styles.preview}><Image accessible accessibilityLabel="Photo ready to send" source={{ uri: image }} style={styles.previewImage} /><Pressable accessibilityRole="button" accessibilityLabel="Remove attached photo" accessibilityHint="Removes the photo before sending" style={styles.iconButton} onPress={() => setImage("")}><Ionicons accessible={false} name="close-circle" size={28} color={colors.danger} /></Pressable></View> : null}
+    <View style={[styles.composer, reduceTransparency && styles.opaqueComposer]}>
+      {chat.canAttachImage && <Pressable accessibilityRole="button" accessibilityLabel="Attach photo" accessibilityHint="Choose the camera or photo library" style={styles.iconButton} onPress={chooseImage}><Ionicons accessible={false} name="camera-outline" size={27} color={colors.saffronDeep} /></Pressable>}
+      <Field accessibilityLabel="Message" value={text} onChangeText={setText} placeholder="Ask your cooking guru…" multiline style={styles.composerField} />
+      <Pressable accessibilityRole="button" accessibilityLabel={chat.isStreaming ? "Stop response" : "Send message"} accessibilityHint={chat.isStreaming ? "Stops Chefness from generating more text" : "Sends your message to Chefness"} style={styles.iconButton} onPress={chat.isStreaming ? chat.stopStreaming : submit}><Ionicons accessible={false} name={chat.isStreaming ? "stop-circle" : "send"} size={28} color={colors.saffronDeep} /></Pressable>
     </View>
   </KeyboardAvoidingView>;
 }
 
 const styles = StyleSheet.create({
-  editMessage: { flexDirection: "row", alignItems: "center", alignSelf: "flex-end", gap: 4 }, editMessageText: { color: colors.stone600, fontSize: 12, fontWeight: "600" }, messages: { padding: 14, gap: 12, flexGrow: 1 }, welcome: { gap: 12, paddingVertical: 20 }, welcomeTitle: { fontSize: 28, fontWeight: "700", color: colors.espresso }, prompt: { padding: 13, borderRadius: 14, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.stone200 }, promptText: { color: colors.saffronDeep, fontWeight: "600" }, setup: { backgroundColor: colors.saffronTint, borderRadius: 12, padding: 14 }, setupText: { color: colors.saffronDeep, fontWeight: "700" }, bubble: { maxWidth: "92%", padding: 13, borderRadius: 17, gap: 9 }, userBubble: { alignSelf: "flex-end", backgroundColor: colors.saffronTint }, assistantBubble: { alignSelf: "flex-start", backgroundColor: colors.white, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.stone200 }, messageText: { color: colors.espresso, fontSize: 16, lineHeight: 23 }, messageImage: { width: 220, height: 160, borderRadius: 12 }, errorBox: { gap: 8, padding: 12, backgroundColor: colors.dangerTint, borderRadius: 12 }, composer: { minHeight: 66, paddingHorizontal: 12, paddingVertical: 9, flexDirection: "row", gap: 10, alignItems: "center", borderTopWidth: StyleSheet.hairlineWidth, borderColor: colors.stone200, backgroundColor: colors.glassStrong }, composerField: { flex: 1, maxHeight: 100 }, preview: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 16, paddingTop: 8 }, previewImage: { width: 64, height: 64, borderRadius: 10 },
+  editMessage: { minHeight: 44, paddingHorizontal: 4, flexDirection: "row", alignItems: "center", alignSelf: "flex-end", gap: 4 }, editMessageText: { color: colors.stone600, fontSize: 12, fontFamily: nativeFonts.sansSemiBold }, messages: { padding: 14, gap: 12, flexGrow: 1 }, welcome: { gap: 12, paddingVertical: 20 }, welcomeTitle: { fontSize: 28, fontFamily: nativeFonts.serifBold, color: colors.espresso }, prompt: { minHeight: 44, justifyContent: "center", padding: 13, borderRadius: 14, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.stone200 }, promptText: { color: colors.saffronDeep, fontFamily: nativeFonts.sansSemiBold }, setup: { minHeight: 44, justifyContent: "center", backgroundColor: colors.saffronTint, borderRadius: 12, padding: 14 }, setupText: { color: colors.saffronDeep, fontFamily: nativeFonts.sansBold }, bubble: { maxWidth: "92%", padding: 13, borderRadius: 17, gap: 9 }, userBubble: { alignSelf: "flex-end", backgroundColor: colors.saffronTint }, assistantBubble: { alignSelf: "flex-start", backgroundColor: colors.white, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.stone200 }, messageText: { color: colors.espresso, fontSize: 16, lineHeight: 23, fontFamily: nativeFonts.sans }, messageImage: { width: 220, height: 160, borderRadius: 12 }, messageActions: { minHeight: 44, alignSelf: "flex-start", flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 10, borderRadius: 12, borderWidth: 1, borderColor: colors.saffronTintBorder, backgroundColor: colors.saffronTint }, messageActionsText: { color: colors.saffronDeep, fontFamily: nativeFonts.sansSemiBold }, errorBox: { gap: 8, padding: 12, backgroundColor: colors.dangerTint, borderRadius: 12 }, composer: { minHeight: 66, paddingHorizontal: 8, paddingVertical: 9, flexDirection: "row", gap: 6, alignItems: "flex-end", borderTopWidth: StyleSheet.hairlineWidth, borderColor: colors.stone200, backgroundColor: colors.glassStrong }, opaqueComposer: { backgroundColor: colors.white, borderTopWidth: 1 }, composerField: { flex: 1, maxHeight: 160 }, iconButton: { width: 44, minHeight: 44, alignItems: "center", justifyContent: "center" }, preview: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 16, paddingTop: 8 }, previewImage: { width: 64, height: 64, borderRadius: 10 },
 });
 
 const markdownStyles = {
-  body: { color: colors.espresso, fontSize: 16, lineHeight: 23 },
-  heading1: { color: colors.espresso, fontSize: 23, fontWeight: "700" as const, marginTop: 4, marginBottom: 8 },
-  heading2: { color: colors.espresso, fontSize: 19, fontWeight: "700" as const, marginTop: 4, marginBottom: 6 },
+  body: { color: colors.espresso, fontSize: 16, lineHeight: 23, fontFamily: nativeFonts.sans },
+  heading1: { color: colors.espresso, fontSize: 23, fontFamily: nativeFonts.serifBold, marginTop: 4, marginBottom: 8 },
+  heading2: { color: colors.espresso, fontSize: 19, fontFamily: nativeFonts.serifBold, marginTop: 4, marginBottom: 6 },
   paragraph: { marginTop: 0, marginBottom: 8 },
   bullet_list: { marginBottom: 8 },
   ordered_list: { marginBottom: 8 },
-  strong: { fontWeight: "700" as const },
+  strong: { fontFamily: nativeFonts.sansBold },
   link: { color: colors.saffronDeep },
 };

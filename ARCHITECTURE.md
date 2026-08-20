@@ -67,7 +67,10 @@ small, sanitized JSON responses.
   access-group entitlement required by signed device and simulator builds. The PWA retains its normal HTTP callback flow
   and IndexedDB-backed credential storage.
 - The local config plugin `plugins/with-ios-scene-lifecycle.cjs` adds the scene
-  lifecycle required by the iOS 27 SDK during prebuild.
+  lifecycle required by the iOS 27 SDK during prebuild. The companion
+  `plugins/with-ios-pods-deployment-target.cjs` raises every generated CocoaPods
+  target to the app's iOS deployment target because Xcode 27 rejects older pod
+  resource targets.
 - The generated `ios/` directory is ignored; run `bunx expo prebuild --platform ios`
   when native projects need regeneration.
 

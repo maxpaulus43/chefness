@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, Text } from "react-native";
 import { MenuView, type MenuAction } from "@react-native-menu/menu";
 import Swipeable from "react-native-gesture-handler/ReanimatedSwipeable";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import { colors } from "@/theme";
+import { nativeColors as colors, nativeFonts } from "@/native/theme";
 
 export function LongPressMenu({ children, menuActions, onMenuAction }: PropsWithChildren<{
   menuActions: MenuAction[];
@@ -44,6 +44,6 @@ export function ListInteractionRow({ children, menuActions, onMenuAction, onDele
 
 const styles = StyleSheet.create({
   menu: { flex: 1 },
-  deleteAction: { width: 88, alignItems: "center", justifyContent: "center", backgroundColor: colors.danger, borderRadius: 14 },
-  deleteText: { color: colors.white, fontWeight: "700" },
+  deleteAction: { width: 88, minHeight: 44, alignItems: "center", justifyContent: "center", backgroundColor: colors.danger, borderRadius: 14 },
+  deleteText: { color: colors.white, fontFamily: nativeFonts.sansBold },
 });
