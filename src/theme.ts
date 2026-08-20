@@ -33,7 +33,7 @@ export const colors = {
 
   // Translucent surfaces for the "glass" card look
   glass: "rgba(255, 255, 255, 0.8)",
-  glassStrong: "rgba(255, 255, 255, 0.9)",
+  glassStrong: "rgba(255, 255, 255, 1)",
   glassBorder: "rgba(120, 100, 80, 0.14)",
 
   // Tinted accent fills
