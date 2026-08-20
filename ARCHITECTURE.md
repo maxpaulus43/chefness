@@ -41,9 +41,10 @@ small, sanitized JSON responses.
   and its safe-area/accessibility behavior. Each tab remains mounted after its
   first visit, preserving expected tab state. Native stacks provide standard
   headers, transitions, and edge swipe-back for recipe list/detail/edit.
-  Chat history, message editing, and model selection are stack-presented iOS
-  form sheets. Recipe, cooking-history, and chat-session rows share a native
-  interaction wrapper backed by Gesture Handler swipe actions and iOS `UIMenu`
+  Chat history and model selection are stack-presented iOS form sheets. Chat
+  messages are edited inline in their bubbles before regeneration, matching
+  cooking-history note editing. Recipe, cooking-history, and chat-session rows
+  share a native interaction wrapper backed by Gesture Handler swipe actions and iOS `UIMenu`
   context menus; each row also exposes the same menu from a lower-right ellipsis
   button, and destructive choices return through React Native confirmation alerts.
   The remote OpenRouter model catalog alone supports pull-to-refresh,

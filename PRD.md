@@ -93,8 +93,9 @@ what you've cooked.**
   tab accessibility semantics. When the keyboard is open, the chat composer
   moves directly above it.
 - Recipes use list → detail → edit stack destinations with standard back
-  transitions and swipe-back. Chat history, message editing, and model
-  selection use native form sheets.
+  transitions and swipe-back. Chat history and model selection use native form
+  sheets. User chat messages are edited inline in their bubbles before the
+  assistant response is regenerated.
 - Recipe, cooking-history, and chat-session rows support familiar iOS swipe
   actions and native long-press context menus. A lower-right ellipsis button on
   every row exposes the same menu without requiring a long press. Destructive

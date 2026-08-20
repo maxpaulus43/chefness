@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Alert, Pressable, ScrollView, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { NavigationContainer } from "@react-navigation/native";
@@ -28,7 +28,7 @@ import {
   type SettingsStackParamList,
 } from "@/native/navigation-routes";
 import { ListInteractionRow } from "@/native/ListInteractionRow";
-import { Button, Field, nativeStyles } from "@/native/ui";
+import { nativeStyles } from "@/native/ui";
 import { useAccessibilityPreferences } from "@/native/accessibility";
 import { nativeColors as colors, nativeFonts } from "@/native/theme";
 
@@ -119,12 +119,6 @@ function ChatNavigator({
       >
         {(props) => <ChatHistorySheet {...props} chat={chat} />}
       </ChatStack.Screen>
-      <ChatStack.Screen
-        name="EditMessage"
-        options={{ title: "Edit Message", presentation: "formSheet" }}
-      >
-        {(props) => <EditMessageSheet {...props} chat={chat} />}
-      </ChatStack.Screen>
     </ChatStack.Navigator>
   );
 }
@@ -132,7 +126,6 @@ function ChatNavigator({
 type ChatValue = ReturnType<typeof useChat>;
 function ChatRoute({
   route,
-  navigation,
   chat,
   openSettings,
 }: NativeStackScreenProps<ChatStackParamList, "Chat"> & {
@@ -144,15 +137,7 @@ function ChatRoute({
     if (sessionId && sessionId !== chat.currentSessionId)
       chat.loadSession(sessionId);
   }, [chat, sessionId]);
-  return (
-    <ChatScreen
-      chat={chat}
-      openSettings={openSettings}
-      openEdit={(index, content) =>
-        navigation.navigate("EditMessage", { index, content })
-      }
-    />
-  );
+  return <ChatScreen chat={chat} openSettings={openSettings} />;
 }
 
 function ChatHistorySheet({
@@ -225,37 +210,6 @@ function ChatHistorySheet({
           </ListInteractionRow>
         ))}
       </ScrollView>
-    </View>
-  );
-}
-
-function EditMessageSheet({
-  route,
-  navigation,
-  chat,
-}: NativeStackScreenProps<ChatStackParamList, "EditMessage"> & {
-  chat: ChatValue;
-}) {
-  const { index, content } = route.params;
-  const [draft, setDraft] = useState(content);
-  return (
-    <View style={[nativeStyles.screen, nativeStyles.scroll]}>
-      <Field
-        accessibilityLabel="Message to edit"
-        autoFocus
-        multiline
-        value={draft}
-        onChangeText={setDraft}
-      />
-      <Button
-        label="Save & Regenerate"
-        disabled={!draft.trim()}
-        onPress={() => {
-          navigation.goBack();
-          void chat.editUserMessageAndRegenerate(index, draft.trim());
-        }}
-      />
-      <Button label="Cancel" variant="secondary" onPress={navigation.goBack} />
     </View>
   );
 }

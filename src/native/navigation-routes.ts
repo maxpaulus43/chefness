@@ -9,7 +9,6 @@ import type {
 export type ChatStackParamList = {
   Chat: { sessionId?: string } | undefined;
   ChatHistory: undefined;
-  EditMessage: { index: number; content: string };
 };
 
 // eslint-disable-next-line @typescript-eslint/consistent-type-definitions

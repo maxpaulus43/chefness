@@ -36,17 +36,17 @@ const prompts = [
 export function ChatScreen({
   chat,
   openSettings,
-  openEdit,
 }: {
   chat: ReturnType<typeof useChat>;
   openSettings: () => void;
-  openEdit: (index: number, content: string) => void;
 }) {
   const { createRecipeAsync } = useRecipes();
   const { createPreferenceAsync } = useAiPreferences();
   const { effectiveProvider, effectiveModel, effectiveApiKey } = useSettings();
   const [text, setText] = useState("");
   const [image, setImage] = useState("");
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [editDraft, setEditDraft] = useState("");
   const [busyAction, setBusyAction] = useState<string | null>(null);
   const scroll = useRef<ScrollView>(null);
   const wasStreaming = useRef(chat.isStreaming);
@@ -253,42 +253,81 @@ export function ChatScreen({
                 : styles.assistantBubble,
             ]}
           >
-            <View
-              accessible
-              accessibilityLabel={`${message.role === "user" ? "You" : "Chefness"}: ${message.content || (chat.isStreaming ? "Thinking" : "")}`}
-            >
-              {message.imageDataUrl ? (
-                <Image
-                  accessible
-                  accessibilityLabel="Attached photo"
-                  source={{ uri: message.imageDataUrl }}
-                  style={styles.messageImage}
-                />
-              ) : null}
-              {message.role === "assistant" && message.content ? (
-                <Markdown style={markdownStyles}>{message.content}</Markdown>
-              ) : (
-                <Text selectable style={styles.messageText}>
-                  {message.content || (chat.isStreaming ? "Thinking…" : "")}
-                </Text>
-              )}
-            </View>
-            {message.role === "user" && !chat.isStreaming ? (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityHint="Opens this message for editing, then regenerates the response"
-                style={styles.editMessage}
-                onPress={() => openEdit(index, message.content)}
-              >
-                <Ionicons
-                  accessible={false}
-                  name="pencil-outline"
-                  size={15}
-                  color={colors.stone600}
-                />
-                <Text style={styles.editMessageText}>Edit & regenerate</Text>
-              </Pressable>
+            {message.imageDataUrl ? (
+              <Image
+                accessible
+                accessibilityLabel="Attached photo"
+                source={{ uri: message.imageDataUrl }}
+                style={styles.messageImage}
+              />
             ) : null}
+            {editingIndex === index ? (
+              <>
+                <Field
+                  accessibilityLabel="Message to edit"
+                  autoFocus
+                  multiline
+                  value={editDraft}
+                  onChangeText={setEditDraft}
+                />
+                <View style={nativeStyles.row}>
+                  <Button
+                    label="Save & Regenerate"
+                    disabled={!editDraft.trim()}
+                    onPress={() => {
+                      setEditingIndex(null);
+                      void chat.editUserMessageAndRegenerate(
+                        index,
+                        editDraft.trim(),
+                      );
+                    }}
+                  />
+                  <Button
+                    label="Cancel"
+                    variant="secondary"
+                    onPress={() => setEditingIndex(null)}
+                  />
+                </View>
+              </>
+            ) : (
+              <>
+                <View
+                  accessible
+                  accessibilityLabel={`${message.role === "user" ? "You" : "Chefness"}: ${message.content || (chat.isStreaming ? "Thinking" : "")}`}
+                >
+                  {message.role === "assistant" && message.content ? (
+                    <Markdown style={markdownStyles}>
+                      {message.content}
+                    </Markdown>
+                  ) : (
+                    <Text selectable style={styles.messageText}>
+                      {message.content || (chat.isStreaming ? "Thinking…" : "")}
+                    </Text>
+                  )}
+                </View>
+                {message.role === "user" && !chat.isStreaming ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityHint="Edits this message inline, then regenerates the response"
+                    style={styles.editMessage}
+                    onPress={() => {
+                      setEditDraft(message.content);
+                      setEditingIndex(index);
+                    }}
+                  >
+                    <Ionicons
+                      accessible={false}
+                      name="pencil-outline"
+                      size={15}
+                      color={colors.stone600}
+                    />
+                    <Text style={styles.editMessageText}>
+                      Edit & regenerate
+                    </Text>
+                  </Pressable>
+                ) : null}
+              </>
+            )}
             {message.role === "assistant" && message.content ? (
               <View style={nativeStyles.row}>
                 <Button
