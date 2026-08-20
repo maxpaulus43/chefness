@@ -14,6 +14,7 @@ import {
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { Ionicons } from "@expo/vector-icons";
+import { useHeaderHeight } from "@react-navigation/elements";
 import Markdown from "react-native-markdown-display";
 import { useChat } from "@/hooks/useChat";
 import { useRecipes } from "@/hooks/useRecipes";
@@ -51,6 +52,7 @@ export function ChatScreen({
   const scroll = useRef<ScrollView>(null);
   const wasStreaming = useRef(chat.isStreaming);
   const { reduceTransparency } = useAccessibilityPreferences();
+  const headerHeight = useHeaderHeight();
 
   useEffect(() => {
     scroll.current?.scrollToEnd({ animated: true });
@@ -181,6 +183,7 @@ export function ChatScreen({
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : undefined}
+      keyboardVerticalOffset={headerHeight}
       style={nativeStyles.screen}
     >
       <ScrollView

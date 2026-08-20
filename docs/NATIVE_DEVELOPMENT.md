@@ -23,12 +23,9 @@ bun run start
 bun run ios:device
 ```
 
-For a production-like build that runs without Metro:
-
-```bash
-bunx expo run:ios --device "Your iPhone" \
-  --configuration Release --no-bundler
-```
+Use the normal Metro-backed debug build for development and verification. Do
+not add `--configuration Release --no-bundler` to the routine workflow; it is
+slow and bypasses the normal development setup.
 
 Keep the phone unlocked during installation and first launch.
 

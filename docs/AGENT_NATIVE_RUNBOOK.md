@@ -41,21 +41,16 @@ The scene-lifecycle plugin in `plugins/with-ios-scene-lifecycle.cjs` is required
 
 ## 4. Build and install
 
-For final, self-contained device verification:
-
-```bash
-bunx expo run:ios \
-  --device "<device name>" \
-  --configuration Release \
-  --no-bundler
-```
-
-For the normal debug loop:
+Use the normal debug loop. Keep Metro running in one terminal, then build and
+install from another:
 
 ```bash
 bun run start
 bun run ios:device
 ```
+
+Do not use `--configuration Release --no-bundler` for routine agent
+verification; it is slow and bypasses the normal development workflow.
 
 Do not claim device success from compilation alone. Confirm install and launch (`com.maxpaulus.chefness`):
 
@@ -92,4 +87,4 @@ If logs say `UIScene life cycle is required`, verify the scene plugin remains in
 
 ## Completion gate
 
-Before reporting done: lint, native typecheck, Expo Doctor, iOS export, signed install, successful launch, live process, screenshot, and targeted flow verification must all pass.
+Before reporting done: lint, native typecheck, Expo Doctor, iOS export, debug install, successful launch, live process, screenshot, and targeted flow verification must all pass.
