@@ -270,7 +270,7 @@ export function RecipeDetailView({
 
           {!isAiConfigured && (
             <p style={styles.aiEditError}>
-              Set up your AI provider in Settings to use AI recipe edits.
+              Connect OpenRouter in Settings to use AI recipe edits.
             </p>
           )}
 

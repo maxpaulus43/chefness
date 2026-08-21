@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/useToast";
 import { Markdown } from "@/lib/markdown";
 import { extractPreference } from "@/lib/preference-extractor";
 import { extractRecipeFromConversation } from "@/lib/recipe-extractor";
+import { formatOpenRouterError } from "@/lib/openrouter-error";
 import { useState, useEffect, useRef, useCallback, useReducer } from "react";
 import { colors, fonts, shadows, radii } from "@/theme";
 
@@ -258,9 +259,14 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
         dispatch({ type: "SAVE_OK", index });
         setMessageFlag(index, "savedRecipeId", saved.id);
       } catch (err: unknown) {
-        const errMsg =
-          err instanceof Error ? err.message : "Failed to save recipe.";
-        dispatch({ type: "SAVE_ERR", index, error: errMsg });
+        dispatch({
+          type: "SAVE_ERR",
+          index,
+          error: formatOpenRouterError(
+            err,
+            "OpenRouter couldn’t prepare this recipe to save.",
+          ),
+        });
       }
     },
     [
@@ -306,9 +312,14 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
         dispatch({ type: "MEMORY_OK", index });
         setMessageFlag(index, "memorySaved");
       } catch (err: unknown) {
-        const errMsg =
-          err instanceof Error ? err.message : "Failed to extract preference.";
-        dispatch({ type: "MEMORY_ERR", index, error: errMsg });
+        dispatch({
+          type: "MEMORY_ERR",
+          index,
+          error: formatOpenRouterError(
+            err,
+            "OpenRouter couldn’t prepare this memory to save.",
+          ),
+        });
       }
     },
     [
@@ -538,7 +549,7 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
     [setMealSize],
   );
 
-  // The input remains available when the LLM is not configured so users can
+  // The input remains available when OpenRouter is not connected so users can
   // still paste recipe URLs for non-AI JSON-LD import.
   const hasMessages = messages.length > 0;
   const showMealControls = !hasMessages;
@@ -844,8 +855,8 @@ function renderEmptyState(
       {!isConfigured && (
         <div style={styles.setupCard}>
           <p style={styles.setupText}>
-            Set up your AI provider in Settings to chat, or paste a recipe link
-            below to import it.
+            Connect OpenRouter in Settings to chat, or paste a recipe link below
+            to import it.
           </p>
           <button
             type="button"

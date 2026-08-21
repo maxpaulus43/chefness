@@ -12,14 +12,14 @@
  * ## LLM Integration
  *
  * Uses a browser-compatible streaming client (`src/lib/llm-stream.ts`)
- * that calls LLM provider APIs directly via fetch() + ReadableStream.
+ * that calls OpenRouter directly via fetch() + ReadableStream.
  * This avoids the `@clinebot/agents` Agent class, whose internal
  * `createHandler` dependency is not available in the browser build
  * of `@clinebot/llms`.
  *
- * Supported protocols:
- * - OpenAI-compatible (covers OpenAI, OpenRouter, Groq, Together, etc.)
- * - Anthropic-native (Anthropic, MiniMax via Anthropic-compatible API)
+ * OpenRouter requests use its OpenAI-compatible API shape. The lower-level
+ * client retains legacy protocol support, but Chefness always supplies the
+ * OpenRouter provider and OAuth key.
  */
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useSettings } from "@/hooks/useSettings";
@@ -29,6 +29,7 @@ import { useAiPreferences } from "@/hooks/useAiPreferences";
 import { useChatSessions } from "@/hooks/useChatSessions";
 import { useRecipes } from "@/hooks/useRecipes";
 import { streamChat } from "@/lib/llm-stream";
+import { formatOpenRouterError } from "@/lib/openrouter-error";
 import { extractRecipeFromUrl } from "@/lib/recipe-url-extractor";
 import type { ExtractedRecipeFromUrl } from "@/lib/recipe-url-extractor";
 import type { CookingLogEntry } from "@/types/cooking-log";
@@ -142,19 +143,7 @@ answer cooking-related questions.`,
 
 /** Map common API errors to user-friendly messages. */
 function friendlyError(err: unknown): string {
-  if (!(err instanceof Error)) {
-    return "An unexpected error occurred while contacting the LLM.";
-  }
-  const msg = err.message.toLowerCase();
-  if (msg.includes("401") || msg.includes("unauthorized"))
-    return "Invalid API key. Please check your key in Settings.";
-  if (msg.includes("403") || msg.includes("forbidden"))
-    return "Access denied. Your API key may not have the required permissions.";
-  if (msg.includes("404") || msg.includes("not found"))
-    return "Model not found. Please verify the model name in Settings.";
-  if (msg.includes("429") || msg.includes("rate"))
-    return "Rate limited by the provider. Please wait a moment and try again.";
-  return err.message;
+  return formatOpenRouterError(err);
 }
 
 function importError(err: unknown): string {
@@ -416,14 +405,12 @@ export function useChat() {
 
       const recipeUrlMessage = imageDataUrl ? null : getRecipeUrlMessage(text);
       if (!recipeUrlMessage && !isConfigured) {
-        setError(
-          "LLM is not configured. Please set provider, model, and API key in Settings.",
-        );
+        setError("Connect OpenRouter in Settings before chatting.");
         return;
       }
       if (recipeUrlMessage?.mode === "conversation-context" && !isConfigured) {
         setError(
-          "Set up your AI provider to modify or discuss recipes from links. Paste only the URL to import the original recipe.",
+          "Connect OpenRouter in Settings to modify or discuss recipes from links. Paste only the URL to import the original recipe.",
         );
         return;
       }

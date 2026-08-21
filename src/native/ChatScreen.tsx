@@ -29,6 +29,7 @@ import { useAiPreferences } from "@/hooks/useAiPreferences";
 import { useSettings } from "@/hooks/useSettings";
 import { extractRecipeFromConversation } from "@/lib/recipe-extractor";
 import { extractPreference } from "@/lib/preference-extractor";
+import { formatOpenRouterError } from "@/lib/openrouter-error";
 import { useAccessibilityPreferences } from "@/native/accessibility";
 import { isNearChatBottom } from "@/native/chat-scroll";
 import { nativeColors as colors, nativeFonts } from "@/native/theme";
@@ -198,7 +199,10 @@ export function ChatScreen({
     } catch (error) {
       Alert.alert(
         "Couldn’t save recipe",
-        error instanceof Error ? error.message : "Try again.",
+        formatOpenRouterError(
+          error,
+          "OpenRouter couldn’t prepare this recipe to save.",
+        ),
       );
     } finally {
       setBusyAction(null);
@@ -225,7 +229,10 @@ export function ChatScreen({
     } catch (error) {
       Alert.alert(
         "Couldn’t save memory",
-        error instanceof Error ? error.message : "Try again.",
+        formatOpenRouterError(
+          error,
+          "OpenRouter couldn’t prepare this memory to save.",
+        ),
       );
     } finally {
       setBusyAction(null);

@@ -194,7 +194,7 @@ export function SettingsView() {
               <Icon name="check" size={16} strokeWidth={3} />
               Connected to OpenRouter
             </p>
-            <p style={styles.maskedKey}>API key: {maskedOAuthKey}</p>
+            <p style={styles.maskedKey}>OpenRouter key: {maskedOAuthKey}</p>
 
             {/* Model picker */}
             <div style={styles.field}>
@@ -287,8 +287,8 @@ export function SettingsView() {
         ) : (
           <>
             <p style={styles.sectionDescription}>
-              Sign in with your OpenRouter account to use 300+ AI models without
-              an API key.
+              Sign in with your OpenRouter account to choose from its available
+              AI models without manually entering an API key.
             </p>
 
             {isProcessingCallback ? (

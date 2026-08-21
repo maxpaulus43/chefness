@@ -474,8 +474,7 @@ export async function callWithTools(
 
   if (!baseUrl) {
     throw new Error(
-      `No base URL found for provider "${providerId}". ` +
-        "Please check your provider configuration.",
+      "OpenRouter connection is unavailable. Please reconnect OpenRouter in Settings.",
     );
   }
 
@@ -550,8 +549,7 @@ export async function streamChat(options: StreamOptions): Promise<string> {
 
   if (!baseUrl) {
     throw new Error(
-      `No base URL found for provider "${providerId}". ` +
-        "Please check your provider configuration.",
+      "OpenRouter connection is unavailable. Please reconnect OpenRouter in Settings.",
     );
   }
 

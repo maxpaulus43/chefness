@@ -1,4 +1,5 @@
 import { editRecipeWithPrompt } from "@/lib/recipe-extractor";
+import { formatOpenRouterError } from "@/lib/openrouter-error";
 import type { Recipe, CreateRecipeInput } from "@/types/recipe";
 import { useState } from "react";
 import { useRecipes } from "@/hooks/useRecipes";
@@ -33,7 +34,7 @@ export function useRecipeAiEditor() {
 
     if (!isConfigured) {
       setStatus("error");
-      setError("Set up your AI provider in Settings before using AI edits.");
+      setError("Connect OpenRouter in Settings before using AI recipe edits.");
       return null;
     }
 
@@ -53,10 +54,10 @@ export function useRecipeAiEditor() {
       setStatus("preview");
       return editedRecipe;
     } catch (err: unknown) {
-      const errMsg =
-        err instanceof Error ? err.message : "Failed to edit recipe with AI.";
       setStatus("error");
-      setError(errMsg);
+      setError(
+        formatOpenRouterError(err, "OpenRouter couldn’t edit this recipe."),
+      );
       return null;
     }
   };

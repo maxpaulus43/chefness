@@ -386,6 +386,11 @@ former manual provider/API-key configuration UI has been removed. Legacy
 existing persisted records still parse, but runtime credential resolution
 ignores them and always uses the OpenRouter OAuth key.
 
+User-facing setup, chat, and AI recipe-edit copy must name OpenRouter directly.
+Errors should direct users to reconnect OpenRouter or choose another OpenRouter
+model rather than referring to generic providers, manual API keys, or LLM
+configuration.
+
 `src/lib/openrouter-models.ts` fetches and runtime-validates OpenRouter's public
 `/api/v1/models` catalog. `useOpenRouterModels` owns catalog loading, errors,
 and combined filters. A model is free when both prompt and completion prices

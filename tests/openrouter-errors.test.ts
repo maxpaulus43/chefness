@@ -1,4 +1,5 @@
 import { afterEach, expect, mock, test } from "bun:test";
+import { formatOpenRouterError } from "../src/lib/openrouter-error";
 
 const originalFetch = globalThis.fetch;
 const echoedSecret = "provider-echoed-secret";
@@ -15,6 +16,21 @@ mock.module("expo/fetch", () => ({
 
 afterEach(() => {
   globalThis.fetch = originalFetch;
+});
+
+test("formats OpenRouter request failures with actionable user copy", () => {
+  expect(formatOpenRouterError(new Error("Request failed (401)"))).toBe(
+    "Your OpenRouter connection is no longer valid. Reconnect in Settings.",
+  );
+  expect(formatOpenRouterError(new Error("Request failed (404)"))).toBe(
+    "This OpenRouter model is unavailable. Choose another model in Settings.",
+  );
+  expect(formatOpenRouterError(new Error("Request failed (429)"))).toBe(
+    "OpenRouter is rate limiting requests. Wait a moment and try again.",
+  );
+  expect(formatOpenRouterError(undefined, "OpenRouter fallback.")).toBe(
+    "OpenRouter fallback.",
+  );
 });
 
 test("OAuth exchange errors exclude provider response bodies", async () => {

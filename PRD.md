@@ -53,8 +53,8 @@ what you've cooked.**
 ### Alex — The Busy Home Cook
 
 - **Age:** 28–45
-- **Tech comfort:** Uses apps daily, comfortable entering an API key if given
-  clear instructions.
+- **Tech comfort:** Uses apps daily and is comfortable connecting an OpenRouter
+  account when given clear instructions.
 - **Cooking skill:** Intermediate — can follow a recipe but wants inspiration
   and guidance for trying new things.
 - **Context of use:** Standing in the kitchen, phone propped on the counter,
@@ -182,9 +182,10 @@ the user refreshes or closes the app.
       with or without accompanying text.
 - [ ] A "New Chat" button is accessible (e.g., in the chat header) and
       confirms before clearing if a conversation is in progress.
-- [ ] If the LLM API key is not configured, the chat view shows a clear
-      message directing the user to Settings, with a tap-to-navigate action.
-- [ ] If the LLM request fails (network error, invalid key, rate limit), an
+- [x] If OpenRouter is not connected, the chat view shows a clear message
+      directing the user to Settings, with a tap-to-navigate action.
+- [x] If the OpenRouter request fails (network error, expired connection, model
+      unavailable, or rate limit), an
       inline error message appears with a "Retry" option.
 - [ ] The chat UI is usable on a 375px-wide screen (iPhone SE).
 
@@ -203,7 +204,7 @@ for recipes. Suggest ingredient substitutions when relevant. Be encouraging and
 conversational.
 ```
 
-### 4.2 LLM Provider & Model Selection
+### 4.2 OpenRouter Connection & Model Selection
 
 #### Description
 
@@ -367,8 +368,8 @@ success or a clear extraction error in chat.
 - [x] URL + extra user instructions are treated as conversational recipe
       context, not immediate save requests.
 - [x] URL-only/import-only imports require internet connectivity but do not
-      require LLM provider configuration.
-- [x] URL + extra user instructions require LLM provider configuration so the
+      require an OpenRouter connection.
+- [x] URL + extra user instructions require an OpenRouter connection so the
       assistant can reason over requested edits/recommendations.
 - [x] Browser code calls a same-origin `extractRecipeFromUrl(...)` helper rather
       than fetching third-party sites directly.
@@ -574,7 +575,7 @@ sessions and browse session history.
 
 ### @clinebot/* Package Suite
 
-The app uses the following packages for provider-agnostic LLM integration:
+The app uses the following packages in its OpenRouter-only LLM integration:
 
 | Package | Version | Purpose |
 | --- | --- | --- |
@@ -694,7 +695,8 @@ A clear checklist of everything included in v1:
 - [x] **System prompt** — base cooking guru persona + meal type + meal size
 - [x] **New Chat button** — clears current conversation and starts fresh
 - [x] **Empty chat state** — suggested prompt bubbles for quick start
-- [x] **Error handling in chat** — network errors, invalid API key, offline state
+- [x] **Error handling in chat** — network errors, expired OpenRouter
+      connection, unavailable model, rate limits, and offline state
 - [x] **Settings page** — OpenRouter connection, model selection, dietary restrictions, and AI memory
 - [x] **OpenRouter OAuth** — connect/disconnect without manual provider configuration
 - [x] **OpenRouter model selector** — populated from the live OpenRouter catalog with Free, Vision, and Tools filters
@@ -827,11 +829,14 @@ understand these to avoid re-discovering limitations or breaking existing patter
 
 #### b) LLM streaming: fetch-based SSE client
 
-- `src/lib/llm-stream.ts` implements streaming for two protocols:
-  - **OpenAI-compatible:** POST to `{baseUrl}/chat/completions` with `stream:true` (covers ~80% of providers: OpenAI, OpenRouter, Groq, Together, Fireworks, DeepSeek, etc.)
-  - **Anthropic native:** POST to `{baseUrl}/messages` with `stream:true`, using `x-api-key` header and `anthropic-version` header
-- Provider base URL is resolved using `toProviderConfig()` from `@clinebot/llms` browser build.
-- **Google Gemini native API is NOT yet supported** (would need a different endpoint/format). Users can access Gemini via OpenRouter or other proxies.
+- Chefness sends chat and tool-calling requests only to OpenRouter's
+  OpenAI-compatible `/chat/completions` endpoint.
+- The lower-level `src/lib/llm-stream.ts` client retains an Anthropic-native
+  branch for compatibility with legacy code, but no current Settings or runtime
+  flow selects it.
+- The OpenRouter base URL is resolved using `toProviderConfig()` from the
+  `@clinebot/llms` browser build. Models from different model vendors remain
+  available only through OpenRouter's catalog and connection.
 
 #### c) Settings reactivity pattern
 
