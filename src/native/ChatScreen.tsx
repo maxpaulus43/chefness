@@ -16,6 +16,10 @@ import {
   type NativeSyntheticEvent,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
+import {
+  deleteChatImages,
+  storeChatImage,
+} from "@/lib/chat-image-storage.native";
 import { Ionicons } from "@expo/vector-icons";
 import { useHeaderHeight } from "@react-navigation/elements";
 import Markdown from "react-native-markdown-display";
@@ -120,28 +124,33 @@ export function ChatScreen({
     void chat.sendMessage(sent, sentImage);
   };
 
-  const receiveImage = (result: ImagePicker.ImagePickerResult) => {
+  const receiveImage = async (result: ImagePicker.ImagePickerResult) => {
     const asset = result.assets?.[0];
-    if (!result.canceled && asset)
-      setImage(
-        asset.base64
-          ? `data:${asset.mimeType ?? "image/jpeg"};base64,${asset.base64}`
-          : asset.uri,
+    if (result.canceled || !asset) return;
+
+    try {
+      const storedImage = await storeChatImage(
+        asset.uri,
+        asset.width,
+        asset.height,
       );
+      if (image) deleteChatImages([image]);
+      setImage(storedImage);
+    } catch {
+      Alert.alert("Couldn’t attach photo", "Please choose another photo.");
+    }
   };
 
   const chooseImage = () => {
     const takePhoto = () =>
       void ImagePicker.launchCameraAsync({
         mediaTypes: ["images"],
-        quality: 0.72,
-        base64: true,
+        quality: 0.9,
       }).then(receiveImage);
     const chooseFromLibrary = () =>
       void ImagePicker.launchImageLibraryAsync({
         mediaTypes: ["images"],
-        quality: 0.72,
-        base64: true,
+        quality: 0.9,
       }).then(receiveImage);
     if (Platform.OS === "ios") {
       ActionSheetIOS.showActionSheetWithOptions(
@@ -450,7 +459,10 @@ export function ChatScreen({
             accessibilityLabel="Remove attached photo"
             accessibilityHint="Removes the photo before sending"
             style={styles.iconButton}
-            onPress={() => setImage("")}
+            onPress={() => {
+              deleteChatImages([image]);
+              setImage("");
+            }}
           >
             <Ionicons
               accessible={false}

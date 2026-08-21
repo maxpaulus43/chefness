@@ -374,9 +374,14 @@ when `tools` is listed in `supported_parameters`. The default is the stable
 
 For vision-capable selected models, Chat exposes an image attachment control.
 `useImageAttachment` delegates resizing/encoding to
-`src/lib/image-attachment.ts`; photos from the device camera or image library
-are resized to a maximum 1600px dimension and JPEG-encoded before being
-persisted on the user message. The
+`src/lib/image-attachment.ts` on web. On native, selected photos are resized to
+a maximum 1600px dimension, JPEG-compressed, and stored as files under the app's
+documents directory; chat sessions persist only their file URIs. The native
+OpenRouter client reads and base64-encodes those files only for the outgoing
+request. Removing an unsent attachment or deleting its final referencing chat
+session deletes the managed file, and old orphan files are cleaned after 24
+hours. Existing base64 chat messages remain readable for compatibility. Photos
+are resized before being persisted on the user message. The
 streaming client sends these images to OpenRouter as OpenAI-compatible
 `image_url` content parts. Models without `image` in their input modalities do
 not show the attachment control.

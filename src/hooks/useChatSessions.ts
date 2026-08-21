@@ -5,7 +5,11 @@
  * They never import `trpc` directly or manage cache invalidation —
  * all of that lives here.
  */
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
+import {
+  deleteChatImages,
+  deleteOrphanedChatImages,
+} from "@/lib/chat-image-storage";
 import { trpc } from "@/trpc/client";
 import type {
   CreateChatSessionInput,
@@ -44,6 +48,36 @@ export function useChatSessions() {
     return [...raw].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
   }, [listQuery.data]);
 
+  useEffect(() => {
+    if (listQuery.isLoading) return;
+    deleteOrphanedChatImages(
+      sessions.flatMap((session) =>
+        session.messages.map((message) => message.imageDataUrl),
+      ),
+    );
+  }, [listQuery.isLoading, sessions]);
+
+  const deleteSession = (id: string) => {
+    const imageUris =
+      sessions
+        .find((session) => session.id === id)
+        ?.messages.map((message) => message.imageDataUrl) ?? [];
+    const imagesUsedElsewhere = new Set(
+      sessions
+        .filter((session) => session.id !== id)
+        .flatMap((session) =>
+          session.messages.map((message) => message.imageDataUrl),
+        ),
+    );
+    const unusedImageUris = imageUris.filter(
+      (uri) => !imagesUsedElsewhere.has(uri),
+    );
+    deleteMutation.mutate(
+      { id },
+      { onSuccess: () => deleteChatImages(unusedImageUris) },
+    );
+  };
+
   return {
     /** The list of all chat sessions (sorted by updatedAt desc). */
     sessions,
@@ -77,7 +111,7 @@ export function useChatSessions() {
     isUpdating: updateMutation.isPending,
 
     /** Delete a chat session by ID. */
-    deleteSession: (id: string) => deleteMutation.mutate({ id }),
+    deleteSession,
 
     /** `true` while a delete is in flight. */
     isDeleting: deleteMutation.isPending,

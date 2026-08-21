@@ -34,11 +34,16 @@ export interface ToolCallResult {
 }
 const endpoint = "https://openrouter.ai/api/v1/chat/completions";
 
-function content(message: StreamMessage) {
+async function content(message: StreamMessage) {
   if (!message.imageDataUrl) return message.content;
+  const imageDataUrl = message.imageDataUrl.startsWith("data:")
+    ? message.imageDataUrl
+    : await (await import("./chat-image-storage.native")).chatImageDataUrl(
+        message.imageDataUrl,
+      );
   return [
     ...(message.content ? [{ type: "text", text: message.content }] : []),
-    { type: "image_url", image_url: { url: message.imageDataUrl } },
+    { type: "image_url", image_url: { url: imageDataUrl } },
   ];
 }
 function headers(apiKey: string) {
@@ -58,10 +63,12 @@ export async function streamChat(options: StreamOptions): Promise<string> {
       stream: true,
       messages: [
         { role: "system", content: options.systemPrompt },
-        ...options.messages.map((message) => ({
-          role: message.role,
-          content: content(message),
-        })),
+        ...(await Promise.all(
+          options.messages.map(async (message) => ({
+            role: message.role,
+            content: await content(message),
+          })),
+        )),
       ],
     }),
     signal: options.signal,

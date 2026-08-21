@@ -173,8 +173,9 @@ the user refreshes or closes the app.
       model supports image input.
 - [x] The attachment control opens the device image chooser, allowing users to
       take a new photo or select an existing photo from their library.
-- [x] Attached images are resized before being previewed, persisted with the
-      user message, and sent as multimodal OpenRouter content.
+- [x] Attached images are resized before being previewed and sent. On iOS,
+      compressed images are persisted as managed files while chat records store
+      only file URIs; image files are removed with deleted sessions.
 - [x] Users can remove a selected image before sending and can send an image
       with or without accompanying text.
 - [ ] A "New Chat" button is accessible (e.g., in the chat header) and
