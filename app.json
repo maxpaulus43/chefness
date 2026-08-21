@@ -6,10 +6,12 @@
     "orientation": "portrait",
     "scheme": "chefness",
     "userInterfaceStyle": "light",
-    "icon": "./public/pwa-512x512.png",
+    "icon": "./public/pwa-1024x1024.png",
     "ios": {
-      "supportsTablet": true,
+      "supportsTablet": false,
       "bundleIdentifier": "com.maxpaulus.chefness",
+      "buildNumber": "1",
+      "appleTeamId": "WNCJFCHP22",
       "entitlements": {
         "keychain-access-groups": [
           "$(AppIdentifierPrefix)$(PRODUCT_BUNDLE_IDENTIFIER)"

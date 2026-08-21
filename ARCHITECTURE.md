@@ -8,7 +8,7 @@ task has the full context without needing to reverse-engineer it from code.
 
 ## 1. Project overview
 
-Chefness is a **client-side-first** cooking app with an Expo/React Native iOS
+Chefness is a **client-side-first** cooking app with an iPhone-only Expo/React Native iOS
 app and a retained PWA build. There is **no separate application backend for
 user data**. All data operations run on-device through the same local tRPC
 router. iOS persists through AsyncStorage; the web build uses IndexedDB. The
@@ -17,7 +17,21 @@ repository boundary keeps business hooks and router procedures platform-neutral.
 Exception: the app may include tiny stateless Cloudflare Worker API endpoints
 for browser-impossible network tasks, such as fetching third-party recipe pages
 that block CORS. These endpoints must not store user data and must return only
-small, sanitized JSON responses.
+small, sanitized JSON responses. The launch website at `chefness.org` is a
+separate static Cloudflare Pages project sourced from `website/`; it does not
+expose or replace the retained PWA/Worker deployment.
+
+### Launch telemetry scope
+
+Chefness 1.0 uses Sentry for privacy-scrubbed crash and error reporting only. It
+does not include product analytics or an analytics installation identifier.
+Sentry Session Replay and screenshots remain disabled unless a later privacy
+review explicitly approves them. Product analytics and any associated opt-out
+control are deferred to a later release. The initial App Store release is built,
+archived, validated, and uploaded with Xcode; EAS Build is deferred until
+repeatable cloud builds or CI are needed. Distribution uses the existing
+Individual Apple Developer membership (Team ID `WNCJFCHP22`), so the App Store
+seller is the legal personal name associated with that membership.
 
 ### Tech stack
 
@@ -89,9 +103,16 @@ small, sanitized JSON responses.
   `plugins/with-ios-pods-deployment-target.cjs` raises every generated native
   app/extension build configuration and CocoaPods target to the app's iOS
   deployment target because Xcode 27 rejects older targets and Expo modules
-  require iOS 16.4.
+  require iOS 16.4. It also applies `ios.appleTeamId` to every generated target
+  because the beta share-extension plugin does not propagate Expo's team setting
+  to its target.
 - The generated `ios/` directory is ignored; run `bunx expo prebuild --platform ios`
-  when native projects need regeneration.
+  when native projects need regeneration. `app.json` is the release-version source
+  of truth: `expo.version` sets the marketing version and `expo.ios.buildNumber`
+  sets the shared main-app/share-extension build number. Increment the integer
+  build number before every App Store Connect upload, then clean-prebuild before
+  archiving in Xcode. The complete Archive → Validate → Distribute workflow is
+  documented in `docs/XCODE_RELEASE_RUNBOOK.md`.
 
 ### Path aliases
 

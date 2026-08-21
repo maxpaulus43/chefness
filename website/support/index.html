@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Get help with Chefness, including OpenRouter connection, connectivity, and local app functionality."
+    />
+    <meta name="theme-color" content="#faf7f2" />
+    <meta property="og:title" content="Chefness Support" />
+    <meta
+      property="og:description"
+      content="Setup help, troubleshooting, and contact information for Chefness."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://chefness.org/support" />
+    <link rel="canonical" href="https://chefness.org/support" />
+    <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+    <title>Support — Chefness</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="/" aria-label="Chefness home">
+        <img src="/icon.svg" width="40" height="40" alt="" />
+        <span>Chefness</span>
+      </a>
+      <nav aria-label="Site navigation">
+        <a aria-current="page" href="/support">Support</a>
+        <a href="/privacy">Privacy</a>
+      </nav>
+    </header>
+
+    <main class="document-page">
+      <header class="document-header">
+        <p class="eyebrow">Help &amp; support</p>
+        <h1>How can we help?</h1>
+        <p class="lede">
+          Find quick fixes below or email us if Chefness is not working as expected.
+        </p>
+        <a class="primary-link" href="mailto:support@chefness.org?subject=Chefness%20Support">
+          Email support@chefness.org
+        </a>
+      </header>
+
+      <div class="support-sections">
+        <section class="content-card" aria-labelledby="openrouter-heading">
+          <h2 id="openrouter-heading">Connect OpenRouter</h2>
+          <ol>
+            <li>Open <strong>Settings</strong> in Chefness.</li>
+            <li>Tap <strong>Connect OpenRouter</strong>.</li>
+            <li>Sign in to OpenRouter and finish creating the key.</li>
+            <li>Copy the one-time authorization code OpenRouter displays.</li>
+            <li>Close the browser, return to Chefness, and tap <strong>Paste Code</strong>.</li>
+            <li>Tap <strong>Connect</strong>.</li>
+          </ol>
+          <p>
+            The one-time code expires after 10 minutes. If it expires or is rejected, cancel the
+            connection sheet and start again. Chefness stores the resulting key in the iOS
+            Keychain and never displays it.
+          </p>
+          <p>
+            You need an OpenRouter account for AI features. Some models are free; paid model usage
+            is billed by OpenRouter. See
+            <a href="https://openrouter.ai/docs/faq" rel="noreferrer">OpenRouter’s FAQ</a>.
+          </p>
+        </section>
+
+        <section class="content-card" aria-labelledby="connection-heading">
+          <h2 id="connection-heading">Chat or imports cannot connect</h2>
+          <ul>
+            <li>Confirm your iPhone has a working Wi-Fi or cellular connection.</li>
+            <li>Temporarily disable a VPN or restrictive network filter and try again.</li>
+            <li>Open Settings and confirm OpenRouter shows <strong>Connected</strong>.</li>
+            <li>Try another model, especially if a free model is temporarily unavailable.</li>
+            <li>
+              If authorization was revoked or expired, disconnect OpenRouter in Chefness Settings,
+              then connect again.
+            </li>
+          </ul>
+          <p>
+            Recipe import also requires the recipe website to publish supported structured recipe
+            data. If Chefness says the site does not support extraction, try another recipe page or
+            save the recipe manually from a chat.
+          </p>
+        </section>
+
+        <section class="content-card" aria-labelledby="offline-heading">
+          <h2 id="offline-heading">Use local features again</h2>
+          <p>
+            Saved recipes, cooking history, dietary restrictions, and AI memories live on your
+            iPhone and should remain usable without an internet connection. AI chat and remote
+            recipe import require internet access.
+          </p>
+          <ol>
+            <li>Force-close Chefness and reopen it.</li>
+            <li>Restart your iPhone if the app still does not respond.</li>
+            <li>Install the latest Chefness update when one is available.</li>
+          </ol>
+          <div class="warning">
+            <strong>Before reinstalling:</strong> deleting Chefness also deletes its on-device
+            recipes, chat sessions, cooking history, settings, and preferences. Do not reinstall
+            as a troubleshooting step unless you are comfortable losing that local data.
+          </div>
+        </section>
+
+        <section class="content-card" aria-labelledby="contact-heading">
+          <h2 id="contact-heading">Still need help?</h2>
+          <p>
+            Email <a href="mailto:support@chefness.org">support@chefness.org</a> and describe what
+            happened, what you expected, and the steps that led to the problem.
+          </p>
+          <p>
+            Please do not send OpenRouter keys, one-time authorization codes, private chat text,
+            personal recipes, dietary information, or photos.
+          </p>
+          <a
+            class="primary-link"
+            href="mailto:support@chefness.org?subject=Chefness%20Support%20Request"
+          >
+            Send a support email
+          </a>
+        </section>
+      </div>
+    </main>
+
+    <footer>
+      <span>© 2026 Chefness</span>
+      <a href="/">Home</a>
+      <a href="/privacy">Privacy</a>
+      <a href="mailto:support@chefness.org">Email support</a>
+    </footer>
+  </body>
+</html>

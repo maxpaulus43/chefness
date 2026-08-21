@@ -8,6 +8,7 @@
     "build": "vite build",
     "preview": "bun run build && wrangler dev",
     "deploy": "bun run build && wrangler deploy",
+    "deploy:website": "wrangler pages deploy website --project-name chefness-site --branch main --commit-dirty=true",
     "lint": "eslint src/",
     "lint:fix": "eslint src/ --fix",
     "format": "biome format --write .",

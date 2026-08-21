@@ -24,8 +24,10 @@
 
 ## 1. Overview & Vision
 
-**Chefness** is a mobile-first, offline-first Expo/React Native iOS app with
-the existing Progressive Web App retained as a web target. The user chats with
+**Chefness** is a mobile-first, offline-first, iPhone-only Expo/React Native iOS app with
+the existing Progressive Web App retained as a web target. The App Store listing
+name is **Chefness!** because `Chefness` was unavailable; the installed app display
+name and product name remain **Chefness**. The user chats with
 an AI "cooking guru" that knows
 their dietary restrictions, recent cooking history, and preferences — and helps
 them plan meals, discover recipes, and cook step-by-step.
@@ -41,7 +43,7 @@ what you've cooked.**
 | **Offline-first** | All non-AI features work without an internet connection. Recipes, history, settings, and preferences are stored on-device. |
 | **AI-powered** | A conversational LLM is the primary interaction model. The AI adapts to the user's context (dietary restrictions, recent meals, preferences). |
 | **Single-user** | No accounts, no server. Everything is local to the device. |
-| **Privacy-respecting** | Data stays on-device. LLM requests use the user's locally stored OpenRouter OAuth key. |
+| **Privacy-respecting** | Data stays on-device. LLM requests use the user's locally stored OpenRouter OAuth key. Version 1 uses Sentry for privacy-scrubbed crash/error reporting and does not include product analytics. |
 | **Warm & inviting visual design** | A "kitchen glassmorphism" aesthetic: a cream gradient background with subtle grain, Fraunces serif headings over Inter body text, a saffron/espresso/rose palette, frosted translucent cards with soft shadows, and consistent inline SVG icons instead of platform-dependent emojis. Tokens are centralized in `src/theme.ts`. |
 
 ---

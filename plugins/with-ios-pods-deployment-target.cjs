@@ -17,6 +17,9 @@ module.exports = function withIosPodsDeploymentTarget(config) {
       }
       buildConfig.buildSettings.IPHONEOS_DEPLOYMENT_TARGET =
         IOS_DEPLOYMENT_TARGET;
+      if (config.ios?.appleTeamId) {
+        buildConfig.buildSettings.DEVELOPMENT_TEAM = config.ios.appleTeamId;
+      }
     }
     return xcodeConfig;
   });
