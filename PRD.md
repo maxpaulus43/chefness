@@ -1,6 +1,6 @@
 # Chefness — Product Requirements Document
 
-> **Last updated:** 2026-08-19
+> **Last updated:** 2026-08-21
 >
 > This document is the single source of truth for **product requirements**.
 > For technical architecture details, see [ARCHITECTURE.md](./ARCHITECTURE.md).
@@ -107,6 +107,9 @@ what you've cooked.**
   its OpenRouter catalog is remote; device-local lists do not offer refresh.
 - The `chefness://` URL scheme has destinations for recipes, chats, history,
   settings, and model selection so navigation is ready for external links.
+- iOS Home Screen quick actions (long-press the app icon) deep-link into those
+  same destinations: New Chat (fresh session), Recipes, Cooking History, and
+  Settings.
 
 ### Layout Structure
 
@@ -846,6 +849,9 @@ understand these to avoid re-discovering limitations or breaking existing patter
   accessibility behavior.
 - `src/native/navigation-routes.ts` defines typed destinations and
   `chefness://` deep links for recipes, chats, history, and settings.
+- iOS Home Screen quick actions are declared by
+  `plugins/with-ios-quick-actions.cjs` and opened as those deep links by
+  `SceneDelegate` (including `chats?newTs=<ms>` to start a fresh chat).
 - The retained web app still uses simple `useState` tab/content switching in
   `HomePage.tsx`; it does not require React Navigation.
 - Chat is the default tab on both platforms.

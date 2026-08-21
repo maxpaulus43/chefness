@@ -23,6 +23,19 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     self.window = window
     appDelegate.window = window
     factory.startReactNative(withModuleName: "main", in: window, launchOptions: nil)
+
+    // Home Screen quick actions arrive on the scene under modern iOS, not
+    // UIApplication launchOptions. Open them as chefness:// deep links so
+    // React Navigation linking can resolve them (including cold start via
+    // RCTLinkingManager's pending initial URL).
+    if let shortcutItem = connectionOptions.shortcutItem,
+       let url = Self.deepLink(for: shortcutItem) {
+      _ = RCTLinkingManager.application(UIApplication.shared, open: url, options: [:])
+    }
+
+    for context in connectionOptions.urlContexts {
+      _ = RCTLinkingManager.application(UIApplication.shared, open: context.url, options: [:])
+    }
   }
 
   func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {
@@ -37,6 +50,37 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
       continue: userActivity,
       restorationHandler: { _ in }
     )
+  }
+
+  func windowScene(
+    _ windowScene: UIWindowScene,
+    performActionFor shortcutItem: UIApplicationShortcutItem,
+    completionHandler: @escaping (Bool) -> Void
+  ) {
+    if let url = Self.deepLink(for: shortcutItem) {
+      _ = RCTLinkingManager.application(UIApplication.shared, open: url, options: [:])
+      completionHandler(true)
+      return
+    }
+    completionHandler(false)
+  }
+
+  /// Maps Home Screen quick-action types (Info.plist) to chefness:// destinations.
+  private static func deepLink(for item: UIApplicationShortcutItem) -> URL? {
+    switch item.type {
+    case "new-chat":
+      // Fresh timestamp so repeated New Chat shortcuts always clear the session.
+      let newTs = Int(Date().timeIntervalSince1970 * 1000)
+      return URL(string: "chefness://chats?newTs=\\(newTs)")
+    case "recipes":
+      return URL(string: "chefness://recipes")
+    case "history":
+      return URL(string: "chefness://history")
+    case "settings":
+      return URL(string: "chefness://settings")
+    default:
+      return nil
+    }
   }
 }
 `;

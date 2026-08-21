@@ -9,8 +9,15 @@ import type {
 export type ChatStackParamList = {
   // sharedUrl/shareTs arrive via the share-extension deep link
   // (chefness://chats?sharedUrl=<base64url>&shareTs=<ms>).
+  // newTs arrives from the Home Screen "New Chat" quick action
+  // (chefness://chats?newTs=<ms>) and forces a fresh session.
   Chat:
-    | { sessionId?: string; sharedUrl?: string; shareTs?: string }
+    | {
+        sessionId?: string;
+        sharedUrl?: string;
+        shareTs?: string;
+        newTs?: string;
+      }
     | undefined;
   ChatHistory: undefined;
 };

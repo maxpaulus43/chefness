@@ -127,6 +127,7 @@ function ChatNavigator({
 type ChatValue = ReturnType<typeof useChat>;
 function ChatRoute({
   route,
+  navigation,
   chat,
   openSettings,
 }: NativeStackScreenProps<ChatStackParamList, "Chat"> & {
@@ -134,10 +135,22 @@ function ChatRoute({
   openSettings: () => void;
 }) {
   const sessionId = route.params?.sessionId;
+  const newTs = route.params?.newTs;
+  const handledNewTs = useRef<string | null>(null);
   useEffect(() => {
+    // Home Screen "New Chat" quick action — clear without confirmation.
+    if (newTs) {
+      if (handledNewTs.current === newTs) return;
+      handledNewTs.current = newTs;
+      chat.clearChat();
+      // Drop newTs so a later remount does not wipe a conversation started
+      // after the quick action.
+      navigation.setParams({ newTs: undefined });
+      return;
+    }
     if (sessionId && sessionId !== chat.currentSessionId)
       chat.loadSession(sessionId);
-  }, [chat, sessionId]);
+  }, [chat, sessionId, newTs, navigation]);
 
   // Handle a recipe URL shared from the iOS share extension. The shareTs
   // value uniquely identifies each share so a re-render or repeated deep link

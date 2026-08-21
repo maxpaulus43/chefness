@@ -74,7 +74,9 @@ seller is the legal personal name associated with that membership.
   composer follows the keyboard correctly.
 - `src/native/navigation-routes.ts` is the typed route/deep-link contract.
   The `chefness://` scheme resolves recipe IDs, chat-session IDs, history,
-  settings, and model selection to nested tab/stack destinations. The retained
+  settings, and model selection to nested tab/stack destinations. Home Screen
+  quick actions reuse the same scheme (`chats?newTs=<ms>` starts a fresh chat
+  session; `recipes`, `history`, and `settings` open those tabs). The retained
   web app continues to use its existing in-place navigation.
 - Metro resolves `.native.ts` before `.ts`. This supplies native implementations
   of persistence (`indexed-db.native.ts`), UUID generation, and OpenRouter
@@ -99,7 +101,10 @@ seller is the legal personal name associated with that membership.
   import flow. `metro.config.cjs` is wrapped with `withShareExtension` to
   bundle the extension entry.
 - The local config plugin `plugins/with-ios-scene-lifecycle.cjs` adds the scene
-  lifecycle required by the iOS 27 SDK during prebuild. The companion
+  lifecycle required by the iOS 27 SDK during prebuild and forwards Home Screen
+  quick actions and scene URL contexts into React Native Linking as
+  `chefness://` deep links. `plugins/with-ios-quick-actions.cjs` declares the
+  static quick-action items in Info.plist. The companion
   `plugins/with-ios-pods-deployment-target.cjs` raises every generated native
   app/extension build configuration and CocoaPods target to the app's iOS
   deployment target because Xcode 27 rejects older targets and Expo modules

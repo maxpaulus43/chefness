@@ -55,3 +55,46 @@ test("resolves chat and settings destinations from deep links", () => {
     state: { routes: [{ name: "Settings" }, { name: "ModelSelection" }] },
   });
 });
+
+test("resolves Home Screen New Chat quick action deep link", () => {
+  const state = resolvePath("chats?newTs=1710000000000");
+  expect(state).toMatchObject({
+    index: 0,
+    routes: [
+      { name: "ChatTab" },
+      { name: "RecipesTab" },
+      { name: "HistoryTab" },
+      { name: "SettingsTab" },
+    ],
+  });
+  expect(state?.routes[0]).toMatchObject({
+    name: "ChatTab",
+    state: {
+      routes: [{ name: "Chat", params: { newTs: "1710000000000" } }],
+    },
+  });
+});
+
+test("resolves History and Recipes quick action destinations", () => {
+  expect(resolvePath("history")).toMatchObject({
+    index: 2,
+    routes: [
+      { name: "ChatTab" },
+      { name: "RecipesTab" },
+      { name: "HistoryTab" },
+      { name: "SettingsTab" },
+    ],
+  });
+  expect(resolvePath("recipes")).toMatchObject({
+    index: 1,
+    routes: [
+      { name: "ChatTab" },
+      {
+        name: "RecipesTab",
+        state: { routes: [{ name: "RecipeList" }] },
+      },
+      { name: "HistoryTab" },
+      { name: "SettingsTab" },
+    ],
+  });
+});
