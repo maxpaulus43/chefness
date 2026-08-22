@@ -156,7 +156,9 @@ export function SettingsScreen({
   return (
     <View style={nativeStyles.screen}>
       <ScrollView
+        automaticallyAdjustKeyboardInsets
         contentContainerStyle={nativeStyles.scroll}
+        keyboardDismissMode="interactive"
         keyboardShouldPersistTaps="handled"
       >
         <Text accessibilityRole="header" style={nativeStyles.sectionTitle}>
@@ -319,7 +321,9 @@ export function SettingsScreen({
         <View accessibilityViewIsModal style={nativeStyles.screen}>
           <ScreenHeader title="Finish Connecting" />
           <ScrollView
+            automaticallyAdjustKeyboardInsets
             contentContainerStyle={nativeStyles.scroll}
+            keyboardDismissMode="interactive"
             keyboardShouldPersistTaps="handled"
           >
             <Text style={nativeStyles.muted}>

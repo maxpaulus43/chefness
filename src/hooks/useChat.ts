@@ -244,7 +244,12 @@ export function useChat() {
   } = useSettings();
   const { recentEntries } = useCookingLog();
   const { preferences: aiPreferences } = useAiPreferences();
-  const { sessions, updateSession, createSessionAsync } = useChatSessions();
+  const {
+    sessions,
+    isLoading: areSessionsLoading,
+    updateSession,
+    createSessionAsync,
+  } = useChatSessions();
   const { createRecipeAsync } = useRecipes();
   const { selectedModelSupportsVision } = useOpenRouterModels(
     isConfigured,
@@ -274,10 +279,13 @@ export function useChat() {
   // -------------------------------------------------------------------------
 
   useEffect(() => {
-    if (hasRestoredRef.current) return;
-    if (sessions.length === 0) return;
+    if (hasRestoredRef.current || areSessionsLoading) return;
 
+    // Mark the initial restore complete even on a fresh install. Otherwise,
+    // creating the first session can make this effect restore that session's
+    // initially empty messages over the conversation that was just sent.
     hasRestoredRef.current = true;
+    if (sessions.length === 0) return;
 
     const mostRecent = sessions[0]; // sorted by updatedAt desc
     setCurrentSessionId(mostRecent.id);
@@ -295,7 +303,7 @@ export function useChat() {
     setMealType((mostRecent.mealType as MealType) ?? null);
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- runtime data from IndexedDB may be null despite type assertion
     setMealSize((mostRecent.mealSize as MealSize) ?? null);
-  }, [sessions]);
+  }, [areSessionsLoading, sessions]);
 
   // -------------------------------------------------------------------------
   // Helpers for session persistence
