@@ -10,6 +10,9 @@ export const settingsSchema = z.object({
   openRouterOAuthKey: z.string().default(""),
   dietaryRestrictions: z.array(z.string()).default([]),
   otherDietaryNotes: z.string().default(""),
+  modelFilterFreeOnly: z.boolean().default(false),
+  modelFilterVisionOnly: z.boolean().default(false),
+  modelFilterToolsOnly: z.boolean().default(false),
   createdAt: z.string(),
   updatedAt: z.string(),
 });
@@ -25,6 +28,9 @@ export const createSettingsInput = z.object({
   openRouterOAuthKey: z.string().optional().default(""),
   dietaryRestrictions: z.array(z.string()).optional().default([]),
   otherDietaryNotes: z.string().optional().default(""),
+  modelFilterFreeOnly: z.boolean().optional().default(false),
+  modelFilterVisionOnly: z.boolean().optional().default(false),
+  modelFilterToolsOnly: z.boolean().optional().default(false),
 });
 export type CreateSettingsInput = z.infer<typeof createSettingsInput>;
 
@@ -37,5 +43,8 @@ export const updateSettingsInput = z.object({
   openRouterOAuthKey: z.string().optional(),
   dietaryRestrictions: z.array(z.string()).optional(),
   otherDietaryNotes: z.string().optional(),
+  modelFilterFreeOnly: z.boolean().optional(),
+  modelFilterVisionOnly: z.boolean().optional(),
+  modelFilterToolsOnly: z.boolean().optional(),
 });
 export type UpdateSettingsInput = z.infer<typeof updateSettingsInput>;

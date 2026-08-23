@@ -6,18 +6,44 @@ import {
 } from "@/lib/openrouter-models";
 import { useEffect, useMemo, useState } from "react";
 
-export function useOpenRouterModels(enabled: boolean, selectedModelId: string) {
+interface ModelFilterPreferences {
+  freeOnly: boolean;
+  visionOnly: boolean;
+  toolsOnly: boolean;
+}
+
+export function useOpenRouterModels(
+  enabled: boolean,
+  selectedModelId: string,
+  savedFilters?: ModelFilterPreferences,
+  onFiltersChange?: (filters: ModelFilterPreferences) => void,
+) {
   const [models, setModels] = useState<
     Awaited<ReturnType<typeof fetchOpenRouterModels>>
   >([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
-  const [freeOnly, setFreeOnly] = useState(false);
-  const [visionOnly, setVisionOnly] = useState(false);
-  const [toolsOnly, setToolsOnly] = useState(false);
+  const savedFreeOnly = savedFilters?.freeOnly;
+  const savedVisionOnly = savedFilters?.visionOnly;
+  const savedToolsOnly = savedFilters?.toolsOnly;
+  const [freeOnly, setFreeOnly] = useState(savedFreeOnly ?? false);
+  const [visionOnly, setVisionOnly] = useState(savedVisionOnly ?? false);
+  const [toolsOnly, setToolsOnly] = useState(savedToolsOnly ?? false);
 
-  /* eslint-disable react-hooks/set-state-in-effect -- fetch lifecycle intentionally resets catalog state */
+  /* eslint-disable react-hooks/set-state-in-effect -- persisted preferences and fetch lifecycle intentionally synchronize local state */
+  useEffect(() => {
+    if (
+      savedFreeOnly === undefined ||
+      savedVisionOnly === undefined ||
+      savedToolsOnly === undefined
+    )
+      return;
+    setFreeOnly(savedFreeOnly);
+    setVisionOnly(savedVisionOnly);
+    setToolsOnly(savedToolsOnly);
+  }, [savedFreeOnly, savedToolsOnly, savedVisionOnly]);
+
   useEffect(() => {
     if (!enabled) {
       setModels([]);
@@ -47,6 +73,13 @@ export function useOpenRouterModels(enabled: boolean, selectedModelId: string) {
     return () => controller.abort();
   }, [enabled, retryCount]);
   /* eslint-enable react-hooks/set-state-in-effect */
+
+  const updateFilters = (next: ModelFilterPreferences) => {
+    setFreeOnly(next.freeOnly);
+    setVisionOnly(next.visionOnly);
+    setToolsOnly(next.toolsOnly);
+    onFiltersChange?.(next);
+  };
 
   const filteredModels = useMemo(
     () =>
@@ -78,9 +111,12 @@ export function useOpenRouterModels(enabled: boolean, selectedModelId: string) {
     selectedModel,
     isSelectedModelFilteredOut,
     selectedModelSupportsVision,
-    toggleFreeOnly: () => setFreeOnly((enabled) => !enabled),
-    toggleVisionOnly: () => setVisionOnly((enabled) => !enabled),
-    toggleToolsOnly: () => setToolsOnly((enabled) => !enabled),
+    toggleFreeOnly: () =>
+      updateFilters({ freeOnly: !freeOnly, visionOnly, toolsOnly }),
+    toggleVisionOnly: () =>
+      updateFilters({ freeOnly, visionOnly: !visionOnly, toolsOnly }),
+    toggleToolsOnly: () =>
+      updateFilters({ freeOnly, visionOnly, toolsOnly: !toolsOnly }),
     retry: () => setRetryCount((count) => count + 1),
   } as const;
 }

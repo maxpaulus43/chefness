@@ -50,6 +50,15 @@ const settingsStorage = new IndexedDBRepository<
     ...(data.otherDietaryNotes !== undefined && {
       otherDietaryNotes: data.otherDietaryNotes,
     }),
+    ...(data.modelFilterFreeOnly !== undefined && {
+      modelFilterFreeOnly: data.modelFilterFreeOnly,
+    }),
+    ...(data.modelFilterVisionOnly !== undefined && {
+      modelFilterVisionOnly: data.modelFilterVisionOnly,
+    }),
+    ...(data.modelFilterToolsOnly !== undefined && {
+      modelFilterToolsOnly: data.modelFilterToolsOnly,
+    }),
     openRouterOAuthKey: "",
     updatedAt: new Date().toISOString(),
   }),

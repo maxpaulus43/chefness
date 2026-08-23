@@ -29,6 +29,9 @@ const DEFAULT_SETTINGS: Settings = {
   openRouterOAuthKey: "",
   dietaryRestrictions: EMPTY_RESTRICTIONS,
   otherDietaryNotes: "",
+  modelFilterFreeOnly: false,
+  modelFilterVisionOnly: false,
+  modelFilterToolsOnly: false,
   createdAt: "",
   updatedAt: "",
 };

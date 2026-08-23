@@ -371,6 +371,17 @@ export function ModelSelectionScreen({
   const catalog = useOpenRouterModels(
     settings.isOpenRouterConnected,
     settings.effectiveModel,
+    {
+      freeOnly: settings.settings.modelFilterFreeOnly,
+      visionOnly: settings.settings.modelFilterVisionOnly,
+      toolsOnly: settings.settings.modelFilterToolsOnly,
+    },
+    (filters) =>
+      settings.updateSettings({
+        modelFilterFreeOnly: filters.freeOnly,
+        modelFilterVisionOnly: filters.visionOnly,
+        modelFilterToolsOnly: filters.toolsOnly,
+      }),
   );
   const [query, setQuery] = useState("");
   const filtered = useMemo(

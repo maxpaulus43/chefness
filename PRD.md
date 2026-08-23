@@ -167,10 +167,10 @@ the user refreshes or closes the app.
 - [ ] The input field auto-focuses on the Chat tab (when no conversation
       is active, focus the input; when a conversation exists, show the input
       at the bottom).
-- [ ] The chat auto-scrolls to the latest message as the AI streams a
-      response while the user is at the bottom. Dragging upward pauses
-      autoscroll so older messages remain readable during streaming; returning
-      to the bottom resumes autoscroll.
+- [x] Sending a message dismisses the keyboard and scrolls chat to the bottom.
+      Chat continues to auto-scroll as the AI streams while the user is at the
+      bottom. Dragging upward pauses autoscroll so older messages remain
+      readable during streaming; returning to the bottom resumes autoscroll.
 - [x] The image attachment control appears only when the selected OpenRouter
       model supports image input.
 - [x] The attachment control opens the device image chooser, allowing users to
@@ -185,8 +185,8 @@ the user refreshes or closes the app.
 - [x] If OpenRouter is not connected, the chat view shows a clear message
       directing the user to Settings, with a tap-to-navigate action.
 - [x] If the OpenRouter request fails (network error, expired connection, model
-      unavailable, or rate limit), an
-      inline error message appears with a "Retry" option.
+      unavailable, or rate limit), an inline error message is scrolled into view
+      with a "Retry" option that resends the failed message after remediation.
 - [ ] The chat UI is usable on a 375px-wide screen (iPhone SE).
 
 #### System Prompt Structure (MVP)
@@ -236,6 +236,7 @@ OAuth key is stored in iOS Keychain; non-secret settings remain in AsyncStorage.
 - [x] The model picker fetches the live OpenRouter model catalog rather than a
       bundled registry.
 - [x] Models can be filtered by free pricing, vision support, and tool support.
+      Filter choices persist and are restored when the model picker reopens.
 - [ ] Chatting with the LLM requires an internet connection. If offline,
       the chat view shows "You're offline. Chat requires an internet
       connection." The rest of the app works offline.

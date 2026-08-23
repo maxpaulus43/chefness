@@ -124,8 +124,14 @@ test("migrates, persists, and removes OpenRouter credentials securely", async ()
   const modelUpdate = await settingsRepository.update({
     id: "user-settings",
     llmModel: "test/model",
+    modelFilterFreeOnly: true,
+    modelFilterVisionOnly: true,
+    modelFilterToolsOnly: true,
   });
   expect(modelUpdate?.llmModel).toBe("test/model");
+  expect(modelUpdate?.modelFilterFreeOnly).toBe(true);
+  expect(modelUpdate?.modelFilterVisionOnly).toBe(true);
+  expect(modelUpdate?.modelFilterToolsOnly).toBe(true);
   expect(modelUpdate?.openRouterOAuthKey).toBe("new-secret");
   expect(asyncValues.get("chefness:settings")).not.toContain("new-secret");
 

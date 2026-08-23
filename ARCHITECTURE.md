@@ -60,8 +60,10 @@ seller is the legal personal name associated with that membership.
   cooking-history note editing. Chat messages, recipes, cooking history, chat
   sessions, and the OpenRouter model catalog use native virtualized lists. Chat
   follows streaming text only while the user is near the bottom; dragging upward
-  pauses autoscroll immediately, and returning to the bottom resumes it. Recipe,
-  cooking-history, and chat-session rows share a native interaction wrapper
+  pauses autoscroll immediately, and returning to the bottom resumes it. Sending a
+  message dismisses the keyboard and returns the list to the bottom, including when
+  an inline request error appears. Recipe, cooking-history, and chat-session rows
+  share a native interaction wrapper
   backed by Gesture Handler swipe actions and iOS `UIMenu`
   context menus; each row also exposes the same menu from a lower-right ellipsis
   button, and destructive choices return through React Native confirmation alerts.
@@ -395,8 +397,10 @@ configuration.
 `/api/v1/models` catalog. `useOpenRouterModels` owns catalog loading, errors,
 and combined filters. A model is free when both prompt and completion prices
 are zero, supports vision when `image` is an input modality, and supports tools
-when `tools` is listed in `supported_parameters`. The default is the stable
-`openrouter/free` router rather than a specific free model that may disappear.
+when `tools` is listed in `supported_parameters`. Free, vision, and tools filter
+choices persist in the non-secret settings record and are restored whenever the
+model picker reopens. The default is the stable `openrouter/free` router rather
+than a specific free model that may disappear.
 
 For vision-capable selected models, Chat exposes an image attachment control.
 `useImageAttachment` delegates resizing/encoding to

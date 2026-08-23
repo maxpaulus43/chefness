@@ -59,6 +59,10 @@ export function ChatScreen({
   const [editDraft, setEditDraft] = useState("");
   const [busyAction, setBusyAction] = useState<string | null>(null);
   const list = useRef<FlatList<ChatMessage>>(null);
+  const lastSubmittedMessage = useRef<{
+    text: string;
+    imageDataUrl: string;
+  } | null>(null);
   const shouldAutoScroll = useRef(true);
   const hasUserScrolled = useRef(false);
   const wasStreaming = useRef(chat.isStreaming);
@@ -82,6 +86,16 @@ export function ChatScreen({
       list.current?.scrollToEnd({ animated: false });
     });
   }, [chat.currentSessionId]);
+
+  useEffect(() => {
+    if (!chat.error) return;
+    hasUserScrolled.current = false;
+    shouldAutoScroll.current = true;
+    const frame = requestAnimationFrame(() => {
+      list.current?.scrollToEnd({ animated: true });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [chat.error]);
 
   useEffect(() => {
     if (editingIndex === null) return;
@@ -119,9 +133,13 @@ export function ChatScreen({
   const submit = () => {
     if ((!text.trim() && !image) || chat.isStreaming) return;
     const sent = text.trim();
-    setText("");
     const sentImage = image;
+    lastSubmittedMessage.current = { text: sent, imageDataUrl: sentImage };
+    setText("");
     setImage("");
+    Keyboard.dismiss();
+    hasUserScrolled.current = false;
+    shouldAutoScroll.current = true;
     void chat.sendMessage(sent, sentImage);
   };
 
@@ -175,12 +193,19 @@ export function ChatScreen({
   };
 
   const retryLastMessage = () => {
+    Keyboard.dismiss();
+    hasUserScrolled.current = false;
+    shouldAutoScroll.current = true;
     for (let index = chat.messages.length - 1; index >= 0; index -= 1) {
       const message = chat.messages[index];
       if (message?.role === "user") {
         void chat.editUserMessageAndRegenerate(index, message.content);
         return;
       }
+    }
+    const pending = lastSubmittedMessage.current;
+    if (pending) {
+      void chat.sendMessage(pending.text, pending.imageDataUrl);
     }
   };
 
@@ -258,6 +283,11 @@ export function ChatScreen({
         scrollsToTop={false}
         scrollEventThrottle={16}
         onScroll={updateAutoScroll}
+        onLayout={() => {
+          if (shouldAutoScroll.current) {
+            list.current?.scrollToEnd({ animated: false });
+          }
+        }}
         onScrollBeginDrag={() => {
           hasUserScrolled.current = true;
           shouldAutoScroll.current = false;

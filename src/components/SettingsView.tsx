@@ -25,6 +25,7 @@ const PREDEFINED_RESTRICTIONS = [
 export function SettingsView() {
   const toast = useToast();
   const {
+    settings: savedSettings,
     isLoading,
     llmModel,
     dietaryRestrictions,
@@ -67,7 +68,21 @@ export function SettingsView() {
     toggleVisionOnly,
     toggleToolsOnly,
     retry: retryOpenRouterModels,
-  } = useOpenRouterModels(isOpenRouterConnected, selectedOpenRouterModel);
+  } = useOpenRouterModels(
+    isOpenRouterConnected,
+    selectedOpenRouterModel,
+    {
+      freeOnly: savedSettings.modelFilterFreeOnly,
+      visionOnly: savedSettings.modelFilterVisionOnly,
+      toolsOnly: savedSettings.modelFilterToolsOnly,
+    },
+    (filters) =>
+      updateSettings({
+        modelFilterFreeOnly: filters.freeOnly,
+        modelFilterVisionOnly: filters.visionOnly,
+        modelFilterToolsOnly: filters.toolsOnly,
+      }),
+  );
 
   // Local state so the UI reacts synchronously to user selection instead
   // of waiting for the async tRPC mutation round-trip.

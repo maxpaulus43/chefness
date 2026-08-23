@@ -60,6 +60,15 @@ export const settingsRepository: SettingsRepository = new IndexedDBRepository<
       ...(patch.otherDietaryNotes !== undefined && {
         otherDietaryNotes: patch.otherDietaryNotes,
       }),
+      ...(patch.modelFilterFreeOnly !== undefined && {
+        modelFilterFreeOnly: patch.modelFilterFreeOnly,
+      }),
+      ...(patch.modelFilterVisionOnly !== undefined && {
+        modelFilterVisionOnly: patch.modelFilterVisionOnly,
+      }),
+      ...(patch.modelFilterToolsOnly !== undefined && {
+        modelFilterToolsOnly: patch.modelFilterToolsOnly,
+      }),
       updatedAt: new Date().toISOString(),
     };
   },
