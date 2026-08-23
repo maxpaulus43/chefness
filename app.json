@@ -8,9 +8,9 @@
     "userInterfaceStyle": "light",
     "icon": "./public/pwa-1024x1024.png",
     "ios": {
-      "supportsTablet": true,
+      "supportsTablet": false,
       "bundleIdentifier": "com.maxpaulus.chefness",
-      "buildNumber": "3",
+      "buildNumber": "4",
       "appleTeamId": "WNCJFCHP22",
       "entitlements": {
         "keychain-access-groups": [
