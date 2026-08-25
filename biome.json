@@ -27,6 +27,11 @@
   "assist": {
     "enabled": false
   },
+  "html": {
+    "formatter": {
+      "enabled": true
+    }
+  },
   "javascript": {
     "formatter": {
       "quoteStyle": "double"
