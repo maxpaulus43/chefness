@@ -334,6 +334,20 @@ default. Navigation is in-place tab switching (no routing library in MVP).
 
 ---
 
+### 4.6 First-Run Onboarding (iOS)
+
+New iOS installations show a three-step onboarding flow before the main tabs:
+
+1. A welcome screen explains Chefness and on-device privacy.
+2. An optional personalization screen saves dietary restrictions and notes.
+3. An optional OpenRouter connection screen uses the same secure OAuth flow as
+   Settings, then opens Chat.
+
+Users may skip personalization and OpenRouter setup. Camera and microphone
+permissions are requested only when those features are first used, never during
+onboarding. Existing installations are not shown onboarding after upgrading.
+Completion persists in the settings singleton as `hasCompletedOnboarding`.
+
 ## 5. Feature Specifications — Future
 
 ### 5.1 Save Recipes (from Chat)
@@ -738,6 +752,8 @@ A clear checklist of everything included in v1:
 - [x] **Recipes tab** — empty state placeholder ("Coming soon" or similar)
 - [x] **History tab** — empty state placeholder ("Coming soon" or similar)
 - [x] **Mobile-first responsive layout** — usable at 375px width minimum
+- [x] **iOS first-run onboarding** — welcome, optional dietary personalization,
+      and optional OpenRouter connection before entering Chat
 
 ### ✅ Phase 2 (Complete)
 

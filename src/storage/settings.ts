@@ -69,6 +69,9 @@ export const settingsRepository: SettingsRepository = new IndexedDBRepository<
       ...(patch.modelFilterToolsOnly !== undefined && {
         modelFilterToolsOnly: patch.modelFilterToolsOnly,
       }),
+      ...(patch.hasCompletedOnboarding !== undefined && {
+        hasCompletedOnboarding: patch.hasCompletedOnboarding,
+      }),
       updatedAt: new Date().toISOString(),
     };
   },

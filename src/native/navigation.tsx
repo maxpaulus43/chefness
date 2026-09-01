@@ -12,6 +12,7 @@ import {
 } from "@react-navigation/native-stack";
 import { useChat } from "@/hooks/useChat";
 import { useChatSessions } from "@/hooks/useChatSessions";
+import { useSettings } from "@/hooks/useSettings";
 import { ChatScreen } from "@/native/ChatScreen";
 import { HistoryScreen } from "@/native/HistoryScreen";
 import {
@@ -28,7 +29,8 @@ import {
   type SettingsStackParamList,
 } from "@/native/navigation-routes";
 import { ListInteractionRow } from "@/native/ListInteractionRow";
-import { nativeStyles } from "@/native/ui";
+import { OnboardingScreen } from "@/native/OnboardingScreen";
+import { Loading, nativeStyles } from "@/native/ui";
 import { decodeSharedUrl } from "@/lib/share-url-encoding";
 import { useAccessibilityPreferences } from "@/native/accessibility";
 import { nativeColors as colors, nativeFonts } from "@/native/theme";
@@ -317,6 +319,11 @@ const tabIcons: Record<keyof RootTabParamList, keyof typeof Ionicons.glyphMap> =
   };
 export function NativeNavigation() {
   const { reduceTransparency } = useAccessibilityPreferences();
+  const settings = useSettings();
+  if (settings.isLoading) return <Loading />;
+  if (!settings.settings.hasCompletedOnboarding)
+    return <OnboardingScreen settings={settings} />;
+
   return (
     <NavigationContainer linking={linking}>
       <Tabs.Navigator

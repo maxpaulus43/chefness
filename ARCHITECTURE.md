@@ -62,6 +62,13 @@ product for Xcode-run development builds.
 ### Platform structure
 
 - `src/App.native.tsx` is the native entry UI; `src/App.tsx` remains the web entry.
+- New iOS installations pass through `src/native/OnboardingScreen.tsx` before
+  the tab navigator. The three steps introduce Chefness, optionally save dietary
+  preferences, and reuse `OpenRouterConnection` for the same Keychain-backed
+  OAuth flow shown in Settings. Completion is stored on the settings singleton;
+  settings records created before onboarding default to complete so existing
+  users are not interrupted. Debug builds expose a Developer action in Settings
+  that clears only the completion flag for repeat testing.
 - `src/native/` contains React Native presentation screens, shared controls,
   and the iOS navigation graph. React Navigation owns the four-tab bottom bar
   and its safe-area/accessibility behavior. Each tab remains mounted after its

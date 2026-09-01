@@ -32,6 +32,7 @@ const DEFAULT_SETTINGS: Settings = {
   modelFilterFreeOnly: false,
   modelFilterVisionOnly: false,
   modelFilterToolsOnly: false,
+  hasCompletedOnboarding: false,
   createdAt: "",
   updatedAt: "",
 };

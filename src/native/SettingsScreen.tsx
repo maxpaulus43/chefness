@@ -1,11 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import {
-  AccessibilityInfo,
   Alert,
   FlatList,
   Linking,
-  Modal,
   Platform,
   Pressable,
   RefreshControl,
@@ -14,32 +12,19 @@ import {
   Text,
   View,
 } from "react-native";
-import * as Clipboard from "expo-clipboard";
 import Constants from "expo-constants";
-import * as Crypto from "expo-crypto";
-import * as WebBrowser from "expo-web-browser";
 import { Ionicons } from "@expo/vector-icons";
 import { useSettings } from "@/hooks/useSettings";
 import { useOpenRouterModels } from "@/hooks/useOpenRouterModels";
 import { useAiPreferences } from "@/hooks/useAiPreferences";
 import { useRecipeAccess } from "@/hooks/useRecipeAccess";
 import { FREE_RECIPE_LIMIT } from "@/lib/recipe-access";
-import {
-  buildHeadlessAuthUrl,
-  exchangeCodeForKey,
-} from "@/lib/openrouter-oauth";
+import { DIETARY_RESTRICTIONS } from "@/lib/dietary-restrictions";
 import type { SettingsStackParamList } from "@/native/navigation-routes";
 import { DictationField } from "@/native/DictationField";
+import { OpenRouterConnection } from "@/native/OpenRouterConnection";
 import { nativeColors as colors, nativeFonts } from "@/native/theme";
-import {
-  Button,
-  Card,
-  Chip,
-  Field,
-  Loading,
-  ScreenHeader,
-  nativeStyles,
-} from "@/native/ui";
+import { Button, Card, Chip, Field, Loading, nativeStyles } from "@/native/ui";
 
 const supportEmail = "support@chefness.org";
 const supportUrl = "https://chefness.org/support";
@@ -47,18 +32,6 @@ const privacyUrl = "https://chefness.org/privacy";
 const appVersion = Constants.expoConfig?.version ?? "Unknown";
 const buildNumber = Constants.expoConfig?.ios?.buildNumber ?? "Unknown";
 
-const restrictions = [
-  "vegetarian",
-  "vegan",
-  "gluten-free",
-  "dairy-free",
-  "nut-free",
-  "halal",
-  "kosher",
-  "pescatarian",
-  "low-carb",
-  "keto",
-];
 export function SettingsScreen({
   navigation,
 }: NativeStackScreenProps<SettingsStackParamList, "Settings">) {
@@ -75,10 +48,6 @@ export function SettingsScreen({
   );
   const [notes, setNotes] = useState(settings.otherDietaryNotes);
   const [newPreference, setNewPreference] = useState("");
-  const [connecting, setConnecting] = useState(false);
-  const [codePromptOpen, setCodePromptOpen] = useState(false);
-  const [authorizationCode, setAuthorizationCode] = useState("");
-  const [pendingVerifier, setPendingVerifier] = useState("");
   useEffect(
     () => setLocalRestrictions(settings.dietaryRestrictions),
     [settings.dietaryRestrictions],
@@ -87,71 +56,6 @@ export function SettingsScreen({
     () => setNotes(settings.otherDietaryNotes),
     [settings.otherDietaryNotes],
   );
-  useEffect(() => {
-    if (codePromptOpen)
-      AccessibilityInfo.announceForAccessibility("Finish Connecting sheet");
-  }, [codePromptOpen]);
-
-  const connect = async () => {
-    setConnecting(true);
-    try {
-      const bytes = await Crypto.getRandomBytesAsync(48);
-      const verifier = Array.from(bytes, (byte) =>
-        byte.toString(16).padStart(2, "0"),
-      ).join("");
-      const base64Challenge = await Crypto.digestStringAsync(
-        Crypto.CryptoDigestAlgorithm.SHA256,
-        verifier,
-        { encoding: Crypto.CryptoEncoding.BASE64 },
-      );
-      const challenge = base64Challenge
-        .replace(/\+/g, "-")
-        .replace(/\//g, "_")
-        .replace(/=+$/g, "");
-      setPendingVerifier(verifier);
-      const authUrl = buildHeadlessAuthUrl(challenge, "S256", "Chefness iOS");
-      await WebBrowser.openBrowserAsync(authUrl, {
-        presentationStyle: WebBrowser.WebBrowserPresentationStyle.PAGE_SHEET,
-      });
-      setCodePromptOpen(true);
-    } catch (error) {
-      setPendingVerifier("");
-      Alert.alert(
-        "Couldn’t connect OpenRouter",
-        error instanceof Error ? error.message : "Try again.",
-      );
-    } finally {
-      setConnecting(false);
-    }
-  };
-
-  const finishConnection = async () => {
-    const code = authorizationCode.trim();
-    if (!code || !pendingVerifier) return;
-    setConnecting(true);
-    try {
-      const key = await exchangeCodeForKey(code, pendingVerifier, "S256");
-      await settings.updateSettingsAsync({ openRouterOAuthKey: key });
-      setCodePromptOpen(false);
-      setAuthorizationCode("");
-      setPendingVerifier("");
-      Alert.alert("Connected", "Your OpenRouter account is ready.");
-    } catch (error) {
-      Alert.alert(
-        "Couldn’t connect OpenRouter",
-        error instanceof Error
-          ? error.message
-          : "Check the code and try again.",
-      );
-    } finally {
-      setConnecting(false);
-    }
-  };
-
-  const pasteAuthorizationCode = async () => {
-    setAuthorizationCode((await Clipboard.getStringAsync()).trim());
-  };
-
   const toggleRestriction = (item: string) => {
     const next = localRestrictions.includes(item)
       ? localRestrictions.filter((value) => value !== item)
@@ -262,60 +166,7 @@ export function SettingsScreen({
         <Text accessibilityRole="header" style={nativeStyles.sectionTitle}>
           OpenRouter
         </Text>
-        <Card>
-          {settings.isOpenRouterConnected ? (
-            <>
-              <View
-                accessibilityLabel="OpenRouter status: Connected"
-                style={styles.connected}
-              >
-                <Ionicons
-                  accessible={false}
-                  name="checkmark-circle"
-                  size={22}
-                  color={colors.success}
-                />
-                <Text style={styles.connectedText}>Connected ✓</Text>
-              </View>
-              <Text style={nativeStyles.muted}>
-                Your key is stored in the iOS Keychain and stays on this device.
-              </Text>
-              <Button
-                label="Disconnect"
-                variant="danger"
-                onPress={() =>
-                  Alert.alert(
-                    "Disconnect OpenRouter?",
-                    "AI features will stop until you reconnect.",
-                    [
-                      { text: "Cancel", style: "cancel" },
-                      {
-                        text: "Disconnect",
-                        style: "destructive",
-                        onPress: () =>
-                          settings.updateSettings({ openRouterOAuthKey: "" }),
-                      },
-                    ],
-                  )
-                }
-              />
-            </>
-          ) : (
-            <>
-              <Text style={nativeStyles.muted}>
-                Connect your account to chat and use AI recipe tools. OpenRouter
-                will show a one-time code after you create the key; copy it,
-                close the browser, then paste it into Chefness. Chefness stores
-                your API key in the iOS Keychain and never displays or logs it.
-              </Text>
-              <Button
-                disabled={connecting}
-                label={connecting ? "Connecting…" : "Connect OpenRouter"}
-                onPress={() => void connect()}
-              />
-            </>
-          )}
-        </Card>
+        <OpenRouterConnection settings={settings} />
         <Card>
           <Text style={nativeStyles.label}>Model</Text>
           <Pressable
@@ -352,7 +203,7 @@ export function SettingsScreen({
         </Text>
         <Card>
           <View style={nativeStyles.row}>
-            {restrictions.map((item) => (
+            {DIETARY_RESTRICTIONS.map((item) => (
               <Chip
                 key={item}
                 label={item}
@@ -411,6 +262,25 @@ export function SettingsScreen({
             </View>
           ))}
         </Card>
+        {__DEV__ ? (
+          <>
+            <Text accessibilityRole="header" style={nativeStyles.sectionTitle}>
+              Developer
+            </Text>
+            <Card>
+              <Text style={nativeStyles.muted}>
+                Reset first-run setup without deleting recipes or other data.
+              </Text>
+              <Button
+                label="Show Onboarding Again"
+                variant="secondary"
+                onPress={() =>
+                  settings.updateSettings({ hasCompletedOnboarding: false })
+                }
+              />
+            </Card>
+          </>
+        ) : null}
         <Text accessibilityRole="header" style={nativeStyles.sectionTitle}>
           Help & Feedback
         </Text>
@@ -455,54 +325,6 @@ export function SettingsScreen({
         </Card>
         {recipeAccess.hasUnlimitedRecipes && savedRecipesSection}
       </ScrollView>
-      <Modal
-        visible={codePromptOpen}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => setCodePromptOpen(false)}
-      >
-        <View accessibilityViewIsModal style={nativeStyles.screen}>
-          <ScreenHeader title="Finish Connecting" />
-          <ScrollView
-            automaticallyAdjustKeyboardInsets
-            contentContainerStyle={nativeStyles.scroll}
-            keyboardDismissMode="interactive"
-            keyboardShouldPersistTaps="handled"
-          >
-            <Text style={nativeStyles.muted}>
-              Paste the one-time authorization code OpenRouter displayed after
-              you created the API key. The code expires after 10 minutes.
-            </Text>
-            <Field
-              accessibilityLabel="Authorization code"
-              autoCapitalize="none"
-              autoCorrect={false}
-              value={authorizationCode}
-              onChangeText={setAuthorizationCode}
-              placeholder="Authorization code"
-            />
-            <Button
-              label="Paste Code"
-              variant="secondary"
-              onPress={() => void pasteAuthorizationCode()}
-            />
-            <Button
-              disabled={connecting || !authorizationCode.trim()}
-              label={connecting ? "Connecting…" : "Connect"}
-              onPress={() => void finishConnection()}
-            />
-            <Button
-              label="Cancel"
-              variant="secondary"
-              onPress={() => {
-                setCodePromptOpen(false);
-                setAuthorizationCode("");
-                setPendingVerifier("");
-              }}
-            />
-          </ScrollView>
-        </View>
-      </Modal>
     </View>
   );
 }

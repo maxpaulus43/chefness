@@ -59,6 +59,9 @@ const settingsStorage = new IndexedDBRepository<
     ...(data.modelFilterToolsOnly !== undefined && {
       modelFilterToolsOnly: data.modelFilterToolsOnly,
     }),
+    ...(data.hasCompletedOnboarding !== undefined && {
+      hasCompletedOnboarding: data.hasCompletedOnboarding,
+    }),
     openRouterOAuthKey: "",
     updatedAt: new Date().toISOString(),
   }),

@@ -13,6 +13,8 @@ export const settingsSchema = z.object({
   modelFilterFreeOnly: z.boolean().default(false),
   modelFilterVisionOnly: z.boolean().default(false),
   modelFilterToolsOnly: z.boolean().default(false),
+  /** Missing means this is a legacy installation that predates onboarding. */
+  hasCompletedOnboarding: z.boolean().default(true),
   createdAt: z.string(),
   updatedAt: z.string(),
 });
@@ -31,6 +33,7 @@ export const createSettingsInput = z.object({
   modelFilterFreeOnly: z.boolean().optional().default(false),
   modelFilterVisionOnly: z.boolean().optional().default(false),
   modelFilterToolsOnly: z.boolean().optional().default(false),
+  hasCompletedOnboarding: z.boolean().optional().default(false),
 });
 export type CreateSettingsInput = z.infer<typeof createSettingsInput>;
 
@@ -46,5 +49,6 @@ export const updateSettingsInput = z.object({
   modelFilterFreeOnly: z.boolean().optional(),
   modelFilterVisionOnly: z.boolean().optional(),
   modelFilterToolsOnly: z.boolean().optional(),
+  hasCompletedOnboarding: z.boolean().optional(),
 });
 export type UpdateSettingsInput = z.infer<typeof updateSettingsInput>;

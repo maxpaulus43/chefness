@@ -127,11 +127,13 @@ test("migrates, persists, and removes OpenRouter credentials securely", async ()
     modelFilterFreeOnly: true,
     modelFilterVisionOnly: true,
     modelFilterToolsOnly: true,
+    hasCompletedOnboarding: true,
   });
   expect(modelUpdate?.llmModel).toBe("test/model");
   expect(modelUpdate?.modelFilterFreeOnly).toBe(true);
   expect(modelUpdate?.modelFilterVisionOnly).toBe(true);
   expect(modelUpdate?.modelFilterToolsOnly).toBe(true);
+  expect(modelUpdate?.hasCompletedOnboarding).toBe(true);
   expect(modelUpdate?.openRouterOAuthKey).toBe("new-secret");
   expect(asyncValues.get("chefness:settings")).not.toContain("new-secret");
 
