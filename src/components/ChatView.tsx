@@ -470,6 +470,11 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
     [clearImage, loadSession],
   );
 
+  const handleDeleteAllSessions = useCallback(() => {
+    clearChat();
+    clearImage();
+  }, [clearChat, clearImage]);
+
   useEffect(() => {
     const input = inputRef.current;
     if (!input) return;
@@ -566,6 +571,7 @@ export function ChatView({ onNavigateToSettings }: ChatViewProps) {
         <div style={styles.messageArea}>
           <ChatSessionList
             onSelectSession={handleSelectSession}
+            onDeleteAll={handleDeleteAllSessions}
             currentSessionId={currentSessionId}
           />
         </div>

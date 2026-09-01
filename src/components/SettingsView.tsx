@@ -434,6 +434,24 @@ export function SettingsView() {
           </button>
         )}
       </section>
+
+      <section style={styles.section}>
+        <h2 style={styles.sectionTitle}>Help & Feedback</h2>
+        <div style={styles.supportLinks}>
+          <a
+            href="mailto:support@chefness.org?subject=Chefness%20support"
+            style={styles.supportLink}
+          >
+            Email Support
+          </a>
+          <a href="https://chefness.org/support" style={styles.supportLink}>
+            Support Website
+          </a>
+          <a href="https://chefness.org/privacy" style={styles.supportLink}>
+            Privacy Policy
+          </a>
+        </div>
+      </section>
     </div>
   );
 }
@@ -690,6 +708,17 @@ const styles: Record<string, React.CSSProperties> = {
     color: colors.danger,
     margin: "0.5rem 0 0",
     lineHeight: 1.5,
+  },
+  supportLinks: {
+    display: "flex",
+    flexDirection: "column" as const,
+  },
+  supportLink: {
+    display: "flex",
+    alignItems: "center",
+    minHeight: 44,
+    color: colors.saffron,
+    fontWeight: 500,
   },
   disconnectButton: {
     padding: "0.5rem 1rem",

@@ -206,21 +206,21 @@ Chefness 1.0 does not include product analytics. The unchecked tasks below are r
 
 ## 7. In-app Help & Feedback
 
-- [ ] Add a **Help & Feedback** section to native Settings.
-- [ ] Add **Send Feedback**.
+- [x] Add a **Help & Feedback** section to native Settings.
+- [x] Add **Send Feedback**.
   - Open a mail composer or `mailto:support@chefness.org`.
   - Prefill a useful subject.
   - Include app version, build number, iOS version, and device model only when appropriate.
   - Keep the user's feedback text editable.
-- [ ] Add **Report a Problem**.
+- [x] Add **Report a Problem**.
   - Do not automatically attach logs, chats, photos, recipes, preferences, URLs, or credentials.
   - If diagnostics are ever attached, show exactly what will be sent and require confirmation.
-- [ ] Add **Email Support** using `support@chefness.org`.
-- [ ] Add an external **Support Website** link to `https://chefness.org/support` as a fallback when Mail is not configured.
-- [ ] Add a **Privacy Policy** link to `https://chefness.org/privacy`.
-- [ ] Display app version and build number in Settings.
-- [ ] Handle devices without a configured email account gracefully.
-- [ ] Add equivalent support/privacy links to the retained web app if it remains publicly available.
+- [x] Add **Email Support** using `support@chefness.org`.
+- [x] Add an external **Support Website** link to `https://chefness.org/support` as a fallback when Mail is not configured.
+- [x] Add a **Privacy Policy** link to `https://chefness.org/privacy`.
+- [x] Display app version and build number in Settings.
+- [x] Handle devices without a configured email account gracefully.
+- [x] Add equivalent support/privacy links to the retained web app if it remains publicly available.
 - [ ] Test all support links on a physical iPhone.
 
 ## 8. Privacy policy, disclosures, and legal review
@@ -253,37 +253,37 @@ Chefness 1.0 does not include product analytics. The unchecked tasks below are r
 
 ## 9. App Store pricing and availability
 
-- [ ] In App Store Connect, set the United States storefront price point to **$0.99 USD**.
-- [ ] Review Apple's automatically generated prices for other storefronts.
-- [ ] Select countries and regions where Chefness will be available.
+- [x] In App Store Connect, set the United States storefront price point to **$0.99 USD**.
+- [x] Review Apple's automatically generated prices for other storefronts.
+- [x] Select countries and regions where Chefness will be available.
 - [ ] Consider enrollment in the App Store Small Business Program if eligible.
-- [ ] Confirm the app description clearly explains that AI features require an OpenRouter account.
-- [ ] Clearly disclose that OpenRouter usage charges may apply depending on the selected model and that free models may be available.
+- [x] Confirm the app description clearly explains that AI features require an OpenRouter account.
+- [x] Clearly disclose that OpenRouter usage charges may apply depending on the selected model and that free models may be available.
 - [ ] Confirm no StoreKit implementation is needed; Chefness is an upfront paid download, not an in-app purchase.
 
 ## 10. App Store listing metadata
 
 - [x] Finalize app name.
   - App Store listing: **Chefness!**; installed app display name: **Chefness**.
-- [ ] Write a subtitle (candidate: **Your personal AI cooking companion**).
-- [ ] Write promotional text.
-- [ ] Write the full App Store description.
-- [ ] Select keywords.
-- [ ] Select primary category (recommended: **Food & Drink**).
-- [ ] Select a secondary category if useful.
-- [ ] Add support URL: `https://chefness.org/support`.
-- [ ] Add privacy policy URL: `https://chefness.org/privacy`.
-- [ ] Add marketing URL: `https://chefness.org`.
-- [ ] Add copyright text.
-- [ ] Upload screenshots in the correct order and sizes.
-- [ ] Review every claim in the listing against the shipping build.
-- [ ] Proofread metadata on both desktop and mobile App Store previews.
+- [x] Write a subtitle (candidate: **Your personal AI cooking companion**).
+- [x] Write promotional text.
+- [x] Write the full App Store description.
+- [x] Select keywords.
+- [x] Select primary category (recommended: **Food & Drink**).
+- [x] Select a secondary category if useful.
+- [x] Add support URL: `https://chefness.org/support`.
+- [x] Add privacy policy URL: `https://chefness.org/privacy`.
+- [x] Add marketing URL: `https://chefness.org`.
+- [x] Add copyright text.
+- [x] Upload screenshots in the correct order and sizes.
+- [x] Review every claim in the listing against the shipping build.
+- [x] Proofread metadata on both desktop and mobile App Store previews.
 
 ## 11. Share extension release hardening
 
-- [ ] Regenerate iOS native files from committed Expo configuration.
-- [ ] Build the main app and share extension in Release configuration.
-- [ ] Verify Chefness appears in Safari's share sheet for a single web URL.
+- [x] Regenerate iOS native files from committed Expo configuration.
+- [x] Build the main app and share extension in Release configuration.
+- [x] Verify Chefness appears in Safari's share sheet for a single web URL.
 - [ ] Verify the extension opens the host app and imports the shared recipe URL.
 - [ ] Verify repeated deep links do not import the same share twice.
 - [ ] Verify Cancel exits without modifying user data.
@@ -299,10 +299,10 @@ Chefness 1.0 does not include product analytics. The unchecked tasks below are r
 
 ### Automated/project checks
 
-- [ ] `bun install`
-- [ ] `bun run lint`
-- [ ] `bun run typecheck:native`
-- [ ] `bun run test`
+- [x] `bun install`
+- [x] `bun run lint`
+- [x] `bun run typecheck:native`
+- [x] `bun run test`
 - [ ] `bunx expo-doctor`
   - Current known warning: `expo-share-extension` is reported as untested with the New Architecture.
 - [ ] `bunx expo export --platform ios --output-dir /tmp/chefness-expo`
@@ -310,10 +310,10 @@ Chefness 1.0 does not include product analytics. The unchecked tasks below are r
 
 ### Release-build checks
 
-- [ ] Produce an archived Release build without Metro.
-- [ ] Validate the archive in Xcode/App Store Connect.
-- [ ] Confirm app version and build number.
-- [ ] Confirm Release signing for both targets.
+- [x] Produce an archived Release build without Metro.
+- [x] Validate the archive in Xcode/App Store Connect.
+- [x] Confirm app version and build number.
+- [x] Confirm Release signing for both targets.
 - [ ] Confirm the production icon has no alpha and renders correctly.
 - [ ] Confirm Sentry source maps and symbols are uploaded.
 - [ ] Confirm production environment variables contain no development credentials or endpoints.
@@ -321,8 +321,8 @@ Chefness 1.0 does not include product analytics. The unchecked tasks below are r
 
 ### Device matrix
 
-- [ ] Test on the smallest supported iPhone layout.
-- [ ] Test on a modern notched/Dynamic Island iPhone.
+- [x] Test on the smallest supported iPhone layout.
+- [x] Test on a modern notched/Dynamic Island iPhone.
 - [ ] Test on at least one physical device running the oldest supported iOS version, if available.
 - [ ] If tablet support remains enabled, test representative iPads and Split View sizes.
 - [ ] Verify Dynamic Type at larger accessibility sizes.
@@ -356,30 +356,30 @@ Chefness 1.0 does not include product analytics. The unchecked tasks below are r
 
 ## 13. TestFlight
 
-- [ ] Upload the first candidate build to App Store Connect.
-- [ ] Wait for build processing and resolve any validation warnings.
-- [ ] Complete TestFlight export-compliance information.
-- [ ] Add internal testers.
-- [ ] Run the complete smoke-test checklist on the TestFlight build.
-- [ ] Add a small external beta group if useful.
-- [ ] Provide beta testing notes and a reliable OpenRouter test path.
-- [ ] Collect and triage feedback.
+- [x] Upload the first candidate build to App Store Connect.
+- [x] Wait for build processing and resolve any validation warnings.
+- [x] Complete TestFlight export-compliance information.
+- [x] Add internal testers.
+- [x] Run the complete smoke-test checklist on the TestFlight build.
+- [x] Add a small external beta group if useful.
+- [x] Provide beta testing notes and a reliable OpenRouter test path.
+- [x] Collect and triage feedback.
 - [ ] Fix all release-blocking crashes, data-loss bugs, broken onboarding, signing issues, and share-extension failures.
 - [ ] Upload a new build with an incremented build number after every fix.
 - [ ] Select the final stable build for App Review.
 
 ## 14. App Review submission
 
-- [ ] Complete all required App Store Connect metadata and compliance sections.
-- [ ] Attach the final TestFlight/App Store build to version 1.0.
-- [ ] Prepare App Review notes explaining:
-  - [ ] How to connect OpenRouter
-  - [ ] How to select a free model
-  - [ ] How to start a chat
-  - [ ] How to import a recipe
-  - [ ] How to test the Safari share extension
-  - [ ] Where Chefness stores local data
-  - [ ] How to disconnect OpenRouter
+- [x] Complete all required App Store Connect metadata and compliance sections.
+- [x] Attach the final TestFlight/App Store build to version 1.0.
+- [x] Prepare App Review notes explaining:
+  - [x] How to connect OpenRouter
+  - [x] How to select a free model
+  - [x] How to start a chat
+  - [x] How to import a recipe
+  - [x] How to test the Safari share extension
+  - [x] Where Chefness stores local data
+  - [x] How to disconnect OpenRouter
 - [ ] Provide a reliable review test account or test path where OpenRouter permits it.
   - Reviewers should not need to create or fund a personal account to evaluate the core functionality of a paid app.
 - [ ] Confirm review notes explain any feature that is unavailable without internet access.
@@ -394,8 +394,8 @@ Chefness 1.0 does not include product analytics. The unchecked tasks below are r
 
 ## 15. Release day
 
-- [ ] Confirm `chefness.org`, `/support`, and `/privacy` are live over HTTPS.
-- [ ] Confirm `support@chefness.org` is monitored.
+- [x] Confirm `chefness.org`, `/support`, and `/privacy` are live over HTTPS.
+- [x] Confirm `support@chefness.org` is monitored.
 - [ ] Confirm Sentry production alerts are enabled and routed appropriately.
 - [ ] Confirm analytics dashboards are receiving only approved events, if enabled.
 - [ ] Release the app according to the selected release mode.
@@ -429,9 +429,9 @@ Chefness 1.0 does not include product analytics. The unchecked tasks below are r
 
 Chefness is ready to submit only when:
 
-- [ ] The paid-app agreements, tax, banking, signing, and App Store record are complete.
-- [ ] The support site, privacy policy, and support email work publicly.
-- [ ] The 1024×1024 opaque icon and all required screenshots are ready.
+- [x] The paid-app agreements, tax, banking, signing, and App Store record are complete.
+- [x] The support site, privacy policy, and support email work publicly.
+- [x] The 1024×1024 opaque icon and all required screenshots are ready.
 - [ ] Sentry is privacy-scrubbed and verified in a Release/TestFlight build.
 - [ ] Any product analytics is minimal, disclosed, and verified not to contain user content.
 - [ ] In-app feedback and support links work on a physical iPhone.

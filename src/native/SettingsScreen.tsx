@@ -4,7 +4,9 @@ import {
   AccessibilityInfo,
   Alert,
   FlatList,
+  Linking,
   Modal,
+  Platform,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -13,6 +15,7 @@ import {
   View,
 } from "react-native";
 import * as Clipboard from "expo-clipboard";
+import Constants from "expo-constants";
 import * as Crypto from "expo-crypto";
 import * as WebBrowser from "expo-web-browser";
 import { Ionicons } from "@expo/vector-icons";
@@ -35,6 +38,12 @@ import {
   ScreenHeader,
   nativeStyles,
 } from "@/native/ui";
+
+const supportEmail = "support@chefness.org";
+const supportUrl = "https://chefness.org/support";
+const privacyUrl = "https://chefness.org/privacy";
+const appVersion = Constants.expoConfig?.version ?? "Unknown";
+const buildNumber = Constants.expoConfig?.ios?.buildNumber ?? "Unknown";
 
 const restrictions = [
   "vegetarian",
@@ -152,6 +161,34 @@ export function SettingsScreen({
     if (!text) return;
     createPreference({ text });
     setNewPreference("");
+  };
+  const openLink = async (url: string) => {
+    try {
+      await Linking.openURL(url);
+    } catch {
+      Alert.alert("Couldn’t open link", url);
+    }
+  };
+  const sendEmail = async (subject: string, prompt: string) => {
+    const body = `${prompt}\n\n\n\n---\nChefness ${appVersion} (${buildNumber})\niOS ${Platform.Version}`;
+    const url = `mailto:${supportEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    try {
+      if (!(await Linking.canOpenURL(`mailto:${supportEmail}`)))
+        throw new Error();
+      await Linking.openURL(url);
+    } catch {
+      Alert.alert(
+        "Email isn’t available",
+        `Email us at ${supportEmail}, or use the support website.`,
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Support Website",
+            onPress: () => void openLink(supportUrl),
+          },
+        ],
+      );
+    }
   };
 
   return (
@@ -312,6 +349,48 @@ export function SettingsScreen({
               </Pressable>
             </View>
           ))}
+        </Card>
+        <Text accessibilityRole="header" style={nativeStyles.sectionTitle}>
+          Help & Feedback
+        </Text>
+        <Card>
+          <Button
+            label="Send Feedback"
+            variant="secondary"
+            onPress={() =>
+              void sendEmail("Chefness feedback", "Share your feedback:")
+            }
+          />
+          <Button
+            label="Report a Problem"
+            variant="secondary"
+            onPress={() =>
+              void sendEmail(
+                "Chefness problem report",
+                "Please describe what happened:",
+              )
+            }
+          />
+          <Button
+            label="Email Support"
+            variant="secondary"
+            onPress={() =>
+              void sendEmail("Chefness support", "How can we help?")
+            }
+          />
+          <Button
+            label="Support Website"
+            variant="secondary"
+            onPress={() => void openLink(supportUrl)}
+          />
+          <Button
+            label="Privacy Policy"
+            variant="secondary"
+            onPress={() => void openLink(privacyUrl)}
+          />
+          <Text style={styles.version}>
+            Version {appVersion} ({buildNumber})
+          </Text>
         </Card>
       </ScrollView>
       <Modal
@@ -534,6 +613,12 @@ const styles = StyleSheet.create({
     color: colors.stone500,
     fontSize: 12,
     marginTop: 3,
+    fontFamily: nativeFonts.sans,
+  },
+  version: {
+    color: colors.stone500,
+    fontSize: 13,
+    textAlign: "center",
     fontFamily: nativeFonts.sans,
   },
 });

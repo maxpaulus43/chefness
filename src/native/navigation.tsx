@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef } from "react";
 import { Alert, FlatList, Pressable, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { NavigationContainer } from "@react-navigation/native";
@@ -163,7 +163,7 @@ function ChatHistorySheet({
 }: NativeStackScreenProps<ChatStackParamList, "ChatHistory"> & {
   chat: ChatValue;
 }) {
-  const { sessions, deleteSession } = useChatSessions();
+  const { sessions, deleteSession, deleteAllSessions } = useChatSessions();
   const openSession = (sessionId: string) => {
     chat.loadSession(sessionId);
     navigation.goBack();
@@ -177,6 +177,39 @@ function ChatHistorySheet({
         onPress: () => deleteSession(sessionId),
       },
     ]);
+  const confirmDeleteAll = useCallback(
+    () =>
+      Alert.alert("Delete all conversations?", "This cannot be undone.", [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete All",
+          style: "destructive",
+          onPress: () => void deleteAllSessions().then(chat.clearChat),
+        },
+      ]),
+    [chat.clearChat, deleteAllSessions],
+  );
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: sessions.length
+        ? () => (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Delete all chats"
+              hitSlop={8}
+              onPress={confirmDeleteAll}
+            >
+              <Ionicons
+                accessible={false}
+                name="trash-outline"
+                size={23}
+                color={colors.danger}
+              />
+            </Pressable>
+          )
+        : undefined,
+    });
+  }, [confirmDeleteAll, navigation, sessions.length]);
   return (
     <View style={nativeStyles.screen}>
       <FlatList

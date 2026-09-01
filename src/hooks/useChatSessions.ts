@@ -5,7 +5,7 @@
  * They never import `trpc` directly or manage cache invalidation —
  * all of that lives here.
  */
-import { useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import {
   deleteChatImages,
   deleteOrphanedChatImages,
@@ -78,6 +78,17 @@ export function useChatSessions() {
     );
   };
 
+  const deleteAllSessions = useCallback(async () => {
+    for (const session of sessions) {
+      await deleteMutation.mutateAsync({ id: session.id });
+    }
+    deleteChatImages(
+      sessions.flatMap((session) =>
+        session.messages.map((message) => message.imageDataUrl),
+      ),
+    );
+  }, [deleteMutation, sessions]);
+
   return {
     /** The list of all chat sessions (sorted by updatedAt desc). */
     sessions,
@@ -112,6 +123,9 @@ export function useChatSessions() {
 
     /** Delete a chat session by ID. */
     deleteSession,
+
+    /** Delete every chat session. */
+    deleteAllSessions,
 
     /** `true` while a delete is in flight. */
     isDeleting: deleteMutation.isPending,

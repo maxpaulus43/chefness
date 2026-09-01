@@ -285,6 +285,11 @@ manual "AI Configuration" provider/API-key section is not shown.
 - [x] Dietary Restrictions and AI Memory sections are shown.
 - [x] Settings save immediately on change (no page-level "Save" button needed).
 - [x] The page is scrollable if content exceeds the viewport.
+- [x] Native Settings includes Help & Feedback actions for editable feedback,
+      problem reports, and support emails; fallback support and privacy links;
+      and the app version/build number. No logs or user content are attached.
+- [x] The retained web Settings page includes support email, support website,
+      and privacy policy links.
 
 ### 4.4 Navigation & Layout (MVP Scope)
 
@@ -566,6 +571,7 @@ sessions and browse session history.
 | **CP-3** | As a user, I can see a list of past sessions (with a title or summary). |
 | **CP-4** | As a user, I can tap a past session to view the full conversation. |
 | **CP-5** | As a user, I can delete old sessions. |
+| **CP-6** | As a user, I can delete all saved chat sessions after confirming the destructive action. |
 
 #### Acceptance Criteria
 
@@ -577,6 +583,7 @@ sessions and browse session history.
 - [ ] The Chat tab shows a session list view (accessible via a button/icon)
       with past sessions sorted by most recent.
 - [ ] Auto-save triggers after each message exchange (debounced).
+- [x] Chat History offers a “Delete All Chats” action with destructive confirmation.
 - [ ] Storage follows the same pattern: Zod schema → repository → tRPC →
       hook → component.
 

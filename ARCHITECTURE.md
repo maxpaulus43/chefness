@@ -172,8 +172,11 @@ Reusable presentational UI lives under `src/components/`. Shared UI glyphs use
 differences across platforms.
 
 Native feedback uses React Native `Alert` and accessible modal sheets where
-platform-native confirmation or selection is appropriate. Web feedback remains
-provided by `src/components/ToastProvider.tsx`, mounted in
+platform-native confirmation or selection is appropriate. Native Settings uses
+`Linking` for editable support emails and external support/privacy pages; support
+emails include app/build and iOS versions but never attach user content or logs.
+The retained web Settings page exposes the same support email and website links.
+Web feedback remains provided by `src/components/ToastProvider.tsx`, mounted in
 `src/main.tsx` inside the tRPC provider. Components call `useToast()` and then
 `toast.notify(...)` for transient messages or `await toast.ask(...)` for custom
 confirmation prompts. Do not use native `window.alert`/`window.confirm` for app

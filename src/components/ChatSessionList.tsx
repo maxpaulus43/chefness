@@ -46,6 +46,7 @@ function truncatePreview(content: string, maxLength = 60): string {
 
 interface ChatSessionListProps {
   onSelectSession: (id: string) => void;
+  onDeleteAll: () => void;
   currentSessionId: string | null;
 }
 
@@ -55,9 +56,11 @@ interface ChatSessionListProps {
 
 export function ChatSessionList({
   onSelectSession,
+  onDeleteAll,
   currentSessionId,
 }: ChatSessionListProps) {
-  const { sessions, isLoading, deleteSession } = useChatSessions();
+  const { sessions, isLoading, deleteSession, deleteAllSessions } =
+    useChatSessions();
   const toast = useToast();
 
   const handleDelete = useCallback(
@@ -76,6 +79,19 @@ export function ChatSessionList({
     },
     [deleteSession, toast],
   );
+
+  const handleDeleteAll = useCallback(() => {
+    void toast
+      .ask({
+        title: "Delete all conversations?",
+        message: "This cannot be undone.",
+        confirmLabel: "Delete All",
+        tone: "danger",
+      })
+      .then((confirmed) => {
+        if (confirmed) void deleteAllSessions().then(onDeleteAll);
+      });
+  }, [deleteAllSessions, onDeleteAll, toast]);
 
   if (isLoading) {
     return (
@@ -99,6 +115,16 @@ export function ChatSessionList({
 
   return (
     <div style={styles.container}>
+      <div style={styles.header}>
+        <h2 style={styles.headerTitle}>Chat History</h2>
+        <button
+          type="button"
+          onClick={handleDeleteAll}
+          style={styles.deleteAllBtn}
+        >
+          Delete All Chats
+        </button>
+      </div>
       <div style={styles.list}>
         {sessions.map((session) => {
           const isActive = session.id === currentSessionId;
@@ -165,13 +191,13 @@ const styles: Record<string, React.CSSProperties> = {
     color: colors.espresso,
     margin: 0,
   },
-  newChatBtn: {
+  deleteAllBtn: {
     padding: "0.5rem 0.875rem",
     fontSize: "0.8125rem",
     fontWeight: 600,
-    color: colors.saffron,
-    backgroundColor: colors.saffronTint,
-    border: `1px solid ${colors.saffronTintBorder}`,
+    color: colors.danger,
+    backgroundColor: colors.dangerTint,
+    border: `1px solid ${colors.dangerTintBorder}`,
     borderRadius: radii.sm,
     cursor: "pointer",
     whiteSpace: "nowrap" as const,
