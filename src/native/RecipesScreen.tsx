@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   Alert,
   FlatList,
+  Pressable,
   ScrollView,
   Share,
   StyleSheet,
@@ -211,6 +212,13 @@ export function RecipeDetailScreen({
       );
     }
   };
+  const showPreviewInfo = () =>
+    Alert.alert(
+      "Preview information",
+      ai.previewModelId
+        ? `Model: ${ai.previewModelId}`
+        : "Model information is unavailable for this preview.",
+    );
   const confirmDelete = () =>
     Alert.alert("Delete recipe?", recipe.title, [
       { text: "Cancel", style: "cancel" },
@@ -293,34 +301,42 @@ export function RecipeDetailScreen({
           )}
           {ai.draftRecipe && (
             <View style={styles.preview}>
-              <Text style={styles.recipeTitle}>{ai.draftRecipe.title}</Text>
-              <Text style={nativeStyles.muted}>
-                {ai.draftRecipe.description}
-              </Text>
-              <Text
-                accessibilityRole="header"
-                style={nativeStyles.sectionTitle}
+              <Pressable
+                accessibilityHint="Long press for preview information"
+                accessibilityRole="button"
+                onAccessibilityTap={showPreviewInfo}
+                onLongPress={showPreviewInfo}
+                style={styles.previewContent}
               >
-                Ingredients
-              </Text>
-              {ai.draftRecipe.ingredients.map((item, index) => (
-                <View key={`${item}-${index}`} style={styles.line}>
-                  <Text style={styles.bullet}>•</Text>
-                  <Text style={styles.lineText}>{item}</Text>
-                </View>
-              ))}
-              <Text
-                accessibilityRole="header"
-                style={nativeStyles.sectionTitle}
-              >
-                Steps
-              </Text>
-              {ai.draftRecipe.steps.map((item, index) => (
-                <View key={`${item}-${index}`} style={styles.line}>
-                  <Text style={styles.step}>{index + 1}</Text>
-                  <Text style={styles.lineText}>{item}</Text>
-                </View>
-              ))}
+                <Text style={styles.recipeTitle}>{ai.draftRecipe.title}</Text>
+                <Text style={nativeStyles.muted}>
+                  {ai.draftRecipe.description}
+                </Text>
+                <Text
+                  accessibilityRole="header"
+                  style={nativeStyles.sectionTitle}
+                >
+                  Ingredients
+                </Text>
+                {ai.draftRecipe.ingredients.map((item, index) => (
+                  <View key={`${item}-${index}`} style={styles.line}>
+                    <Text style={styles.bullet}>•</Text>
+                    <Text style={styles.lineText}>{item}</Text>
+                  </View>
+                ))}
+                <Text
+                  accessibilityRole="header"
+                  style={nativeStyles.sectionTitle}
+                >
+                  Steps
+                </Text>
+                {ai.draftRecipe.steps.map((item, index) => (
+                  <View key={`${item}-${index}`} style={styles.line}>
+                    <Text style={styles.step}>{index + 1}</Text>
+                    <Text style={styles.lineText}>{item}</Text>
+                  </View>
+                ))}
+              </Pressable>
               <View style={nativeStyles.row}>
                 <Button
                   label={
@@ -536,4 +552,5 @@ const styles = StyleSheet.create({
     backgroundColor: colors.saffronTint,
     borderRadius: 12,
   },
+  previewContent: { gap: 8 },
 });

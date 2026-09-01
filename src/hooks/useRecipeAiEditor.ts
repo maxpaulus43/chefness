@@ -23,6 +23,7 @@ export function useRecipeAiEditor() {
     null,
   );
   const [error, setError] = useState<string | null>(null);
+  const [previewModelId, setPreviewModelId] = useState("");
 
   const generateEdit = async (recipe: Recipe, instruction: string) => {
     const trimmedInstruction = instruction.trim();
@@ -41,6 +42,7 @@ export function useRecipeAiEditor() {
     setStatus("generating");
     setError(null);
     setDraftRecipe(null);
+    setPreviewModelId("");
 
     try {
       const editedRecipe = await editRecipeWithPrompt({
@@ -49,6 +51,7 @@ export function useRecipeAiEditor() {
         providerId: effectiveProvider,
         modelId: effectiveModel,
         apiKey: effectiveApiKey,
+        onModel: setPreviewModelId,
       });
       setDraftRecipe(editedRecipe);
       setStatus("preview");
@@ -75,6 +78,7 @@ export function useRecipeAiEditor() {
     try {
       await updateRecipeAsync({ id: recipeId, ...draftRecipe });
       setDraftRecipe(null);
+      setPreviewModelId("");
       setStatus("applied");
     } catch (err: unknown) {
       const errMsg =
@@ -87,12 +91,14 @@ export function useRecipeAiEditor() {
   const reset = () => {
     setStatus("idle");
     setDraftRecipe(null);
+    setPreviewModelId("");
     setError(null);
   };
 
   return {
     status,
     draftRecipe,
+    previewModelId,
     error,
     isConfigured,
     generateEdit,

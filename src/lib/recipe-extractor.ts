@@ -87,6 +87,7 @@ export interface EditRecipeWithPromptOptions {
   providerId: string;
   modelId: string;
   apiKey: string;
+  onModel?: (modelId: string) => void;
   signal?: AbortSignal;
 }
 
@@ -148,7 +149,8 @@ export async function extractRecipeFromConversation(
 export async function editRecipeWithPrompt(
   options: EditRecipeWithPromptOptions,
 ): Promise<CreateRecipeInput> {
-  const { recipe, instruction, providerId, modelId, apiKey, signal } = options;
+  const { recipe, instruction, providerId, modelId, apiKey, onModel, signal } =
+    options;
 
   const result = await callWithTools({
     providerId,
@@ -162,6 +164,7 @@ export async function editRecipeWithPrompt(
       },
     ],
     tools: [SAVE_RECIPE_TOOL],
+    onModel,
     signal,
   });
 

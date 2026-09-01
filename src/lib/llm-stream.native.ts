@@ -12,6 +12,7 @@ export interface StreamOptions {
   systemPrompt: string;
   messages: StreamMessage[];
   onToken: (token: string, accumulated: string) => void;
+  onModel?: (modelId: string) => void;
   signal?: AbortSignal;
 }
 export interface ToolDefinition {
@@ -26,6 +27,7 @@ export interface ToolCallOptions {
   systemPrompt: string;
   messages: StreamMessage[];
   tools: ToolDefinition[];
+  onModel?: (modelId: string) => void;
   signal?: AbortSignal;
 }
 export interface ToolCallResult {
@@ -93,8 +95,10 @@ export async function streamChat(options: StreamOptions): Promise<string> {
       if (!payload || payload === "[DONE]") continue;
       try {
         const parsed = JSON.parse(payload) as {
+          model?: string;
           choices?: { delta?: { content?: string } }[];
         };
+        if (parsed.model) options.onModel?.(parsed.model);
         const token = parsed.choices?.[0]?.delta?.content ?? "";
         if (token) {
           accumulated += token;
@@ -141,12 +145,14 @@ export async function callWithTools(
   if (!response.ok)
     throw new Error(`OpenRouter request failed (${response.status}).`);
   const data = (await response.json()) as {
+    model?: string;
     choices?: {
       message?: {
         tool_calls?: { function?: { name?: string; arguments?: string } }[];
       };
     }[];
   };
+  if (data.model) options.onModel?.(data.model);
   const fn = data.choices?.[0]?.message?.tool_calls?.[0]?.function;
   if (!fn?.name)
     throw new Error("The model did not return the requested tool call.");

@@ -57,8 +57,13 @@ seller is the legal personal name associated with that membership.
   headers, transitions, and edge swipe-back for recipe list/detail/edit.
   Chat history and model selection are stack-presented iOS form sheets. Chat
   messages are edited inline in their bubbles before regeneration, matching
-  cooking-history note editing. Chat messages, recipes, cooking history, chat
-  sessions, and the OpenRouter model catalog use native virtualized lists. Chat
+  cooking-history note editing. Long-pressing an assistant message shows the
+  actual model ID reported by OpenRouter, including the model selected behind
+  routed endpoints such as `openrouter/free`; this metadata persists with the
+  chat session. The same OpenRouter response metadata is attached to transient
+  AI recipe-edit previews and shown when the preview is long-pressed. Chat
+  messages, recipes, cooking history, chat sessions, and the
+  OpenRouter model catalog use native virtualized lists. Chat
   follows streaming text only while the user is near the bottom; dragging upward
   pauses autoscroll immediately, and returning to the bottom resumes it. Sending a
   message dismisses the keyboard and returns the list to the bottom, including when

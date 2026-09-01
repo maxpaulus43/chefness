@@ -43,6 +43,8 @@ import type { ChatSessionMessage } from "@/types/chat-session";
 export interface ChatMessage {
   role: "user" | "assistant";
   content: string;
+  /** Actual model reported by OpenRouter for an assistant response. */
+  modelId?: string;
   /** Resized image attached to a user message. */
   imageDataUrl?: string;
   /** Persisted action flags — only relevant for assistant messages. */
@@ -293,6 +295,7 @@ export function useChat() {
       mostRecent.messages.map((m) => ({
         role: m.role,
         content: m.content,
+        modelId: m.modelId,
         imageDataUrl: m.imageDataUrl,
         importedRecipeContext: m.importedRecipeContext,
         savedRecipeId: m.savedRecipeId,
@@ -315,6 +318,7 @@ export function useChat() {
       msgs.map((m) => ({
         role: m.role,
         content: m.content,
+        modelId: m.modelId ?? "",
         imageDataUrl: m.imageDataUrl ?? "",
         timestamp: new Date().toISOString(),
         importedRecipeContext: m.importedRecipeContext ?? "",
@@ -374,6 +378,7 @@ export function useChat() {
           const sessionMsgs = next.map((m) => ({
             role: m.role,
             content: m.content,
+            modelId: m.modelId ?? "",
             imageDataUrl: m.imageDataUrl ?? "",
             timestamp: new Date().toISOString(),
             importedRecipeContext: m.importedRecipeContext ?? "",
@@ -532,6 +537,7 @@ export function useChat() {
       }
 
       let latestAssistantText = "";
+      let responseModelId = "";
 
       try {
         const systemPrompt = buildSystemPrompt(
@@ -565,6 +571,9 @@ export function useChat() {
               return next;
             });
           },
+          onModel: (modelId) => {
+            responseModelId = modelId;
+          },
         });
 
         // Ensure the final text is set.
@@ -572,7 +581,7 @@ export function useChat() {
           finalText || "(No response received from the model.)";
         const finalMessages: ChatMessage[] = [
           ...history,
-          { role: "assistant", content: resultText },
+          { role: "assistant", content: resultText, modelId: responseModelId },
         ];
         setMessages(finalMessages);
 
@@ -583,7 +592,14 @@ export function useChat() {
       } catch (err: unknown) {
         if (err instanceof DOMException && err.name === "AbortError") {
           const finalMessages: ChatMessage[] = latestAssistantText
-            ? [...history, { role: "assistant", content: latestAssistantText }]
+            ? [
+                ...history,
+                {
+                  role: "assistant",
+                  content: latestAssistantText,
+                  modelId: responseModelId,
+                },
+              ]
             : history;
           setMessages(finalMessages);
           if (sessionId) {
@@ -711,6 +727,7 @@ export function useChat() {
         session.messages.map((m) => ({
           role: m.role,
           content: m.content,
+          modelId: m.modelId,
           imageDataUrl: m.imageDataUrl,
           importedRecipeContext: m.importedRecipeContext,
           savedRecipeId: m.savedRecipeId,

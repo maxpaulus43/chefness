@@ -43,6 +43,15 @@ const prompts = [
   "Suggest a quick healthy lunch",
 ];
 
+function showMessageInfo(message: ChatMessage) {
+  Alert.alert(
+    "Message information",
+    message.modelId
+      ? `Model: ${message.modelId}`
+      : "Model information is unavailable for this message.",
+  );
+}
+
 export function ChatScreen({
   chat,
   openSettings,
@@ -403,9 +412,28 @@ export function ChatScreen({
               </>
             ) : (
               <>
-                <View
+                <Pressable
                   accessible
                   accessibilityLabel={`${message.role === "user" ? "You" : "Chefness"}: ${message.content || (chat.isStreaming ? "Thinking" : "")}`}
+                  accessibilityHint={
+                    message.role === "assistant"
+                      ? "Long press for message information"
+                      : undefined
+                  }
+                  accessibilityRole={
+                    message.role === "assistant" ? "button" : undefined
+                  }
+                  delayLongPress={400}
+                  onAccessibilityTap={
+                    message.role === "assistant"
+                      ? () => showMessageInfo(message)
+                      : undefined
+                  }
+                  onLongPress={
+                    message.role === "assistant"
+                      ? () => showMessageInfo(message)
+                      : undefined
+                  }
                 >
                   {message.role === "assistant" && message.content ? (
                     <Markdown style={markdownStyles}>
@@ -416,7 +444,7 @@ export function ChatScreen({
                       {message.content || (chat.isStreaming ? "Thinking…" : "")}
                     </Text>
                   )}
-                </View>
+                </Pressable>
                 {message.role === "user" && !chat.isStreaming ? (
                   <Pressable
                     accessibilityRole="button"

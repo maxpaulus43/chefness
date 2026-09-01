@@ -4,6 +4,8 @@ import { z } from "zod";
 const chatMessageSchema = z.object({
   role: z.enum(["user", "assistant"]),
   content: z.string(),
+  /** Actual model reported by OpenRouter for an assistant response. */
+  modelId: z.string().optional().default(""),
   /** Resized image data URL attached to a user message. */
   imageDataUrl: z.string().optional().default(""),
   timestamp: z.string(), // ISO string

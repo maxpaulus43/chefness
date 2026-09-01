@@ -9,13 +9,15 @@ const failedResponse = {
   statusText: "Unauthorized",
   text: async () => echoedSecret,
 };
+let expoFetchResponse: object = failedResponse;
 
 mock.module("expo/fetch", () => ({
-  fetch: async () => failedResponse,
+  fetch: async () => expoFetchResponse,
 }));
 
 afterEach(() => {
   globalThis.fetch = originalFetch;
+  expoFetchResponse = failedResponse;
 });
 
 test("formats OpenRouter request failures with actionable user copy", () => {
@@ -58,6 +60,77 @@ test("native chat errors exclude provider response bodies", async () => {
 
   await expect(request).rejects.toThrow("OpenRouter request failed (401).");
   await expect(request).rejects.not.toThrow(echoedSecret);
+});
+
+test("native streaming reports the model selected by OpenRouter", async () => {
+  expoFetchResponse = {
+    ok: true,
+    body: new ReadableStream({
+      start(controller) {
+        controller.enqueue(
+          new TextEncoder().encode(
+            'data: {"model":"google/gemini-2.0-flash","choices":[{"delta":{"content":"Hi"}}]}\n',
+          ),
+        );
+        controller.close();
+      },
+    }),
+  };
+  const { streamChat } = await import("../src/lib/llm-stream.native");
+  let modelId = "";
+
+  await streamChat({
+    providerId: "openrouter",
+    modelId: "openrouter/free",
+    apiKey: "request-secret",
+    systemPrompt: "test",
+    messages: [],
+    onToken: () => undefined,
+    onModel: (value) => {
+      modelId = value;
+    },
+  });
+
+  expect(modelId).toBe("google/gemini-2.0-flash");
+});
+
+test("native tool calls report the model selected by OpenRouter", async () => {
+  expoFetchResponse = {
+    ok: true,
+    json: async () => ({
+      model: "google/gemini-2.0-flash",
+      choices: [
+        {
+          message: {
+            tool_calls: [
+              {
+                function: {
+                  name: "save_recipe",
+                  arguments: '{"title":"Test"}',
+                },
+              },
+            ],
+          },
+        },
+      ],
+    }),
+  };
+  const { callWithTools } = await import("../src/lib/llm-stream.native");
+  let modelId = "";
+
+  await callWithTools({
+    providerId: "openrouter",
+    modelId: "openrouter/free",
+    apiKey: "request-secret",
+    systemPrompt: "test",
+    messages: [],
+    tools: [{ name: "save_recipe", description: "test", parameters: {} }],
+    onModel: (value) => {
+      modelId = value;
+    },
+  });
+
+  expect(modelId).toBe("google/gemini-2.0-flash");
 });
 
 test("native AI tool errors exclude provider response bodies", async () => {

@@ -32,6 +32,7 @@ export interface StreamOptions {
   systemPrompt: string;
   messages: StreamMessage[];
   onToken: (token: string, accumulated: string) => void;
+  onModel?: (modelId: string) => void;
   signal?: AbortSignal;
 }
 
@@ -113,6 +114,7 @@ async function streamOpenAI(
   systemPrompt: string,
   messages: StreamMessage[],
   onToken: (token: string, accumulated: string) => void,
+  onModel?: (modelId: string) => void,
   signal?: AbortSignal,
 ): Promise<string> {
   const apiMessages = [
@@ -157,8 +159,10 @@ async function streamOpenAI(
     for await (const payload of parseSSE(reader, signal)) {
       try {
         const json = JSON.parse(payload) as {
+          model?: string;
           choices?: { delta?: { content?: string } }[];
         };
+        if (json.model) onModel?.(json.model);
         const token = json.choices?.[0]?.delta?.content;
         if (token) {
           accumulated += token;
@@ -273,6 +277,7 @@ export interface ToolCallOptions {
   systemPrompt: string;
   messages: StreamMessage[];
   tools: ToolDefinition[];
+  onModel?: (modelId: string) => void;
   signal?: AbortSignal;
 }
 
@@ -287,6 +292,7 @@ async function callWithToolsOpenAI(
   systemPrompt: string,
   messages: StreamMessage[],
   tools: ToolDefinition[],
+  onModel?: (modelId: string) => void,
   signal?: AbortSignal,
 ): Promise<ToolCallResult> {
   const apiMessages = [
@@ -334,6 +340,7 @@ async function callWithToolsOpenAI(
   }
 
   const json = (await response.json()) as {
+    model?: string;
     choices?: {
       message?: {
         tool_calls?: {
@@ -343,6 +350,7 @@ async function callWithToolsOpenAI(
     }[];
   };
 
+  if (json.model) onModel?.(json.model);
   const toolCall = json.choices?.[0]?.message?.tool_calls?.[0];
   if (!toolCall?.function?.name || !toolCall.function.arguments) {
     throw new Error(
@@ -499,6 +507,7 @@ export async function callWithTools(
     systemPrompt,
     messages,
     tools,
+    options.onModel,
     signal,
   );
 }
@@ -574,6 +583,7 @@ export async function streamChat(options: StreamOptions): Promise<string> {
     systemPrompt,
     messages,
     onToken,
+    options.onModel,
     signal,
   );
 }

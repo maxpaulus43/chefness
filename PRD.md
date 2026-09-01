@@ -150,6 +150,7 @@ the user refreshes or closes the app.
 | **CH-5** | As a user, I can set the **meal size** (cooking for 1, 2, 4, 6+) before or during a conversation using a control in the chat view. |
 | **CH-6** | As a user, I see a helpful empty state when no conversation is active, with suggested prompts I can tap (e.g., "What should I cook tonight?", "Help me use up leftover chicken"). |
 | **CH-7** | As a user with a vision-capable model selected, I can take or attach a photo and send it with my prompt. |
+| **CH-8** | As a user, I can long-press an assistant message to see which model produced it. |
 
 #### Acceptance Criteria
 
@@ -180,6 +181,8 @@ the user refreshes or closes the app.
       only file URIs; image files are removed with deleted sessions.
 - [x] Users can remove a selected image before sending and can send an image
       with or without accompanying text.
+- [x] Long-pressing an assistant message on iOS shows the actual model ID
+      reported by OpenRouter. The model metadata persists with the chat session.
 - [ ] A "New Chat" button is accessible (e.g., in the chat header) and
       confirms before clearing if a conversation is in progress.
 - [x] If OpenRouter is not connected, the chat view shows a clear message
@@ -350,6 +353,8 @@ viewable in the Recipes tab.
       preview, and apply it via `recipe.update`.
 - [x] AI recipe edits use LLM tool/function calling to return structured
       recipe fields and preserve unaffected recipe details where possible.
+- [x] Long-pressing an AI recipe-edit preview on iOS shows the actual model ID
+      reported by OpenRouter for that preview.
 - [x] Empty state in Recipes tab: "No saved recipes yet. Chat with your
       cooking guru and save recipes you like!"
 
