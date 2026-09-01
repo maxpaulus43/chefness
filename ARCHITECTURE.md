@@ -45,6 +45,7 @@ seller is the legal personal name associated with that membership.
 | Server state     | TanStack React Query            | 5       |
 | Validation       | Zod                             | 4       |
 | Formatting       | Biome                           | 2       |
+| Voice input      | expo-speech-recognition         | 57      |
 | Package manager  | Bun                             |         |
 
 ### Platform structure
@@ -78,7 +79,10 @@ seller is the legal personal name associated with that membership.
   for the iOS system share sheet and expose cooking-log creation there. Chat
   shows Save Recipe and Save to Memory as direct assistant-message actions and
   uses frame-based keyboard avoidance with no hard-coded vertical offset so its
-  composer follows the keyboard correctly.
+  composer follows the keyboard correctly. The composer uses the reusable native
+  `DictationField`, which wraps Apple’s Speech framework through
+  `expo-speech-recognition`, appends interim speech to the existing draft, and
+  requires microphone and speech-recognition permissions.
 - `src/native/navigation-routes.ts` is the typed route/deep-link contract.
   The `chefness://` scheme resolves recipe IDs, chat-session IDs, history,
   settings, and model selection to nested tab/stack destinations. The retained

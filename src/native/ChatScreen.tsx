@@ -32,6 +32,7 @@ import { extractPreference } from "@/lib/preference-extractor";
 import { formatOpenRouterError } from "@/lib/openrouter-error";
 import { useAccessibilityPreferences } from "@/native/accessibility";
 import { isNearChatBottom } from "@/native/chat-scroll";
+import { DictationField } from "@/native/DictationField";
 import { nativeColors as colors, nativeFonts } from "@/native/theme";
 import { Button, Chip, Field, nativeStyles } from "@/native/ui";
 
@@ -64,6 +65,7 @@ export function ChatScreen({
   const { effectiveProvider, effectiveModel, effectiveApiKey } = useSettings();
   const [text, setText] = useState("");
   const [image, setImage] = useState("");
+  const [isDictating, setIsDictating] = useState(false);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editDraft, setEditDraft] = useState("");
   const [busyAction, setBusyAction] = useState<string | null>(null);
@@ -140,7 +142,7 @@ export function ChatScreen({
   }, [chat.isStreaming, chat.messages]);
 
   const submit = () => {
-    if ((!text.trim() && !image) || chat.isStreaming) return;
+    if ((!text.trim() && !image) || chat.isStreaming || isDictating) return;
     const sent = text.trim();
     const sentImage = image;
     lastSubmittedMessage.current = { text: sent, imageDataUrl: sentImage };
@@ -558,13 +560,14 @@ export function ChatScreen({
               />
             </Pressable>
           )}
-          <Field
+          <DictationField
             accessibilityLabel="Message"
             value={text}
             onChangeText={setText}
+            onDictatingChange={setIsDictating}
             placeholder="Ask your cooking guru…"
             multiline
-            style={styles.composerField}
+            containerStyle={styles.composerField}
           />
           <Pressable
             accessibilityRole="button"
@@ -576,7 +579,14 @@ export function ChatScreen({
                 ? "Stops Chefness from generating more text"
                 : "Sends your message to Chefness"
             }
-            style={styles.iconButton}
+            accessibilityState={{
+              disabled: !chat.isStreaming && isDictating,
+            }}
+            disabled={!chat.isStreaming && isDictating}
+            style={[
+              styles.iconButton,
+              !chat.isStreaming && isDictating && styles.disabledButton,
+            ]}
             onPress={chat.isStreaming ? chat.stopStreaming : submit}
           >
             <Ionicons
@@ -660,7 +670,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 9,
     flexDirection: "row",
-    gap: 6,
     alignItems: "flex-end",
     borderTopWidth: StyleSheet.hairlineWidth,
     borderColor: colors.stone200,
@@ -674,6 +683,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  disabledButton: { opacity: 0.5 },
   preview: {
     flexDirection: "row",
     alignItems: "center",

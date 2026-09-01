@@ -30,6 +30,7 @@
         "expo-image-picker": "^57.0.12",
         "expo-secure-store": "~57.0.1",
         "expo-share-extension": "^6.0.0-beta",
+        "expo-speech-recognition": "57.0.0",
         "expo-status-bar": "^57.0.1",
         "expo-web-browser": "^57.0.2",
         "react": "19.2.3",
@@ -1298,6 +1299,8 @@
     "expo-server": ["expo-server@57.0.3", "", {}, "sha512-aK+LdKzauHSGmsOStZtyxdzv0zWssCkxTw3m4QuOhfDSJsZaMRTd9O41d8ixU/QfELTbaJ0oRNcF7JFV/7O9YQ=="],
 
     "expo-share-extension": ["expo-share-extension@6.0.0-beta", "", { "dependencies": { "semver": "^7.7.2", "valibot": "^1.1.0" }, "peerDependencies": { "expo": "*", "react": "*", "react-native": "*" } }, "sha512-O23czxCQD85PPQySyp2gUt4BJ93P1DMJu5T40Y57Y/CEgYPUa1FBiGIbq7OmXbfI5bqc9ijT03NI2RDDsQqW7A=="],
+
+    "expo-speech-recognition": ["expo-speech-recognition@57.0.0", "", { "peerDependencies": { "expo": "*", "react": "*", "react-native": "*" } }, "sha512-eUHnlNPhYemXIYi2y/bGigDjefE8y0hySAx+tAbaKwEVStYJxJKPHDYWll0z3ELHFLzdyx22V8qhZic9Q6yhNA=="],
 
     "expo-status-bar": ["expo-status-bar@57.0.1", "", { "peerDependencies": { "expo": "*", "react": "*", "react-native": "*" } }, "sha512-Xwaq1gAoVRWx5dPG5VhT5RSbnI9OilhZnO5qoPBnUaBAa5VzRzfdS8q0/bsPt0jR2DKLtGuP0bQ6efMJ4RIMDg=="],
 

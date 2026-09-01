@@ -36,6 +36,13 @@
     "plugins": [
       "./plugins/with-ios-pods-deployment-target.cjs",
       [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Chefness uses the microphone to turn your speech into chat text.",
+          "speechRecognitionPermission": "Chefness uses Apple's speech recognition to turn your speech into chat text."
+        }
+      ],
+      [
         "expo-share-extension",
         {
           "activationRules": [{ "type": "url", "max": 1 }],

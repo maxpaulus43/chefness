@@ -151,6 +151,7 @@ the user refreshes or closes the app.
 | **CH-6** | As a user, I see a helpful empty state when no conversation is active, with suggested prompts I can tap (e.g., "What should I cook tonight?", "Help me use up leftover chicken"). |
 | **CH-7** | As a user with a vision-capable model selected, I can take or attach a photo and send it with my prompt. |
 | **CH-8** | As a user, I can long-press an assistant message to see which model produced it. |
+| **CH-9** | As an iOS user, I can dictate a chat message from a microphone button in the composer. |
 
 #### Acceptance Criteria
 
@@ -168,6 +169,9 @@ the user refreshes or closes the app.
 - [ ] The input field auto-focuses on the Chat tab (when no conversation
       is active, focus the input; when a conversation exists, show the input
       at the bottom).
+- [x] On iOS, the chat input has an accessible microphone button backed by
+      Apple’s Speech framework. Dictation appends to any existing draft, shows
+      interim results, and requires microphone and speech-recognition permission.
 - [x] Sending a message dismisses the keyboard and scrolls chat to the bottom.
       Chat continues to auto-scroll as the AI streams while the user is at the
       bottom. Dragging upward pauses autoscroll so older messages remain
@@ -784,7 +788,7 @@ fully functional in Settings, with both AI-detected and manual preference saving
 
 ### Potential Future Explorations (Not Scoped)
 
-- Voice input for hands-free cooking
+- Broader voice controls for hands-free cooking
 - Timer integration (set cooking timers from chat)
 - Grocery/shopping list generation from recipes
 - Photo-based ingredient recognition
