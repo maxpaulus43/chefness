@@ -124,6 +124,7 @@ export function DictationField({
         lang: "en-US",
         interimResults: true,
         continuous: false,
+        requiresOnDeviceRecognition: true,
         addsPunctuation: true,
         iosTaskHint: TaskHintIOS.dictation,
       });
