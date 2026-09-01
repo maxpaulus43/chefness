@@ -172,7 +172,8 @@ the user refreshes or closes the app.
 - [x] On iOS, chat, recipe search and AI edit, history note, and AI memory
       inputs have accessible microphone buttons backed by Apple’s Speech
       framework. Dictation appends to any existing draft, shows interim results,
-      and requires microphone and speech-recognition permission.
+      and requires on-device recognition without a network fallback. Microphone
+      audio is not saved.
 - [x] Sending a message dismisses the keyboard and scrolls chat to the bottom.
       Chat continues to auto-scroll as the AI streams while the user is at the
       bottom. Dragging upward pauses autoscroll so older messages remain
