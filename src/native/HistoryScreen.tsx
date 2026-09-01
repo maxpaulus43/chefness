@@ -8,6 +8,7 @@ import {
   View,
 } from "react-native";
 import { useCookingLog } from "@/hooks/useCookingLog";
+import { DictationField } from "@/native/DictationField";
 import { nativeColors as colors, nativeFonts } from "@/native/theme";
 import {
   LongPressMenu,
@@ -15,7 +16,7 @@ import {
   SwipeActionRow,
 } from "@/native/ListInteractionRow";
 import type { CookingLogEntry } from "@/types/cooking-log";
-import { Button, Card, Empty, Field, Loading, nativeStyles } from "@/native/ui";
+import { Button, Card, Empty, Loading, nativeStyles } from "@/native/ui";
 
 export function HistoryScreen() {
   const { entries, isLoading, updateEntry, deleteEntry } = useCookingLog();
@@ -144,7 +145,7 @@ export function HistoryScreen() {
               </View>
               {editingId === entry.id ? (
                 <>
-                  <Field
+                  <DictationField
                     accessibilityLabel={`Note for ${entry.title}`}
                     value={comment}
                     onChangeText={setComment}

@@ -176,7 +176,7 @@ export function DictationField({
 }
 
 const styles = StyleSheet.create({
-  container: { flexDirection: "row", alignItems: "flex-end", gap: 4 },
+  container: { flexDirection: "row", alignItems: "center", gap: 4 },
   input: { flex: 1 },
   microphone: {
     width: 44,

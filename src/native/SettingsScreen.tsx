@@ -24,6 +24,7 @@ import {
   exchangeCodeForKey,
 } from "@/lib/openrouter-oauth";
 import type { SettingsStackParamList } from "@/native/navigation-routes";
+import { DictationField } from "@/native/DictationField";
 import { nativeColors as colors, nativeFonts } from "@/native/theme";
 import {
   Button,
@@ -283,10 +284,11 @@ export function SettingsScreen({
             device.
           </Text>
           <View style={styles.addRow}>
-            <Field
+            <DictationField
               accessibilityLabel="New preference"
               value={newPreference}
               onChangeText={setNewPreference}
+              multiline
               placeholder="I dislike cilantro…"
             />
             <Button label="Add" onPress={addPreference} />

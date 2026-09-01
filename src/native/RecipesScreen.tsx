@@ -17,6 +17,7 @@ import { useRecipeSearch } from "@/hooks/useRecipeSearch";
 import { recipeToMarkdown } from "@/lib/recipe-markdown";
 import type { Recipe, UpdateRecipeInput } from "@/types/recipe";
 import type { RecipesStackParamList } from "@/native/navigation-routes";
+import { DictationField } from "@/native/DictationField";
 import { nativeColors as colors, nativeFonts } from "@/native/theme";
 import { ListInteractionRow } from "@/native/ListInteractionRow";
 import {
@@ -63,7 +64,8 @@ export function RecipeListScreen({
         ListHeaderComponent={
           recipes.length > 0 ? (
             <View style={styles.listControls}>
-              <Field
+              <DictationField
+                accessibilityLabel="Search recipes and ingredients"
                 value={search.searchQuery}
                 onChangeText={search.setSearchQuery}
                 placeholder="Search recipes and ingredients…"
@@ -277,7 +279,7 @@ export function RecipeDetailScreen({
             Describe a change, preview the complete updated recipe, then apply
             it.
           </Text>
-          <Field
+          <DictationField
             accessibilityLabel="Recipe edit instructions"
             value={instruction}
             onChangeText={setInstruction}
