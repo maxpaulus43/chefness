@@ -44,6 +44,7 @@ what you've cooked.**
 | **AI-powered** | A conversational LLM is the primary interaction model. The AI adapts to the user's context (dietary restrictions, recent meals, preferences). |
 | **Single-user** | No accounts, no server. Everything is local to the device. |
 | **Privacy-respecting** | Data stays on-device. LLM requests use the user's locally stored OpenRouter OAuth key. Version 1 uses Sentry for privacy-scrubbed crash/error reporting and does not include product analytics. |
+| **Free with one-time upgrade** | On iOS, users can save or import five recipes for free. A $9.99 one-time purchase unlocks unlimited recipes. The web app remains unlimited. |
 | **Warm & inviting visual design** | A "kitchen glassmorphism" aesthetic: a cream gradient background with subtle grain, Fraunces serif headings over Inter body text, a saffron/espresso/rose palette, frosted translucent cards with soft shadows, and consistent inline SVG icons instead of platform-dependent emojis. Tokens are centralized in `src/theme.ts`. |
 
 ---
@@ -292,7 +293,20 @@ manual "AI Configuration" provider/API-key section is not shown.
 - [x] The retained web Settings page includes support email, support website,
       and privacy policy links.
 
-### 4.4 Navigation & Layout (MVP Scope)
+### 4.4 iOS Recipe Limit & Unlimited Unlock
+
+- The iOS app is free to download.
+- Free users can save or import up to five recipes total.
+- At the limit, existing recipes remain available to view, edit, share, cook,
+  and delete; only creation is blocked.
+- A $9.99 non-consumable in-app purchase unlocks unlimited saves and imports.
+- Settings shows purchase status, localized App Store pricing, purchase, and
+  Restore Purchases controls.
+- The retained web app remains unchanged and unlimited.
+- The free limit is the `FREE_RECIPE_LIMIT` constant in
+  `src/lib/recipe-access.ts`.
+
+### 4.5 Navigation & Layout (MVP Scope)
 
 #### Description
 

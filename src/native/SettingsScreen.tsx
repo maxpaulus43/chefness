@@ -22,6 +22,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { useSettings } from "@/hooks/useSettings";
 import { useOpenRouterModels } from "@/hooks/useOpenRouterModels";
 import { useAiPreferences } from "@/hooks/useAiPreferences";
+import { useRecipeAccess } from "@/hooks/useRecipeAccess";
+import { FREE_RECIPE_LIMIT } from "@/lib/recipe-access";
 import {
   buildHeadlessAuthUrl,
   exchangeCodeForKey,
@@ -61,6 +63,7 @@ export function SettingsScreen({
   navigation,
 }: NativeStackScreenProps<SettingsStackParamList, "Settings">) {
   const settings = useSettings();
+  const recipeAccess = useRecipeAccess();
   const catalog = useOpenRouterModels(
     settings.isOpenRouterConnected,
     settings.effectiveModel,
@@ -283,6 +286,65 @@ export function SettingsScreen({
               style={nativeStyles.error}
             >
               {catalog.error}
+            </Text>
+          )}
+        </Card>
+        <Text accessibilityRole="header" style={nativeStyles.sectionTitle}>
+          Saved Recipes
+        </Text>
+        <Card>
+          {recipeAccess.hasUnlimitedRecipes ? (
+            <View
+              accessibilityLabel="Unlimited recipes unlocked"
+              style={styles.connected}
+            >
+              <Ionicons
+                accessible={false}
+                name="checkmark-circle"
+                size={22}
+                color={colors.success}
+              />
+              <Text style={styles.connectedText}>
+                Unlimited recipes unlocked
+              </Text>
+            </View>
+          ) : (
+            <>
+              <Text style={nativeStyles.muted}>
+                Save or import up to {FREE_RECIPE_LIMIT} recipes for free, or
+                unlock unlimited recipes with one purchase.
+              </Text>
+              <Button
+                disabled={
+                  recipeAccess.isLoading ||
+                  recipeAccess.isPurchasing ||
+                  !recipeAccess.canPurchase
+                }
+                label={
+                  recipeAccess.isPurchasing
+                    ? "Purchasing…"
+                    : `Unlock Unlimited — ${recipeAccess.price}`
+                }
+                onPress={() => void recipeAccess.purchase()}
+              />
+            </>
+          )}
+          <Button
+            disabled={recipeAccess.isLoading || recipeAccess.isPurchasing}
+            label={
+              recipeAccess.isLoading
+                ? "Checking Purchases…"
+                : "Restore Purchases"
+            }
+            variant="secondary"
+            onPress={() => void recipeAccess.restore()}
+          />
+          {recipeAccess.error && (
+            <Text
+              accessibilityLiveRegion="assertive"
+              style={nativeStyles.error}
+            >
+              {recipeAccess.error}
             </Text>
           )}
         </Card>

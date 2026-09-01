@@ -2,7 +2,7 @@
   "expo": {
     "name": "Chefness",
     "slug": "chefness",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "orientation": "portrait",
     "scheme": "chefness",
     "userInterfaceStyle": "light",
@@ -10,7 +10,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.maxpaulus.chefness",
-      "buildNumber": "4",
+      "buildNumber": "5",
       "appleTeamId": "WNCJFCHP22",
       "entitlements": {
         "keychain-access-groups": [
@@ -64,7 +64,8 @@
       ],
       "expo-font",
       "./plugins/with-ios-scene-lifecycle.cjs",
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-iap"
     ]
   }
 }

@@ -29,6 +29,24 @@ slow and bypasses the normal development setup.
 
 Keep the phone unlocked during installation and first launch.
 
+## Test in-app purchases without real money
+
+Chefness includes `storekit/Chefness.storekit` with the Unlimited Recipes test
+product. After a clean prebuild:
+
+1. Open `ios/Chefness.xcworkspace` in Xcode.
+2. Drag `storekit/Chefness.storekit` into the Chefness project navigator; do not
+   copy it or add it to an app target.
+3. Open **Product → Scheme → Edit Scheme → Run → Options** and select
+   `Chefness.storekit` under **StoreKit Configuration**.
+4. Run Chefness from Xcode on the simulator or connected iPhone.
+
+Purchases in this Xcode StoreKit environment are simulated and do not charge a
+payment method. Use **Debug → StoreKit → Manage Transactions** to delete the
+purchase and test the free state or purchase restoration again. A normal CLI
+build uses App Store Connect instead; the unlock button stays disabled until the
+matching product exists and is available there.
+
 ## Required checks
 
 ```bash

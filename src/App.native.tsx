@@ -10,6 +10,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { TRPCProvider } from "@/trpc/provider";
 import { NativeNavigation } from "@/native/navigation";
 import { AccessibilityPreferencesProvider } from "@/native/accessibility";
+import { RecipeAccessProvider } from "@/hooks/useRecipeAccess";
 import { nativeColors } from "@/native/theme";
 
 export default function NativeApp() {
@@ -27,7 +28,9 @@ export default function NativeApp() {
           <StatusBar style="dark" />
           <View style={styles.root}>
             <TRPCProvider>
-              <NativeNavigation />
+              <RecipeAccessProvider>
+                <NativeNavigation />
+              </RecipeAccessProvider>
             </TRPCProvider>
           </View>
         </AccessibilityPreferencesProvider>

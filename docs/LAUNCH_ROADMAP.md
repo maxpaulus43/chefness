@@ -253,13 +253,19 @@ Chefness 1.0 does not include product analytics. The unchecked tasks below are r
 
 ## 9. App Store pricing and availability
 
-- [x] In App Store Connect, set the United States storefront price point to **$0.99 USD**.
-- [x] Review Apple's automatically generated prices for other storefronts.
+- [ ] In App Store Connect, change Chefness to a free download.
+- [ ] Create a non-consumable in-app purchase:
+  - Product ID: `com.maxpaulus.chefness.unlimited-recipes`
+  - Price: **$9.99 USD**
+  - Reference/display name: **Unlimited Recipes**
+- [ ] Add the in-app purchase localization, review screenshot, and review notes.
+- [ ] Attach the in-app purchase to the release submitted for review.
+- [ ] Test purchase and Restore Purchases with a sandbox account or StoreKit configuration.
 - [x] Select countries and regions where Chefness will be available.
 - [ ] Consider enrollment in the App Store Small Business Program if eligible.
 - [x] Confirm the app description clearly explains that AI features require an OpenRouter account.
 - [x] Clearly disclose that OpenRouter usage charges may apply depending on the selected model and that free models may be available.
-- [ ] Confirm no StoreKit implementation is needed; Chefness is an upfront paid download, not an in-app purchase.
+- [ ] Update the App Store description to disclose the five-recipe free limit and $9.99 one-time unlimited unlock.
 
 ## 10. App Store listing metadata
 
