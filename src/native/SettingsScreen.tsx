@@ -194,6 +194,63 @@ export function SettingsScreen({
     }
   };
 
+  const savedRecipesSection = (
+    <>
+      <Text accessibilityRole="header" style={nativeStyles.sectionTitle}>
+        Saved Recipes
+      </Text>
+      <Card>
+        {recipeAccess.hasUnlimitedRecipes ? (
+          <View
+            accessibilityLabel="Unlimited recipes unlocked"
+            style={styles.connected}
+          >
+            <Ionicons
+              accessible={false}
+              name="checkmark-circle"
+              size={22}
+              color={colors.success}
+            />
+            <Text style={styles.connectedText}>Unlimited recipes unlocked</Text>
+          </View>
+        ) : (
+          <>
+            <Text style={nativeStyles.muted}>
+              Save or import up to {FREE_RECIPE_LIMIT} recipes for free, or
+              unlock unlimited recipes with one purchase.
+            </Text>
+            <Button
+              disabled={
+                recipeAccess.isLoading ||
+                recipeAccess.isPurchasing ||
+                !recipeAccess.canPurchase
+              }
+              label={
+                recipeAccess.isPurchasing
+                  ? "Purchasing…"
+                  : `Unlock Unlimited — ${recipeAccess.price}`
+              }
+              onPress={() => void recipeAccess.purchase()}
+            />
+          </>
+        )}
+        <Button
+          disabled={recipeAccess.isLoading || recipeAccess.isPurchasing}
+          label={
+            recipeAccess.isLoading ? "Checking Purchases…" : "Restore Purchases"
+          }
+          variant="secondary"
+          onPress={() => void recipeAccess.restore()}
+        />
+        {recipeAccess.error && (
+          <Text accessibilityLiveRegion="assertive" style={nativeStyles.error}>
+            {recipeAccess.error}
+          </Text>
+        )}
+      </Card>
+    </>
+  );
+
   return (
     <View style={nativeStyles.screen}>
       <ScrollView
@@ -289,65 +346,7 @@ export function SettingsScreen({
             </Text>
           )}
         </Card>
-        <Text accessibilityRole="header" style={nativeStyles.sectionTitle}>
-          Saved Recipes
-        </Text>
-        <Card>
-          {recipeAccess.hasUnlimitedRecipes ? (
-            <View
-              accessibilityLabel="Unlimited recipes unlocked"
-              style={styles.connected}
-            >
-              <Ionicons
-                accessible={false}
-                name="checkmark-circle"
-                size={22}
-                color={colors.success}
-              />
-              <Text style={styles.connectedText}>
-                Unlimited recipes unlocked
-              </Text>
-            </View>
-          ) : (
-            <>
-              <Text style={nativeStyles.muted}>
-                Save or import up to {FREE_RECIPE_LIMIT} recipes for free, or
-                unlock unlimited recipes with one purchase.
-              </Text>
-              <Button
-                disabled={
-                  recipeAccess.isLoading ||
-                  recipeAccess.isPurchasing ||
-                  !recipeAccess.canPurchase
-                }
-                label={
-                  recipeAccess.isPurchasing
-                    ? "Purchasing…"
-                    : `Unlock Unlimited — ${recipeAccess.price}`
-                }
-                onPress={() => void recipeAccess.purchase()}
-              />
-            </>
-          )}
-          <Button
-            disabled={recipeAccess.isLoading || recipeAccess.isPurchasing}
-            label={
-              recipeAccess.isLoading
-                ? "Checking Purchases…"
-                : "Restore Purchases"
-            }
-            variant="secondary"
-            onPress={() => void recipeAccess.restore()}
-          />
-          {recipeAccess.error && (
-            <Text
-              accessibilityLiveRegion="assertive"
-              style={nativeStyles.error}
-            >
-              {recipeAccess.error}
-            </Text>
-          )}
-        </Card>
+        {!recipeAccess.hasUnlimitedRecipes && savedRecipesSection}
         <Text accessibilityRole="header" style={nativeStyles.sectionTitle}>
           Dietary Restrictions
         </Text>
@@ -454,6 +453,7 @@ export function SettingsScreen({
             Version {appVersion} ({buildNumber})
           </Text>
         </Card>
+        {recipeAccess.hasUnlimitedRecipes && savedRecipesSection}
       </ScrollView>
       <Modal
         visible={codePromptOpen}
