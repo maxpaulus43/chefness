@@ -1,6 +1,6 @@
 export const FREE_RECIPE_LIMIT = 5;
 export const UNLIMITED_RECIPES_PRODUCT_ID =
-  "com.maxpaulus.chefness.unlimited-recipes";
+  "com.maxpaulus.chefness.unlimited_recipes";
 
 export function canSaveRecipe(
   recipeCount: number,

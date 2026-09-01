@@ -36,7 +36,7 @@ seller is the legal personal name associated with that membership.
 ### iOS monetization
 
 The iOS app is free and allows five saved recipes. A $9.99 non-consumable
-StoreKit purchase (`com.maxpaulus.chefness.unlimited-recipes`) unlocks unlimited
+StoreKit purchase (`com.maxpaulus.chefness.unlimited_recipes`) unlocks unlimited
 recipe saves and imports. The limit is centralized in
 `src/lib/recipe-access.ts`; editing, sharing, and deleting existing recipes are
 never restricted. `expo-iap` reads current App Store entitlements locally and

@@ -25,7 +25,7 @@
           "locale" : "en_US"
         }
       ],
-      "productID" : "com.maxpaulus.chefness.unlimited-recipes",
+      "productID" : "com.maxpaulus.chefness.unlimited_recipes",
       "referenceName" : "Unlimited Recipes",
       "type" : "NonConsumable"
     }

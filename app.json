@@ -10,7 +10,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.maxpaulus.chefness",
-      "buildNumber": "5",
+      "buildNumber": "6",
       "appleTeamId": "WNCJFCHP22",
       "entitlements": {
         "keychain-access-groups": [

@@ -255,7 +255,7 @@ Chefness 1.0 does not include product analytics. The unchecked tasks below are r
 
 - [ ] In App Store Connect, change Chefness to a free download.
 - [ ] Create a non-consumable in-app purchase:
-  - Product ID: `com.maxpaulus.chefness.unlimited-recipes`
+  - Product ID: `com.maxpaulus.chefness.unlimited_recipes`
   - Price: **$9.99 USD**
   - Reference/display name: **Unlimited Recipes**
 - [ ] Add the in-app purchase localization, review screenshot, and review notes.
