@@ -445,7 +445,7 @@ export function useChat() {
         try {
           const session = await createSessionAsync({
             title: text.slice(0, 60) || "Photo conversation",
-            messages: [],
+            messages: toSessionMessages(history),
             mealType,
             mealSize,
           });
@@ -647,6 +647,7 @@ export function useChat() {
       createRecipeAsync,
       canCreateRecipe,
       persistMessages,
+      toSessionMessages,
     ],
   );
 

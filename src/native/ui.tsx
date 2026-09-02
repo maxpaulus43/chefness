@@ -6,6 +6,7 @@ import {
   Text,
   TextInput,
   View,
+  type ColorValue,
   type TextInputProps,
   type ViewStyle,
 } from "react-native";
@@ -49,32 +50,43 @@ export function Button({
   onPress,
   variant = "primary",
   disabled = false,
+  loading = false,
 }: {
   label: string;
   onPress: () => void;
   variant?: "primary" | "secondary" | "danger";
   disabled?: boolean;
+  loading?: boolean;
 }) {
+  const inactive = disabled || loading;
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityState={{ disabled }}
-      disabled={disabled}
+      accessibilityState={{ busy: loading, disabled: inactive }}
+      disabled={inactive}
       onPress={onPress}
       style={({ pressed }) => [
         styles.button,
         styles[variant],
-        (pressed || disabled) && styles.dim,
+        (pressed || (inactive && !loading)) && styles.dim,
       ]}
     >
-      <Text
-        style={[
-          styles.buttonText,
-          variant !== "primary" && styles.secondaryText,
-        ]}
-      >
-        {label}
-      </Text>
+      {loading ? (
+        <Loading
+          compact
+          color={variant === "primary" ? colors.white : colors.espresso}
+          label={label}
+        />
+      ) : (
+        <Text
+          style={[
+            styles.buttonText,
+            variant !== "primary" && styles.secondaryText,
+          ]}
+        >
+          {label}
+        </Text>
+      )}
     </Pressable>
   );
 }
@@ -123,8 +135,29 @@ export function Empty({ title, body }: { title: string; body: string }) {
   );
 }
 
-export function Loading() {
-  return <ActivityIndicator color={colors.saffron} style={{ margin: 24 }} />;
+export function Loading({
+  label,
+  compact = false,
+  color = colors.saffronDeep,
+}: {
+  label?: string;
+  compact?: boolean;
+  color?: ColorValue;
+} = {}) {
+  return (
+    <View
+      accessible={!compact}
+      accessibilityLabel={label ?? "Loading"}
+      accessibilityLiveRegion="polite"
+      accessibilityRole="progressbar"
+      style={[styles.loading, !compact && styles.loadingPage]}
+    >
+      <ActivityIndicator accessible={false} color={color} />
+      {label ? (
+        <Text style={[styles.loadingText, { color }]}>{label}</Text>
+      ) : null}
+    </View>
+  );
 }
 
 // eslint-disable-next-line react-refresh/only-export-components -- shared native primitives intentionally colocate their styles
@@ -207,6 +240,9 @@ const styles = StyleSheet.create({
   },
   dim: { opacity: 0.5 },
   buttonText: { color: colors.white, fontFamily: nativeFonts.sansBold },
+  loading: { flexDirection: "row", alignItems: "center", gap: 8 },
+  loadingPage: { justifyContent: "center", margin: 24 },
+  loadingText: { fontFamily: nativeFonts.sansBold },
   secondaryText: { color: colors.espresso },
   chip: {
     minHeight: 44,

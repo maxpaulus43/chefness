@@ -176,13 +176,17 @@ the user refreshes or closes the app.
       and requires on-device recognition without a network fallback. Microphone
       audio is not saved.
 - [x] Sending a message dismisses the keyboard and scrolls chat to the bottom.
-      Chat continues to auto-scroll as the AI streams while the user is at the
-      bottom. Dragging upward pauses autoscroll so older messages remain
-      readable during streaming; returning to the bottom resumes autoscroll.
+      Tapping outside the native composer also dismisses the keyboard. The
+      composer grows and shrinks with its text while keeping its controls
+      centered. Chat continues to auto-scroll as the AI streams while the user
+      is at the bottom. Dragging upward pauses autoscroll so older messages
+      remain readable during streaming; returning to the bottom resumes
+      autoscroll.
 - [x] The image attachment control appears only when the selected OpenRouter
       model supports image input.
-- [x] The attachment control opens the device image chooser, allowing users to
-      take a new photo or select an existing photo from their library.
+- [x] The attachment control opens the device image chooser, requests camera
+      permission when needed, and allows users to take a new photo or select an
+      existing photo from their library.
 - [x] Attached images are resized before being previewed and sent. On iOS,
       compressed images are persisted as managed files while chat records store
       only file URIs; image files are removed with deleted sessions.
@@ -190,6 +194,9 @@ the user refreshes or closes the app.
       with or without accompanying text.
 - [x] Long-pressing an assistant message on iOS shows the actual model ID
       reported by OpenRouter. The model metadata persists with the chat session.
+- [x] Native chat thinking, recipe/memory saves, and AI recipe edits show an
+      animated progress indicator. Save actions remain hidden while chat text
+      is streaming.
 - [ ] A "New Chat" button is accessible (e.g., in the chat header) and
       confirms before clearing if a conversation is in progress.
 - [x] If OpenRouter is not connected, the chat view shows a clear message
@@ -611,7 +618,8 @@ sessions and browse session history.
 - [ ] Sessions are stored in localStorage under `chefness:chat-sessions`.
 - [ ] The Chat tab shows a session list view (accessible via a button/icon)
       with past sessions sorted by most recent.
-- [ ] Auto-save triggers after each message exchange (debounced).
+- [x] A new session persists its first user message before the assistant
+      response completes, then saves the completed exchange.
 - [x] Chat History offers a “Delete All Chats” action with destructive confirmation.
 - [ ] Storage follows the same pattern: Zod schema → repository → tRPC →
       hook → component.

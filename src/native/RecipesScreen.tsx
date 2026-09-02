@@ -289,8 +289,11 @@ export function RecipeDetailScreen({
           <Button
             disabled={ai.status === "generating"}
             label={
-              ai.status === "generating" ? "Generating…" : "Generate Preview"
+              ai.status === "generating"
+                ? "Generating Preview"
+                : "Generate Preview"
             }
+            loading={ai.status === "generating"}
             onPress={() => void ai.generateEdit(recipe, instruction)}
           />
           {ai.error && (
@@ -342,9 +345,12 @@ export function RecipeDetailScreen({
               <View style={nativeStyles.row}>
                 <Button
                   label={
-                    ai.status === "applying" ? "Applying…" : "Apply AI Edit"
+                    ai.status === "applying"
+                      ? "Applying AI Edit"
+                      : "Apply AI Edit"
                   }
                   disabled={ai.status === "applying"}
+                  loading={ai.status === "applying"}
                   onPress={() => void ai.applyEdit(recipe.id)}
                 />
                 <Button

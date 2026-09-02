@@ -7,6 +7,7 @@ import {
   Image,
   Keyboard,
   KeyboardAvoidingView,
+  Linking,
   Platform,
   Pressable,
   StyleSheet,
@@ -35,7 +36,7 @@ import { useAccessibilityPreferences } from "@/native/accessibility";
 import { isNearChatBottom } from "@/native/chat-scroll";
 import { DictationField } from "@/native/DictationField";
 import { nativeColors as colors, nativeFonts } from "@/native/theme";
-import { Button, Chip, Field, nativeStyles } from "@/native/ui";
+import { Button, Chip, Field, Loading, nativeStyles } from "@/native/ui";
 
 const mealTypes = ["breakfast", "lunch", "dinner", "snack", "dessert"] as const;
 const mealSizes = ["1", "2", "4", "6+"] as const;
@@ -173,11 +174,36 @@ export function ChatScreen({
   };
 
   const chooseImage = () => {
-    const takePhoto = () =>
-      void ImagePicker.launchCameraAsync({
-        mediaTypes: ["images"],
-        quality: 0.9,
-      }).then(receiveImage);
+    const takePhoto = async () => {
+      try {
+        const permission = await ImagePicker.requestCameraPermissionsAsync();
+        if (!permission.granted) {
+          Alert.alert(
+            "Camera access needed",
+            "Allow Chefness to use the camera in iOS Settings.",
+            [
+              { text: "Cancel", style: "cancel" },
+              {
+                text: "Open Settings",
+                onPress: () => void Linking.openSettings(),
+              },
+            ],
+          );
+          return;
+        }
+        await receiveImage(
+          await ImagePicker.launchCameraAsync({
+            mediaTypes: ["images"],
+            quality: 0.9,
+          }),
+        );
+      } catch {
+        Alert.alert(
+          "Couldn’t open camera",
+          "Please check camera access and try again.",
+        );
+      }
+    };
     const chooseFromLibrary = () =>
       void ImagePicker.launchImageLibraryAsync({
         mediaTypes: ["images"],
@@ -191,7 +217,7 @@ export function ChatScreen({
           cancelButtonIndex: 0,
         },
         (index) => {
-          if (index === 1) takePhoto();
+          if (index === 1) void takePhoto();
           if (index === 2) chooseFromLibrary();
         },
       );
@@ -199,7 +225,7 @@ export function ChatScreen({
     }
     Alert.alert("Attach a photo", undefined, [
       { text: "Cancel", style: "cancel" },
-      { text: "Take Photo", onPress: takePhoto },
+      { text: "Take Photo", onPress: () => void takePhoto() },
       { text: "Photo Library", onPress: chooseFromLibrary },
     ]);
   };
@@ -302,7 +328,7 @@ export function ChatScreen({
         keyExtractor={(_message, index) => String(index)}
         contentContainerStyle={styles.messages}
         keyboardDismissMode="interactive"
-        keyboardShouldPersistTaps="handled"
+        keyboardShouldPersistTaps="never"
         scrollsToTop={false}
         scrollEventThrottle={16}
         onScroll={updateAutoScroll}
@@ -453,9 +479,11 @@ export function ChatScreen({
                     <Markdown style={markdownStyles}>
                       {message.content}
                     </Markdown>
+                  ) : message.role === "assistant" && chat.isStreaming ? (
+                    <Loading compact label="Thinking" />
                   ) : (
                     <Text selectable style={styles.messageText}>
-                      {message.content || (chat.isStreaming ? "Thinking…" : "")}
+                      {message.content}
                     </Text>
                   )}
                 </Pressable>
@@ -482,18 +510,21 @@ export function ChatScreen({
                 ) : null}
               </>
             )}
-            {message.role === "assistant" && message.content ? (
+            {message.role === "assistant" &&
+            message.content &&
+            !chat.isStreaming ? (
               <View style={nativeStyles.row}>
                 <Button
                   label={
                     message.savedRecipeId
                       ? "Recipe Saved ✓"
                       : busyAction === `recipe-${index}`
-                        ? "Saving Recipe…"
+                        ? "Saving Recipe"
                         : "Save Recipe"
                   }
                   variant="secondary"
                   disabled={!!message.savedRecipeId || !!busyAction}
+                  loading={busyAction === `recipe-${index}`}
                   onPress={() => void saveRecipe(index)}
                 />
                 <Button
@@ -501,11 +532,12 @@ export function ChatScreen({
                     message.memorySaved
                       ? "Saved to Memory ✓"
                       : busyAction === `memory-${index}`
-                        ? "Saving Memory…"
+                        ? "Saving Memory"
                         : "Save to Memory"
                   }
                   variant="secondary"
                   disabled={!!message.memorySaved || !!busyAction}
+                  loading={busyAction === `memory-${index}`}
                   onPress={() => void saveMemory(index)}
                 />
               </View>
@@ -710,7 +742,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 9,
     flexDirection: "row",
-    alignItems: "flex-end",
+    alignItems: "center",
     borderTopWidth: StyleSheet.hairlineWidth,
     borderColor: colors.stone200,
     backgroundColor: colors.glassStrong,

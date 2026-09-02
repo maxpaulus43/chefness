@@ -79,7 +79,9 @@ product for Xcode-run development builds.
   cooking-history note editing. Long-pressing an assistant message shows the
   actual model ID reported by OpenRouter, including the model selected behind
   routed endpoints such as `openrouter/free`; this metadata persists with the
-  chat session. The same OpenRouter response metadata is attached to transient
+  chat session. A new session persists its first user message before starting
+  the assistant request, so it appears in history even while text is streaming.
+  The same OpenRouter response metadata is attached to transient
   AI recipe-edit previews and shown when the preview is long-pressed. Chat
   messages, recipes, cooking history, chat sessions, and the
   OpenRouter model catalog use native virtualized lists. Chat
@@ -95,9 +97,12 @@ product for Xcode-run development builds.
   and its single selection is shown with a checkmark. Photo attachment source
   selection uses `ActionSheetIOS`. Recipe details use React Native's `Share` API
   for the iOS system share sheet and expose cooking-log creation there. Chat
-  shows Save Recipe and Save to Memory as direct assistant-message actions and
-  uses frame-based keyboard avoidance with no hard-coded vertical offset so its
-  composer follows the keyboard correctly. Native chat, recipe search and AI
+  shows Save Recipe and Save to Memory as direct assistant-message actions only
+  after streaming completes. Its composer grows and shrinks with its text,
+  keeps attachment/send controls centered, dismisses the keyboard from outside
+  taps, and uses frame-based keyboard avoidance with no hard-coded vertical
+  offset. Native animated progress indicators cover chat thinking, saves, and
+  AI recipe edits. Native chat, recipe search and AI
   edit, history note, and AI memory inputs use the reusable `DictationField`,
   which wraps Apple’s Speech framework through `expo-speech-recognition`, appends
   interim speech to the existing draft, and requires on-device recognition with
