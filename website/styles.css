@@ -210,6 +210,22 @@ h1 {
   padding: 68px 0 100px;
 }
 
+.oauth-callback {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+}
+
+.oauth-callback .content-card {
+  width: min(520px, 100%);
+  text-align: center;
+}
+
+.oauth-callback h1 {
+  margin-bottom: 18px;
+  font-size: clamp(2.4rem, 10vw, 4rem);
+}
+
 .document-header {
   max-width: 720px;
   margin-bottom: 54px;

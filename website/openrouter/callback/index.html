@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="referrer" content="no-referrer">
+    <meta name="theme-color" content="#faf7f2">
+    <link rel="icon" href="/icon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="/styles.css">
+    <title>Return to Chefness</title>
+  </head>
+  <body>
+    <main class="oauth-callback">
+      <section class="content-card" aria-labelledby="callback-title">
+        <h1 id="callback-title">Returning to Chefness…</h1>
+        <p id="callback-status">Chefness should reopen automatically.</p>
+        <a class="primary-link" id="callback-link" href="chefness://openrouter">
+          Return to Chefness
+        </a>
+      </section>
+    </main>
+    <script>
+    const code = new URLSearchParams(window.location.search).get("code");
+    const link = document.getElementById("callback-link");
+    const status = document.getElementById("callback-status");
+
+    if (code) {
+      link.href = `chefness://openrouter?code=${encodeURIComponent(code)}`;
+      window.location.replace(link.href);
+    } else {
+      status.textContent =
+        "OpenRouter did not provide an authorization code. Return to Chefness and try again.";
+    }
+    </script>
+  </body>
+</html>
