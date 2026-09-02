@@ -68,19 +68,6 @@ export function buildAuthUrl(
   return url.toString();
 }
 
-/** Build OpenRouter's documented no-callback flow for native/headless apps. */
-export function buildHeadlessAuthUrl(
-  codeChallenge: string,
-  method: CodeChallengeMethod,
-  keyLabel: string,
-): string {
-  const url = new URL(OPENROUTER_AUTH_URL);
-  url.searchParams.set("code_challenge", codeChallenge);
-  url.searchParams.set("code_challenge_method", method);
-  url.searchParams.set("key_label", keyLabel);
-  return url.toString();
-}
-
 /** Exchange an authorization code for a user-controlled OpenRouter API key. */
 export async function exchangeCodeForKey(
   code: string,

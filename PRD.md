@@ -242,7 +242,8 @@ OAuth key is stored in iOS Keychain; non-secret settings remain in AsyncStorage.
 
 #### Acceptance Criteria
 
-- [x] OpenRouter connection uses OAuth PKCE.
+- [x] OpenRouter connection uses OAuth PKCE and returns automatically to the
+      iOS app without requiring users to copy or paste an authorization code.
 - [x] Model selection is limited to OpenRouter models.
 - [x] On iOS, the OAuth key is stored in iOS Keychain through
       `expo-secure-store`; legacy AsyncStorage keys are migrated and scrubbed.
@@ -349,7 +350,7 @@ New iOS installations show a three-step onboarding flow before the main tabs:
 1. A welcome screen explains Chefness and on-device privacy.
 2. An optional personalization screen saves dietary restrictions and notes.
 3. An optional OpenRouter connection screen uses the same secure OAuth flow as
-   Settings, then opens Chat.
+   Settings, returns automatically after authorization, then opens Chat.
 
 Users may skip personalization and OpenRouter setup. Camera and microphone
 permissions are requested only when those features are first used, never during
@@ -863,10 +864,11 @@ Shared hooks, Zod schemas, the local tRPC router, and domain helpers remain the
 single business-logic implementation. Native non-secret records use
 AsyncStorage, the OpenRouter OAuth key uses iOS Keychain, and web records use
 IndexedDB. Expo platform extension resolution selects native settings,
-persistence, UUID, and OpenRouter streaming implementations. The app uses the
-documented no-callback S256 PKCE flow on native (copying OpenRouter's one-time
-authorization code back into the app) and an iOS scene lifecycle config plugin
-for current Xcode/iOS SDK compatibility.
+persistence, UUID, and OpenRouter streaming implementations. The app uses an
+S256 PKCE authentication session on native; a stateless HTTPS callback page
+forwards the authorization code to the app's custom URL scheme automatically.
+It also uses an iOS scene lifecycle config plugin for current Xcode/iOS SDK
+compatibility.
 
 ### MVP Status: ✅ Complete
 

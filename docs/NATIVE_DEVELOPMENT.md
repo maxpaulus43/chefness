@@ -74,4 +74,4 @@ xcrun devicectl device capture screenshot --device "Your iPhone" \
 - **Native dependency or `app.json` changed:** run `bunx expo prebuild --platform ios --clean`.
 - **Immediate iOS 27 launch crash:** do not remove `plugins/with-ios-scene-lifecycle.cjs` from `app.json`.
 - **Pod deployment target below 15.0:** keep `plugins/with-ios-pods-deployment-target.cjs` enabled and rerun `bunx expo prebuild --platform ios`.
-- **OpenRouter on iOS:** after creating the key, copy OpenRouter's one-time authorization code, close the browser sheet, and paste the code into Chefness.
+- **OpenRouter on iOS:** authorization returns through `https://chefness.org/openrouter/callback/` to `chefness://openrouter`; deploy `website/` before testing callback changes.

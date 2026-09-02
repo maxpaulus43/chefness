@@ -1,5 +1,6 @@
 import { afterEach, expect, mock, test } from "bun:test";
 import { formatOpenRouterError } from "../src/lib/openrouter-error";
+import { buildAuthUrl } from "../src/lib/openrouter-oauth";
 
 const originalFetch = globalThis.fetch;
 const echoedSecret = "provider-echoed-secret";
@@ -33,6 +34,22 @@ test("formats OpenRouter request failures with actionable user copy", () => {
   expect(formatOpenRouterError(undefined, "OpenRouter fallback.")).toBe(
     "OpenRouter fallback.",
   );
+});
+
+test("OAuth authorization includes the automatic callback", () => {
+  const url = new URL(
+    buildAuthUrl(
+      "https://chefness.org/openrouter/callback/",
+      "challenge",
+      "S256",
+    ),
+  );
+
+  expect(url.searchParams.get("callback_url")).toBe(
+    "https://chefness.org/openrouter/callback/",
+  );
+  expect(url.searchParams.get("code_challenge")).toBe("challenge");
+  expect(url.searchParams.get("code_challenge_method")).toBe("S256");
 });
 
 test("OAuth exchange errors exclude provider response bodies", async () => {

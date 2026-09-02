@@ -116,14 +116,16 @@ product for Xcode-run development builds.
   of persistence (`indexed-db.native.ts`), UUID generation, and OpenRouter
   streaming without branching the shared hooks/router/domain model.
 - `index.js`, `app.json`, `babel.config.cjs`, and `metro.config.cjs` configure Expo.
-- Native OpenRouter connection uses OpenRouter's documented no-callback PKCE
-  flow: S256 authorization opens in a secure browser sheet, the user copies the
-  one-time code back into Chefness, and the app exchanges it locally for the key.
-  `settings.native.ts` persists that key in iOS Keychain through
-  `expo-secure-store`; it automatically migrates and scrubs the former
+- Native OpenRouter connection uses S256 PKCE in an iOS authentication session.
+  OpenRouter returns to a stateless HTTPS page at
+  `chefness.org/openrouter/callback/`, which immediately forwards the one-time
+  code to `chefness://openrouter`; Chefness then exchanges it locally without
+  copy/paste. `settings.native.ts` persists the resulting key in iOS Keychain
+  through `expo-secure-store`; it automatically migrates and scrubs the former
   AsyncStorage settings field. `app.json` declares the app-specific Keychain
-  access-group entitlement required by signed device and simulator builds. The PWA retains its normal HTTP callback flow
-  and IndexedDB-backed credential storage.
+  access-group entitlement required by signed device and simulator builds. The
+  PWA retains its normal HTTP callback flow and IndexedDB-backed credential
+  storage.
 - An iOS share extension (`expo-share-extension`) lets users share a web URL
   from Safari into Chefness. `index.share.js` registers
   `src/native/ShareExtensionScreen.tsx` as the extension root; the extension
