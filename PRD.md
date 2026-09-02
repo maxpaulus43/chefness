@@ -151,7 +151,7 @@ the user refreshes or closes the app.
 | **CH-5** | As a user, I can set the **meal size** (cooking for 1, 2, 4, 6+) before or during a conversation using a control in the chat view. |
 | **CH-6** | As a user, I see a helpful empty state when no conversation is active, with suggested prompts I can tap (e.g., "What should I cook tonight?", "Help me use up leftover chicken"). |
 | **CH-7** | As a user with a vision-capable model selected, I can take or attach a photo and send it with my prompt. |
-| **CH-8** | As a user, I can long-press an assistant message to see which model produced it. |
+| **CH-8** | As an iOS user, I can long-press an assistant message to see which model produced it or select and copy part or all of its text with native text selection. |
 | **CH-9** | As an iOS user, I can dictate text from microphone buttons in supported text inputs. |
 
 #### Acceptance Criteria
@@ -193,7 +193,8 @@ the user refreshes or closes the app.
 - [x] Users can remove a selected image before sending and can send an image
       with or without accompanying text.
 - [x] Long-pressing an assistant message on iOS shows the actual model ID
-      reported by OpenRouter. The model metadata persists with the chat session.
+      reported by OpenRouter and offers native text selection for copying part
+      or all of the response. The model metadata persists with the chat session.
 - [x] Native chat thinking, recipe/memory saves, and AI recipe edits show an
       animated progress indicator. Save actions remain hidden while chat text
       is streaming.

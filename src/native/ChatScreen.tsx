@@ -12,6 +12,7 @@ import {
   Pressable,
   StyleSheet,
   Text,
+  TextInput,
   View,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
@@ -46,12 +47,16 @@ const prompts = [
   "Suggest a quick healthy lunch",
 ];
 
-function showMessageInfo(message: ChatMessage) {
+function showMessageInfo(message: ChatMessage, selectText: () => void) {
   Alert.alert(
     "Message information",
     message.modelId
       ? `Model: ${message.modelId}`
       : "Model information is unavailable for this message.",
+    [
+      { text: "Select & Copy", onPress: selectText },
+      { text: "Cancel", style: "cancel" },
+    ],
   );
 }
 
@@ -66,9 +71,15 @@ export function ChatScreen({
   const { createPreferenceAsync } = useAiPreferences();
   const { effectiveProvider, effectiveModel, effectiveApiKey } = useSettings();
   const [text, setText] = useState("");
+  const [composerKey, setComposerKey] = useState(0);
   const [image, setImage] = useState("");
   const [isDictating, setIsDictating] = useState(false);
-  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [editingMessage, setEditingMessage] = useState<ChatMessage | null>(
+    null,
+  );
+  const [selectingMessage, setSelectingMessage] = useState<ChatMessage | null>(
+    null,
+  );
   const [editDraft, setEditDraft] = useState("");
   const [busyAction, setBusyAction] = useState<string | null>(null);
   const list = useRef<FlatList<ChatMessage>>(null);
@@ -81,6 +92,9 @@ export function ChatScreen({
   const wasStreaming = useRef(chat.isStreaming);
   const { reduceTransparency } = useAccessibilityPreferences();
   const headerHeight = useHeaderHeight();
+  const editingIndex = editingMessage
+    ? chat.messages.indexOf(editingMessage)
+    : -1;
 
   const updateAutoScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     if (!hasUserScrolled.current) return;
@@ -111,7 +125,7 @@ export function ChatScreen({
   }, [chat.error]);
 
   useEffect(() => {
-    if (editingIndex === null) return;
+    if (editingIndex < 0) return;
 
     const scrollToEditor = () => {
       list.current?.scrollToIndex({
@@ -149,6 +163,7 @@ export function ChatScreen({
     const sentImage = image;
     lastSubmittedMessage.current = { text: sent, imageDataUrl: sentImage };
     setText("");
+    setComposerKey((key) => key + 1);
     setImage("");
     Keyboard.dismiss();
     hasUserScrolled.current = false;
@@ -436,7 +451,7 @@ export function ChatScreen({
                     label="Save & Regenerate"
                     disabled={!editDraft.trim()}
                     onPress={() => {
-                      setEditingIndex(null);
+                      setEditingMessage(null);
                       void chat.editUserMessageAndRegenerate(
                         index,
                         editDraft.trim(),
@@ -446,47 +461,76 @@ export function ChatScreen({
                   <Button
                     label="Cancel"
                     variant="secondary"
-                    onPress={() => setEditingIndex(null)}
+                    onPress={() => setEditingMessage(null)}
                   />
                 </View>
               </>
             ) : (
               <>
-                <Pressable
-                  accessible
-                  accessibilityLabel={`${message.role === "user" ? "You" : "Chefness"}: ${message.content || (chat.isStreaming ? "Thinking" : "")}`}
-                  accessibilityHint={
-                    message.role === "assistant"
-                      ? "Long press for message information"
-                      : undefined
-                  }
-                  accessibilityRole={
-                    message.role === "assistant" ? "button" : undefined
-                  }
-                  delayLongPress={400}
-                  onAccessibilityTap={
-                    message.role === "assistant"
-                      ? () => showMessageInfo(message)
-                      : undefined
-                  }
-                  onLongPress={
-                    message.role === "assistant"
-                      ? () => showMessageInfo(message)
-                      : undefined
-                  }
-                >
-                  {message.role === "assistant" && message.content ? (
-                    <Markdown style={markdownStyles}>
-                      {message.content}
-                    </Markdown>
-                  ) : message.role === "assistant" && chat.isStreaming ? (
-                    <Loading compact label="Thinking" />
-                  ) : (
-                    <Text selectable style={styles.messageText}>
-                      {message.content}
-                    </Text>
-                  )}
-                </Pressable>
+                {selectingMessage === message ? (
+                  <View>
+                    <TextInput
+                      accessibilityLabel="Selectable assistant message"
+                      autoFocus
+                      multiline
+                      readOnly
+                      scrollEnabled={false}
+                      selectTextOnFocus
+                      showSoftInputOnFocus={false}
+                      style={styles.selectableMessage}
+                      value={message.content}
+                    />
+                    <Pressable
+                      accessibilityRole="button"
+                      style={styles.doneSelecting}
+                      onPress={() => setSelectingMessage(null)}
+                    >
+                      <Text style={styles.doneSelectingText}>Done</Text>
+                    </Pressable>
+                  </View>
+                ) : (
+                  <Pressable
+                    accessible
+                    accessibilityLabel={`${message.role === "user" ? "You" : "Chefness"}: ${message.content || (chat.isStreaming ? "Thinking" : "")}`}
+                    accessibilityHint={
+                      message.role === "assistant"
+                        ? "Long press for message information and text selection"
+                        : undefined
+                    }
+                    accessibilityRole={
+                      message.role === "assistant" ? "button" : undefined
+                    }
+                    delayLongPress={400}
+                    onAccessibilityTap={
+                      message.role === "assistant"
+                        ? () =>
+                            showMessageInfo(message, () =>
+                              setSelectingMessage(message),
+                            )
+                        : undefined
+                    }
+                    onLongPress={
+                      message.role === "assistant"
+                        ? () =>
+                            showMessageInfo(message, () =>
+                              setSelectingMessage(message),
+                            )
+                        : undefined
+                    }
+                  >
+                    {message.role === "assistant" && message.content ? (
+                      <Markdown style={markdownStyles}>
+                        {message.content}
+                      </Markdown>
+                    ) : message.role === "assistant" && chat.isStreaming ? (
+                      <Loading compact label="Thinking" />
+                    ) : (
+                      <Text selectable style={styles.messageText}>
+                        {message.content}
+                      </Text>
+                    )}
+                  </Pressable>
+                )}
                 {message.role === "user" && !chat.isStreaming ? (
                   <Pressable
                     accessibilityRole="button"
@@ -494,7 +538,7 @@ export function ChatScreen({
                     style={styles.editMessage}
                     onPress={() => {
                       setEditDraft(message.content);
-                      setEditingIndex(index);
+                      setEditingMessage(message);
                     }}
                   >
                     <Ionicons
@@ -579,7 +623,7 @@ export function ChatScreen({
           ) : null
         }
       />
-      {editingIndex === null && image ? (
+      {editingIndex < 0 && image ? (
         <View style={styles.preview}>
           <Image
             accessible
@@ -606,7 +650,7 @@ export function ChatScreen({
           </Pressable>
         </View>
       ) : null}
-      {editingIndex === null ? (
+      {editingIndex < 0 ? (
         <View
           style={[styles.composer, reduceTransparency && styles.opaqueComposer]}
         >
@@ -627,6 +671,7 @@ export function ChatScreen({
             </Pressable>
           )}
           <DictationField
+            key={composerKey}
             accessibilityLabel="Message"
             value={text}
             onChangeText={setText}
@@ -723,6 +768,23 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 23,
     fontFamily: nativeFonts.sans,
+  },
+  selectableMessage: {
+    color: colors.espresso,
+    fontSize: 16,
+    lineHeight: 23,
+    fontFamily: nativeFonts.sans,
+    padding: 0,
+  },
+  doneSelecting: {
+    minHeight: 44,
+    alignSelf: "flex-end",
+    justifyContent: "center",
+    paddingHorizontal: 4,
+  },
+  doneSelectingText: {
+    color: colors.saffronDeep,
+    fontFamily: nativeFonts.sansSemiBold,
   },
   messageImage: { width: 220, height: 160, borderRadius: 12 },
   errorBox: {

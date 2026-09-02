@@ -77,9 +77,10 @@ product for Xcode-run development builds.
   Chat history and model selection are stack-presented iOS form sheets. Chat
   messages are edited inline in their bubbles before regeneration, matching
   cooking-history note editing. Long-pressing an assistant message shows the
-  actual model ID reported by OpenRouter, including the model selected behind
-  routed endpoints such as `openrouter/free`; this metadata persists with the
-  chat session. A new session persists its first user message before starting
+  actual model ID reported by OpenRouter and offers native iOS text selection
+  for copying part or all of the response. Model metadata includes the model
+  selected behind routed endpoints such as `openrouter/free` and persists with
+  the chat session. A new session persists its first user message before starting
   the assistant request, so it appears in history even while text is streaming.
   The same OpenRouter response metadata is attached to transient
   AI recipe-edit previews and shown when the preview is long-pressed. Chat
