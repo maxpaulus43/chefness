@@ -16,8 +16,8 @@
 ## 0. Launch decisions
 
 - [x] Decide whether version 1 supports iPhone only or both iPhone and iPad.
-  - **Decision:** Chefness 1.0 is iPhone-only. iPad support may be added in a later release.
-  - Configuration has `ios.supportsTablet: false`.
+  - **Decision:** Chefness 1.0 was iPhone-only. iPad support was added in 1.1.x (September 2026).
+  - Configuration has `ios.supportsTablet: true` and `ios.requireFullScreen: true` (portrait-only, no Split View). Content columns are capped at 760pt via `nativeStyles.scroll` and the chat message list/composer.
 - [x] Decide whether anonymous product analytics will ship in 1.0.
   - **Decision:** Chefness 1.0 will use Sentry crash/error reporting only. Product analytics such as PostHog are deferred.
 - [x] Decide whether users can opt out of nonessential analytics in Settings.
@@ -135,7 +135,7 @@
   - [ ] Cooking history
   - [ ] Dietary restrictions and AI memory
 - [x] If iPad support remains enabled, create required iPad screenshots and test layouts at relevant multitasking sizes.
-  - Not applicable to the iPhone-only 1.0 release.
+  - iPad screenshots are required now that tablet support is enabled.
 - [ ] Prepare optional promotional artwork if desired.
   - Deferred; not required for 1.0.
 

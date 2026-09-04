@@ -654,59 +654,61 @@ export function ChatScreen({
         <View
           style={[styles.composer, reduceTransparency && styles.opaqueComposer]}
         >
-          {chat.canAttachImage && (
+          <View style={styles.composerInner}>
+            {chat.canAttachImage && (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Attach photo"
+                accessibilityHint="Choose the camera or photo library"
+                style={styles.iconButton}
+                onPress={chooseImage}
+              >
+                <Ionicons
+                  accessible={false}
+                  name="camera-outline"
+                  size={27}
+                  color={colors.saffronDeep}
+                />
+              </Pressable>
+            )}
+            <DictationField
+              key={composerKey}
+              accessibilityLabel="Message"
+              value={text}
+              onChangeText={setText}
+              onDictatingChange={setIsDictating}
+              placeholder="Ask your cooking guru…"
+              multiline
+              containerStyle={styles.composerField}
+            />
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Attach photo"
-              accessibilityHint="Choose the camera or photo library"
-              style={styles.iconButton}
-              onPress={chooseImage}
+              accessibilityLabel={
+                chat.isStreaming ? "Stop response" : "Send message"
+              }
+              accessibilityHint={
+                chat.isStreaming
+                  ? "Stops Chefness from generating more text"
+                  : "Sends your message to Chefness"
+              }
+              accessibilityState={{
+                disabled: !chat.isStreaming && isDictating,
+              }}
+              disabled={!chat.isStreaming && isDictating}
+              style={[
+                styles.iconButton,
+                !chat.isStreaming && isDictating && styles.disabledButton,
+              ]}
+              onPress={chat.isStreaming ? chat.stopStreaming : submit}
             >
               <Ionicons
                 accessible={false}
-                name="camera-outline"
-                size={27}
+                name={chat.isStreaming ? "stop-circle" : "send"}
+                size={28}
                 color={colors.saffronDeep}
               />
             </Pressable>
-          )}
-          <DictationField
-            key={composerKey}
-            accessibilityLabel="Message"
-            value={text}
-            onChangeText={setText}
-            onDictatingChange={setIsDictating}
-            placeholder="Ask your cooking guru…"
-            multiline
-            containerStyle={styles.composerField}
-          />
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={
-              chat.isStreaming ? "Stop response" : "Send message"
-            }
-            accessibilityHint={
-              chat.isStreaming
-                ? "Stops Chefness from generating more text"
-                : "Sends your message to Chefness"
-            }
-            accessibilityState={{
-              disabled: !chat.isStreaming && isDictating,
-            }}
-            disabled={!chat.isStreaming && isDictating}
-            style={[
-              styles.iconButton,
-              !chat.isStreaming && isDictating && styles.disabledButton,
-            ]}
-            onPress={chat.isStreaming ? chat.stopStreaming : submit}
-          >
-            <Ionicons
-              accessible={false}
-              name={chat.isStreaming ? "stop-circle" : "send"}
-              size={28}
-              color={colors.saffronDeep}
-            />
-          </Pressable>
+          </View>
         </View>
       ) : null}
     </KeyboardAvoidingView>
@@ -727,7 +729,14 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: nativeFonts.sansSemiBold,
   },
-  messages: { padding: 14, gap: 12, flexGrow: 1 },
+  messages: {
+    padding: 14,
+    gap: 12,
+    flexGrow: 1,
+    width: "100%",
+    maxWidth: 760,
+    alignSelf: "center",
+  },
   welcome: { gap: 12, paddingVertical: 20 },
   welcomeTitle: {
     fontSize: 28,
@@ -811,6 +820,14 @@ const styles = StyleSheet.create({
   },
   opaqueComposer: { backgroundColor: colors.white, borderTopWidth: 1 },
   composerField: { flex: 1, maxHeight: 160 },
+  composerInner: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    width: "100%",
+    maxWidth: 760,
+    alignSelf: "center",
+  },
   iconButton: {
     width: 44,
     minHeight: 44,

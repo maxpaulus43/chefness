@@ -8,7 +8,8 @@
     "userInterfaceStyle": "light",
     "icon": "./public/pwa-1024x1024.png",
     "ios": {
-      "supportsTablet": false,
+      "supportsTablet": true,
+      "requireFullScreen": true,
       "bundleIdentifier": "com.maxpaulus.chefness",
       "buildNumber": "9",
       "appleTeamId": "WNCJFCHP22",

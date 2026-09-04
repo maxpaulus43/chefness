@@ -163,7 +163,14 @@ export function Loading({
 // eslint-disable-next-line react-refresh/only-export-components -- shared native primitives intentionally colocate their styles
 export const nativeStyles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.cream },
-  scroll: { padding: 16, paddingBottom: 32, gap: 12 },
+  scroll: {
+    padding: 16,
+    paddingBottom: 32,
+    gap: 12,
+    width: "100%",
+    maxWidth: 760,
+    alignSelf: "center",
+  },
   row: { flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" },
   label: {
     color: colors.espresso,

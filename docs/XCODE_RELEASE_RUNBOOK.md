@@ -52,7 +52,7 @@ Confirm the generated values:
 - Main app and extension marketing version match `expo.version`.
 - Main app and extension build number match `expo.ios.buildNumber`.
 - Deployment target is iOS 16.4.
-- The app is iPhone-only and portrait-only.
+- The app runs on iPhone and iPad (full-screen, no Split View) and is portrait-only.
 
 ## 3. Archive
 

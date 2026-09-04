@@ -8,7 +8,7 @@ task has the full context without needing to reverse-engineer it from code.
 
 ## 1. Project overview
 
-Chefness is a **client-side-first** cooking app with an iPhone-only Expo/React Native iOS
+Chefness is a **client-side-first** cooking app with an iPhone and iPad Expo/React Native iOS
 app and a retained PWA build. There is **no separate application backend for
 user data**. All data operations run on-device through the same local tRPC
 router. iOS persists through AsyncStorage; the web build uses IndexedDB. The

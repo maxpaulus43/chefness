@@ -229,10 +229,10 @@
 
 **Goal:** Either provide an adaptive iPad interface or limit support until one is ready.
 
-- [ ] Decide whether the next release officially supports iPad.
+- [x] Decide whether the next release officially supports iPad. (Yes: `supportsTablet: true`, full-screen portrait, centered 760pt content column.)
 - [ ] If supported, add adaptive list/detail layouts for Recipes and Chat History.
 - [ ] Support Split View and common multitasking sizes.
-- [ ] Avoid stretched phone layouts on large screens.
+- [x] Avoid stretched phone layouts on large screens.
 - [ ] If deferred, update app configuration and release expectations accordingly.
 
 **Done when:** The declared device support matches the experience actually delivered.

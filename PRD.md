@@ -24,7 +24,7 @@
 
 ## 1. Overview & Vision
 
-**Chefness** is a mobile-first, offline-first, iPhone-only Expo/React Native iOS app with
+**Chefness** is a mobile-first, offline-first Expo/React Native iOS app for iPhone and iPad with
 the existing Progressive Web App retained as a web target. The App Store listing
 name is **Chefness!** because `Chefness` was unavailable; the installed app display
 name and product name remain **Chefness**. The user chats with
