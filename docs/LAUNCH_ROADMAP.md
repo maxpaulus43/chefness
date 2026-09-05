@@ -255,9 +255,13 @@ Chefness 1.0 does not include product analytics. The unchecked tasks below are r
 
 - [ ] In App Store Connect, change Chefness to a free download.
 - [ ] Create a non-consumable in-app purchase:
-  - Product ID: `com.maxpaulus.chefness.unlimited_recipes`
+  - Product ID: `com.maxpaulus.chefness.unlimited_recipes` (unchanged; it now
+    unlocks iCloud Sync, so existing buyers keep their entitlement)
   - Price: **$9.99 USD**
-  - Reference/display name: **Unlimited Recipes**
+  - Reference/display name: **iCloud Sync**
+- [ ] Register the iCloud container `iCloud.com.maxpaulus.chefness`, enable the
+      iCloud/CloudKit capability on the App ID, and deploy the CloudKit schema
+      to Production (see `docs/NATIVE_DEVELOPMENT.md`).
 - [ ] Add the in-app purchase localization, review screenshot, and review notes.
 - [ ] Attach the in-app purchase to the release submitted for review.
 - [ ] Test purchase and Restore Purchases with a sandbox account or StoreKit configuration.
@@ -265,7 +269,7 @@ Chefness 1.0 does not include product analytics. The unchecked tasks below are r
 - [ ] Consider enrollment in the App Store Small Business Program if eligible.
 - [x] Confirm the app description clearly explains that AI features require an OpenRouter account.
 - [x] Clearly disclose that OpenRouter usage charges may apply depending on the selected model and that free models may be available.
-- [ ] Update the App Store description to disclose the five-recipe free limit and $9.99 one-time unlimited unlock.
+- [ ] Update the App Store description to state that the app is free to use on-device and that a $9.99 one-time purchase unlocks iCloud Sync across devices.
 
 ## 10. App Store listing metadata
 

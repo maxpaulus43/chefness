@@ -35,14 +35,63 @@ seller is the legal personal name associated with that membership.
 
 ### iOS monetization
 
-The iOS app is free and allows five saved recipes. A $9.99 non-consumable
-StoreKit purchase (`com.maxpaulus.chefness.unlimited_recipes`) unlocks unlimited
-recipe saves and imports. The limit is centralized in
-`src/lib/recipe-access.ts`; editing, sharing, and deleting existing recipes are
-never restricted. `expo-iap` reads current App Store entitlements locally and
-supports purchase restoration. The retained web app remains unlimited and does
-not load StoreKit. `storekit/Chefness.storekit` provides a no-charge local test
-product for Xcode-run development builds.
+Everything that runs on-device is free with no limits. A $9.99 non-consumable
+StoreKit purchase unlocks **iCloud Sync** across the user's devices. The product
+identifier is still `com.maxpaulus.chefness.unlimited_recipes` (it originally
+sold "Unlimited Recipes"); keeping it means earlier buyers own iCloud Sync
+without repurchasing. Entitlement state lives in `src/lib/entitlements.ts` and
+the `useEntitlements` hook (`EntitlementsProvider` is mounted in
+`src/App.native.tsx`). `expo-iap` reads current App Store entitlements locally
+and supports purchase restoration. The retained web app has no StoreKit and no
+sync. `storekit/Chefness.storekit` provides a no-charge local test product for
+Xcode-run development builds.
+
+### iCloud Sync (iOS)
+
+Sync is an optional mirror on top of the device-local stores; it never becomes
+the source of truth and the app keeps working offline or with sync off.
+
+- **Transport**: CloudKit private database through `expo-cloudkit`, container
+  `iCloud.com.maxpaulus.chefness`, one custom zone `ChefnessData`. The config
+  plugin in `app.json` adds the iCloud/CloudKit entitlements. The engine deep-
+  imports `expo-cloudkit/build/*` because the package barrel drags in web/
+  Android loaders that Metro cannot resolve.
+- **Records**: one CloudKit record per entity, named `<store>__<id>`, with a
+  JSON `payload` string plus `updatedAt`/`deletedAt` date fields
+  (`src/lib/cloud-sync/records.ts`). Using a single payload field means Zod
+  schema changes never require a CloudKit schema change.
+- **Merging**: last-write-wins on the device `updatedAt`
+  (`src/lib/cloud-sync/merge.ts`). Settings add two rules: a pristine
+  (never-customized) local record defers to remote, and
+  `hasCompletedOnboarding` is sticky. OpenRouter credentials are stripped from
+  outgoing payloads and preserved locally on merge.
+- **Deletes**: soft deletes. Every entity schema carries an optional
+  `deletedAt` (`src/types/tombstone.ts`); tombstones are hidden from reads,
+  synced like edits, and purged from both sides after 30 days.
+- **Chat photos**: managed image files sync as `ChatImage` records with a
+  `CKAsset`. Session payloads carry portable `chefness-image://<file>` refs
+  (`src/lib/cloud-sync/image-refs.ts`); receiving devices copy the fetched
+  asset into their own managed image directory under the same file name.
+- **Engine**: `src/lib/cloud-sync/engine.native.ts` (web: inert `engine.ts`)
+  tracks dirty ids and enabled/last-sync state in AsyncStorage
+  (`chefness:cloud-sync`), and runs pull → push → purge on activation, app
+  foreground, ~2.5 s after local writes, every two minutes while active, and
+  on "Sync Now". It only runs when the purchase is owned, the toggle is on,
+  and an iCloud account is available. Push notifications are not wired, so
+  there is no background wake-up.
+- **Storage hook-in**: `src/storage/synced.native.ts` exports `withSync`,
+  which wraps each AsyncStorage repository (registering it with the engine,
+  reporting writes, and turning `delete` into a tombstone). The web
+  `synced.ts` is a passthrough. Routers, hooks, and screens are unchanged.
+- **UI**: `useCloudSync` exposes state and actions; `useCloudSyncBridge`
+  (mounted once in `App.native.tsx`) feeds the entitlement into the engine and
+  invalidates React Query caches for stores that changed remotely. Settings
+  shows an "iCloud Sync" card with purchase/restore, toggle, status, and Sync
+  Now.
+- **Known limits**: `saveRecords` overwrites without change-tag conflict
+  detection, so two devices editing the same record within one sync window can
+  briefly diverge until the next edit. Clock skew between devices affects
+  last-write-wins ordering.
 
 ### Tech stack
 
@@ -169,6 +218,7 @@ src/
   storage/            Persistence layer (the abstraction boundary)
     interface.ts      StorageRepository<TEntity, TCreate, TUpdate> interface
     local-storage.ts  localStorage implementation of the interface
+    synced.ts         withSync — iOS wraps repositories for iCloud Sync; web passthrough
     recipes.ts        Instantiates and exports the recipe repository
   trpc/               RPC plumbing — procedures, client, providers
     index.ts          initTRPC instance (shared router/procedure builders)
@@ -177,12 +227,16 @@ src/
     provider.tsx      <TRPCProvider> — wraps app with tRPC + React Query
   hooks/              Custom React hooks — all business logic lives here
     useRecipes.ts     Recipe CRUD operations, cache invalidation
+    useEntitlements.ts  StoreKit entitlement (iCloud Sync purchase); web stub
+    useCloudSync.ts   iCloud Sync state/actions + app-root bridge that invalidates caches
     useRecipeAiEditor.ts  AI recipe edit orchestration + preview/apply state
     useChat.ts      Chat state, LLM streaming, session persistence, and chat URL import orchestration
     useToast.ts     Access to global toast notifications and async confirmations
   contexts/           React contexts shared by hooks/providers
     toast-context.ts  Toast API types and context (`notify`, `ask`, `dismiss`)
   lib/                Pure client-side helpers for AI calls and formatting
+    entitlements.ts   Product ID and Entitlements shape for the iCloud Sync purchase
+    cloud-sync/       iCloud Sync: merge rules, record mapping, image refs, engine (.native)
     recipe-extractor.ts  Tool-calling recipe extraction and natural-language recipe edits
     recipe-url-extractor.ts  Client helper for same-origin Worker recipe URL extraction
   worker.ts           Stateless Cloudflare Worker API endpoints + static asset fallback
@@ -234,7 +288,7 @@ downward. No layer may skip a level or reach into a layer above it.
 | Components  | `src/hooks/`, `src/types/`                         |
 | Hooks       | `src/trpc/client.ts`, `src/types/`, pure helpers from `src/lib/` when orchestrating AI/domain workflows |
 | tRPC Router | `src/trpc/index.ts`, `src/storage/`, `src/types/`  |
-| Storage     | `src/storage/interface.ts`, `src/types/`            |
+| Storage     | `src/storage/interface.ts`, `src/types/`, `src/lib/cloud-sync/` (sync registration) |
 
 ### What each layer must NOT do
 
@@ -389,7 +443,10 @@ Each entity gets a file in `src/storage/` (e.g. `recipes.ts`) that:
 The repository is responsible for generating `id`, `createdAt`, and `updatedAt`
 inside `buildEntity` — the tRPC router just passes user input through.
 
-Native and web records are intentionally device-local and are not synchronized.
+Records are device-local by default. On iOS, every repository is wrapped with
+`withSync` (`src/storage/synced.native.ts`) so that, when the user owns and has
+enabled iCloud Sync, writes are mirrored to CloudKit and deletes become
+`deletedAt` tombstones (see "iCloud Sync" above). Web records never sync.
 On iOS, non-secret settings remain in AsyncStorage while the OpenRouter OAuth key
 is stored separately in iOS Keychain by the native settings repository. Repository
 reads hydrate the key in memory for existing hooks, while writes strip it from the
