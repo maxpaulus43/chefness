@@ -245,6 +245,9 @@ export function registerSyncedStore<TEntity extends SyncedEntity>(
     definition,
     store,
   } as unknown as RegisteredStore);
+  // Load the enabled flag early so repositories can consult the snapshot
+  // before the first UI subscriber appears.
+  void getState();
   return {
     markDirty: (entity) => {
       void markDirty(definition.storeName, entity);
