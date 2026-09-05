@@ -20,13 +20,13 @@
       "internalID" : "A7C43B10",
       "localizations" : [
         {
-          "description" : "Save and import unlimited recipes in Chefness.",
-          "displayName" : "Unlimited Recipes",
+          "description" : "Sync recipes, chats, cooking history, and preferences across your iCloud devices.",
+          "displayName" : "iCloud Sync",
           "locale" : "en_US"
         }
       ],
       "productID" : "com.maxpaulus.chefness.unlimited_recipes",
-      "referenceName" : "Unlimited Recipes",
+      "referenceName" : "iCloud Sync",
       "type" : "NonConsumable"
     }
   ],

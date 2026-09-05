@@ -27,7 +27,6 @@ import { useHeaderHeight } from "@react-navigation/elements";
 import Markdown from "react-native-markdown-display";
 import { useChat, type ChatMessage } from "@/hooks/useChat";
 import { useRecipes } from "@/hooks/useRecipes";
-import { FREE_RECIPE_LIMIT } from "@/lib/recipe-access";
 import { useAiPreferences } from "@/hooks/useAiPreferences";
 import { useSettings } from "@/hooks/useSettings";
 import { extractRecipeFromConversation } from "@/lib/recipe-extractor";
@@ -67,7 +66,7 @@ export function ChatScreen({
   chat: ReturnType<typeof useChat>;
   openSettings: () => void;
 }) {
-  const { createRecipeAsync, canCreateRecipe } = useRecipes();
+  const { createRecipeAsync } = useRecipes();
   const { createPreferenceAsync } = useAiPreferences();
   const { effectiveProvider, effectiveModel, effectiveApiKey } = useSettings();
   const [text, setText] = useState("");
@@ -263,17 +262,6 @@ export function ChatScreen({
   };
 
   const saveRecipe = async (index: number) => {
-    if (!canCreateRecipe) {
-      Alert.alert(
-        "Unlock unlimited recipes",
-        `The free version saves up to ${FREE_RECIPE_LIMIT} recipes. Upgrade once to save and import unlimited recipes.`,
-        [
-          { text: "Not Now", style: "cancel" },
-          { text: "View Upgrade", onPress: openSettings },
-        ],
-      );
-      return;
-    }
     setBusyAction(`recipe-${index}`);
     try {
       const recipe = await extractRecipeFromConversation({
@@ -590,34 +578,12 @@ export function ChatScreen({
         )}
         ListFooterComponent={
           chat.error ? (
-            <View
-              accessibilityLiveRegion="assertive"
-              style={[
-                styles.errorBox,
-                chat.isRecipeLimitError && styles.recipeLimitBox,
-              ]}
-            >
-              <Text
-                style={
-                  chat.isRecipeLimitError
-                    ? styles.recipeLimitText
-                    : nativeStyles.error
-                }
-              >
-                {chat.error}
-              </Text>
+            <View accessibilityLiveRegion="assertive" style={styles.errorBox}>
+              <Text style={nativeStyles.error}>{chat.error}</Text>
               <Button
-                label={
-                  chat.isRecipeLimitError && !canCreateRecipe
-                    ? "Open Settings"
-                    : "Retry"
-                }
+                label="Retry"
                 variant="secondary"
-                onPress={
-                  chat.isRecipeLimitError && !canCreateRecipe
-                    ? openSettings
-                    : retryLastMessage
-                }
+                onPress={retryLastMessage}
               />
             </View>
           ) : null
@@ -792,12 +758,6 @@ const styles = StyleSheet.create({
     padding: 12,
     backgroundColor: colors.dangerTint,
     borderRadius: 12,
-  },
-  recipeLimitBox: { backgroundColor: colors.saffronTint },
-  recipeLimitText: {
-    color: colors.saffronDeep,
-    lineHeight: 20,
-    fontFamily: nativeFonts.sansBold,
   },
   composer: {
     minHeight: 66,

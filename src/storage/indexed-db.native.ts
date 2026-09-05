@@ -28,15 +28,26 @@ export class IndexedDBRepository<
     this.applyUpdate = options.applyUpdate;
   }
 
-  private async readAll(): Promise<TEntity[]> {
+  /** Every stored record, including sync tombstones. Used by the sync layer. */
+  async readAll(): Promise<TEntity[]> {
     const value = await AsyncStorage.getItem(this.key);
     if (!value) return [];
     const parsed: unknown = JSON.parse(value);
     return Array.isArray(parsed) ? (parsed as TEntity[]) : [];
   }
 
-  private writeAll(entities: TEntity[]): Promise<void> {
+  /** Replace the whole collection. Used by the sync layer. */
+  writeAll(entities: TEntity[]): Promise<void> {
     return AsyncStorage.setItem(this.key, JSON.stringify(entities));
+  }
+
+  /** Insert or replace one record verbatim (no `applyUpdate`, no timestamp bump). */
+  async put(entity: TEntity): Promise<void> {
+    const entities = await this.readAll();
+    const index = entities.findIndex((item) => item.id === entity.id);
+    if (index < 0) entities.push(entity);
+    else entities[index] = entity;
+    await this.writeAll(entities);
   }
 
   getAll(): Promise<TEntity[]> {

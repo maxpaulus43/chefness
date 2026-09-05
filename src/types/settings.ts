@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { tombstoneFields } from "@/types/tombstone";
 
 /** Zod schema for the stored settings entity (singleton). */
 export const settingsSchema = z.object({
@@ -17,6 +18,7 @@ export const settingsSchema = z.object({
   hasCompletedOnboarding: z.boolean().default(true),
   createdAt: z.string(),
   updatedAt: z.string(),
+  ...tombstoneFields,
 });
 
 /** TypeScript type inferred from the Zod schema. */

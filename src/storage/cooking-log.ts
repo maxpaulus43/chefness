@@ -8,12 +8,14 @@
  * depends on the `StorageRepository` interface.
  */
 import type { StorageRepository } from "@/storage/interface";
-import type {
-  CookingLogEntry,
-  CreateCookingLogInput,
-  UpdateCookingLogInput,
+import {
+  cookingLogEntrySchema,
+  type CookingLogEntry,
+  type CreateCookingLogInput,
+  type UpdateCookingLogInput,
 } from "@/types/cooking-log";
 import { IndexedDBRepository } from "@/storage/indexed-db";
+import { withSync } from "@/storage/synced";
 import { generateUUID } from "@/lib/uuid";
 
 /** Concrete type alias so consumers don't need to spell out the generics. */
@@ -23,7 +25,7 @@ export type CookingLogRepository = StorageRepository<
   UpdateCookingLogInput
 >;
 
-export const cookingLogRepository: CookingLogRepository =
+export const cookingLogRepository: CookingLogRepository = withSync(
   new IndexedDBRepository<
     CookingLogEntry,
     CreateCookingLogInput,
@@ -54,4 +56,10 @@ export const cookingLogRepository: CookingLogRepository =
         updatedAt: new Date().toISOString(),
       };
     },
-  });
+  }),
+  {
+    storeName: "cooking-log",
+    recordType: "CookingLogEntry",
+    parse: (value) => cookingLogEntrySchema.safeParse(value).data ?? null,
+  },
+);

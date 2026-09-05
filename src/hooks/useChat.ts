@@ -32,7 +32,6 @@ import { streamChat } from "@/lib/llm-stream";
 import { formatOpenRouterError } from "@/lib/openrouter-error";
 import { extractRecipeFromUrl } from "@/lib/recipe-url-extractor";
 import type { ExtractedRecipeFromUrl } from "@/lib/recipe-url-extractor";
-import { RecipeLimitError, RECIPE_LIMIT_MESSAGE } from "@/lib/recipe-access";
 import type { CookingLogEntry } from "@/types/cooking-log";
 import type { ChatSessionMessage } from "@/types/chat-session";
 
@@ -253,7 +252,7 @@ export function useChat() {
     updateSession,
     createSessionAsync,
   } = useChatSessions();
-  const { createRecipeAsync, canCreateRecipe } = useRecipes();
+  const { createRecipeAsync } = useRecipes();
   const { selectedModelSupportsVision } = useOpenRouterModels(
     isConfigured,
     effectiveModel,
@@ -464,7 +463,6 @@ export function useChat() {
 
       if (recipeUrlMessage?.mode === "auto-save") {
         try {
-          if (!canCreateRecipe) throw new RecipeLimitError();
           const extracted = await extractRecipeFromUrl({
             url: recipeUrlMessage.url,
             signal: controller.signal,
@@ -491,21 +489,13 @@ export function useChat() {
             return;
           }
 
-          if (err instanceof RecipeLimitError) {
-            setMessages(history);
-            setError(err.message);
-            if (sessionId) {
-              persistMessages(sessionId, history, mealType, mealSize);
-            }
-          } else {
-            const finalMessages: ChatMessage[] = [
-              ...history,
-              { role: "assistant", content: importError(err) },
-            ];
-            setMessages(finalMessages);
-            if (sessionId) {
-              persistMessages(sessionId, finalMessages, mealType, mealSize);
-            }
+          const finalMessages: ChatMessage[] = [
+            ...history,
+            { role: "assistant", content: importError(err) },
+          ];
+          setMessages(finalMessages);
+          if (sessionId) {
+            persistMessages(sessionId, finalMessages, mealType, mealSize);
           }
         } finally {
           abortRef.current = null;
@@ -645,7 +635,6 @@ export function useChat() {
       currentSessionId,
       createSessionAsync,
       createRecipeAsync,
-      canCreateRecipe,
       persistMessages,
       toSessionMessages,
     ],
@@ -758,7 +747,6 @@ export function useChat() {
     messages,
     isStreaming,
     error,
-    isRecipeLimitError: error === RECIPE_LIMIT_MESSAGE,
     mealType,
     mealSize,
     sendMessage,

@@ -2,10 +2,13 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as SecureStore from "expo-secure-store";
 import { IndexedDBRepository } from "@/storage/indexed-db";
 import type { StorageRepository } from "@/storage/interface";
-import type {
-  CreateSettingsInput,
-  Settings,
-  UpdateSettingsInput,
+import { withSync } from "@/storage/synced";
+import { mergeSettings, settingsToPayload } from "@/lib/cloud-sync/merge";
+import {
+  settingsSchema,
+  type CreateSettingsInput,
+  type Settings,
+  type UpdateSettingsInput,
 } from "@/types/settings";
 
 export type SettingsRepository = StorageRepository<
@@ -23,49 +26,54 @@ const SECURE_STORE_OPTIONS: SecureStore.SecureStoreOptions = {
   keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
 };
 
-const settingsStorage = new IndexedDBRepository<
-  Settings,
-  CreateSettingsInput,
-  UpdateSettingsInput
->({
-  storeName: "settings",
-  buildEntity: (data) => {
-    const now = new Date().toISOString();
-    return {
-      id: SETTINGS_SINGLETON_ID,
-      ...data,
+const settingsStorage = withSync(
+  new IndexedDBRepository<Settings, CreateSettingsInput, UpdateSettingsInput>({
+    storeName: "settings",
+    buildEntity: (data) => {
+      const now = new Date().toISOString();
+      return {
+        id: SETTINGS_SINGLETON_ID,
+        ...data,
+        openRouterOAuthKey: "",
+        createdAt: now,
+        updatedAt: now,
+      };
+    },
+    applyUpdate: (existing, data) => ({
+      ...existing,
+      ...(data.llmProvider !== undefined && { llmProvider: data.llmProvider }),
+      ...(data.llmModel !== undefined && { llmModel: data.llmModel }),
+      ...(data.llmApiKey !== undefined && { llmApiKey: data.llmApiKey }),
+      ...(data.dietaryRestrictions !== undefined && {
+        dietaryRestrictions: data.dietaryRestrictions,
+      }),
+      ...(data.otherDietaryNotes !== undefined && {
+        otherDietaryNotes: data.otherDietaryNotes,
+      }),
+      ...(data.modelFilterFreeOnly !== undefined && {
+        modelFilterFreeOnly: data.modelFilterFreeOnly,
+      }),
+      ...(data.modelFilterVisionOnly !== undefined && {
+        modelFilterVisionOnly: data.modelFilterVisionOnly,
+      }),
+      ...(data.modelFilterToolsOnly !== undefined && {
+        modelFilterToolsOnly: data.modelFilterToolsOnly,
+      }),
+      ...(data.hasCompletedOnboarding !== undefined && {
+        hasCompletedOnboarding: data.hasCompletedOnboarding,
+      }),
       openRouterOAuthKey: "",
-      createdAt: now,
-      updatedAt: now,
-    };
-  },
-  applyUpdate: (existing, data) => ({
-    ...existing,
-    ...(data.llmProvider !== undefined && { llmProvider: data.llmProvider }),
-    ...(data.llmModel !== undefined && { llmModel: data.llmModel }),
-    ...(data.llmApiKey !== undefined && { llmApiKey: data.llmApiKey }),
-    ...(data.dietaryRestrictions !== undefined && {
-      dietaryRestrictions: data.dietaryRestrictions,
+      updatedAt: new Date().toISOString(),
     }),
-    ...(data.otherDietaryNotes !== undefined && {
-      otherDietaryNotes: data.otherDietaryNotes,
-    }),
-    ...(data.modelFilterFreeOnly !== undefined && {
-      modelFilterFreeOnly: data.modelFilterFreeOnly,
-    }),
-    ...(data.modelFilterVisionOnly !== undefined && {
-      modelFilterVisionOnly: data.modelFilterVisionOnly,
-    }),
-    ...(data.modelFilterToolsOnly !== undefined && {
-      modelFilterToolsOnly: data.modelFilterToolsOnly,
-    }),
-    ...(data.hasCompletedOnboarding !== undefined && {
-      hasCompletedOnboarding: data.hasCompletedOnboarding,
-    }),
-    openRouterOAuthKey: "",
-    updatedAt: new Date().toISOString(),
   }),
-});
+  {
+    storeName: "settings",
+    recordType: "Settings",
+    parse: (value) => settingsSchema.safeParse(value).data ?? null,
+    merge: mergeSettings,
+    toPayload: settingsToPayload,
+  },
+);
 
 let migrationPromise: Promise<void> | undefined;
 

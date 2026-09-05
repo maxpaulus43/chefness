@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { tombstoneFields } from "@/types/tombstone";
 
 /** Zod schema for a stored cooking log entry. */
 export const cookingLogEntrySchema = z.object({
@@ -10,6 +11,7 @@ export const cookingLogEntrySchema = z.object({
   recipeId: z.string().nullable(), // optional link to saved recipe
   createdAt: z.string(),
   updatedAt: z.string(),
+  ...tombstoneFields,
 });
 
 /** TypeScript type inferred from the Zod schema. */

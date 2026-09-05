@@ -65,7 +65,14 @@
       "expo-font",
       "./plugins/with-ios-scene-lifecycle.cjs",
       "expo-secure-store",
-      "expo-iap"
+      "expo-iap",
+      [
+        "expo-cloudkit",
+        {
+          "containerIds": ["iCloud.com.maxpaulus.chefness"],
+          "iCloudContainerEnvironment": "Development"
+        }
+      ]
     ]
   }
 }

@@ -8,12 +8,14 @@
  * depends on the `StorageRepository` interface.
  */
 import type { StorageRepository } from "@/storage/interface";
-import type {
-  Recipe,
-  CreateRecipeInput,
-  UpdateRecipeInput,
+import {
+  recipeSchema,
+  type Recipe,
+  type CreateRecipeInput,
+  type UpdateRecipeInput,
 } from "@/types/recipe";
 import { IndexedDBRepository } from "@/storage/indexed-db";
+import { withSync } from "@/storage/synced";
 import { generateUUID } from "@/lib/uuid";
 
 /** Concrete type alias so consumers don't need to spell out the generics. */
@@ -23,37 +25,40 @@ export type RecipeRepository = StorageRepository<
   UpdateRecipeInput
 >;
 
-export const recipeRepository: RecipeRepository = new IndexedDBRepository<
-  Recipe,
-  CreateRecipeInput,
-  UpdateRecipeInput
->({
-  storeName: "recipes",
+export const recipeRepository: RecipeRepository = withSync(
+  new IndexedDBRepository<Recipe, CreateRecipeInput, UpdateRecipeInput>({
+    storeName: "recipes",
 
-  buildEntity: (data) => {
-    const now = new Date().toISOString();
-    return {
-      id: generateUUID(),
-      ...data,
-      createdAt: now,
-      updatedAt: now,
-    };
-  },
+    buildEntity: (data) => {
+      const now = new Date().toISOString();
+      return {
+        id: generateUUID(),
+        ...data,
+        createdAt: now,
+        updatedAt: now,
+      };
+    },
 
-  applyUpdate: (existing, data) => {
-    const { id: _, ...patch } = data;
-    return {
-      ...existing,
-      // Only overwrite fields that were explicitly provided
-      ...(patch.title !== undefined && { title: patch.title }),
-      ...(patch.description !== undefined && {
-        description: patch.description,
-      }),
-      ...(patch.ingredients !== undefined && {
-        ingredients: patch.ingredients,
-      }),
-      ...(patch.steps !== undefined && { steps: patch.steps }),
-      updatedAt: new Date().toISOString(),
-    };
+    applyUpdate: (existing, data) => {
+      const { id: _, ...patch } = data;
+      return {
+        ...existing,
+        // Only overwrite fields that were explicitly provided
+        ...(patch.title !== undefined && { title: patch.title }),
+        ...(patch.description !== undefined && {
+          description: patch.description,
+        }),
+        ...(patch.ingredients !== undefined && {
+          ingredients: patch.ingredients,
+        }),
+        ...(patch.steps !== undefined && { steps: patch.steps }),
+        updatedAt: new Date().toISOString(),
+      };
+    },
+  }),
+  {
+    storeName: "recipes",
+    recordType: "Recipe",
+    parse: (value) => recipeSchema.safeParse(value).data ?? null,
   },
-});
+);
