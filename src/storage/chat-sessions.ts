@@ -8,12 +8,14 @@
  * depends on the `StorageRepository` interface.
  */
 import type { StorageRepository } from "@/storage/interface";
-import type {
-  ChatSession,
-  CreateChatSessionInput,
-  UpdateChatSessionInput,
+import {
+  chatSessionSchema,
+  type ChatSession,
+  type CreateChatSessionInput,
+  type UpdateChatSessionInput,
 } from "@/types/chat-session";
 import { IndexedDBRepository } from "@/storage/indexed-db";
+import { withSync } from "@/storage/synced";
 import { generateUUID } from "@/lib/uuid";
 
 /** Concrete type alias so consumers don't need to spell out the generics. */
@@ -23,7 +25,7 @@ export type ChatSessionRepository = StorageRepository<
   UpdateChatSessionInput
 >;
 
-export const chatSessionRepository: ChatSessionRepository =
+export const chatSessionRepository: ChatSessionRepository = withSync(
   new IndexedDBRepository<
     ChatSession,
     CreateChatSessionInput,
@@ -58,4 +60,10 @@ export const chatSessionRepository: ChatSessionRepository =
         updatedAt: new Date().toISOString(),
       };
     },
-  });
+  }),
+  {
+    storeName: "chat-sessions",
+    recordType: "ChatSession",
+    parse: (value) => chatSessionSchema.safeParse(value).data ?? null,
+  },
+);

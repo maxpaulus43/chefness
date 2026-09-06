@@ -10,7 +10,8 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { TRPCProvider } from "@/trpc/provider";
 import { NativeNavigation } from "@/native/navigation";
 import { AccessibilityPreferencesProvider } from "@/native/accessibility";
-import { RecipeAccessProvider } from "@/hooks/useRecipeAccess";
+import { EntitlementsProvider } from "@/hooks/useEntitlements";
+import { useCloudSyncBridge } from "@/hooks/useCloudSync";
 import { nativeColors } from "@/native/theme";
 
 export default function NativeApp() {
@@ -28,9 +29,10 @@ export default function NativeApp() {
           <StatusBar style="dark" />
           <View style={styles.root}>
             <TRPCProvider>
-              <RecipeAccessProvider>
+              <EntitlementsProvider>
+                <CloudSyncBridge />
                 <NativeNavigation />
-              </RecipeAccessProvider>
+              </EntitlementsProvider>
             </TRPCProvider>
           </View>
         </AccessibilityPreferencesProvider>
@@ -38,6 +40,12 @@ export default function NativeApp() {
     </GestureHandlerRootView>
   );
 }
+/** Keeps the CloudKit engine in step with entitlements and query caches. */
+function CloudSyncBridge() {
+  useCloudSyncBridge();
+  return null;
+}
+
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: nativeColors.cream },
 });

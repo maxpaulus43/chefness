@@ -9,6 +9,7 @@ import {
   RefreshControl,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   View,
 } from "react-native";
@@ -17,8 +18,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { useSettings } from "@/hooks/useSettings";
 import { useOpenRouterModels } from "@/hooks/useOpenRouterModels";
 import { useAiPreferences } from "@/hooks/useAiPreferences";
-import { useRecipeAccess } from "@/hooks/useRecipeAccess";
-import { FREE_RECIPE_LIMIT } from "@/lib/recipe-access";
+import { useEntitlements } from "@/hooks/useEntitlements";
+import { useCloudSync } from "@/hooks/useCloudSync";
 import { DIETARY_RESTRICTIONS } from "@/lib/dietary-restrictions";
 import type { SettingsStackParamList } from "@/native/navigation-routes";
 import { DictationField } from "@/native/DictationField";
@@ -36,7 +37,8 @@ export function SettingsScreen({
   navigation,
 }: NativeStackScreenProps<SettingsStackParamList, "Settings">) {
   const settings = useSettings();
-  const recipeAccess = useRecipeAccess();
+  const entitlements = useEntitlements();
+  const cloudSync = useCloudSync();
   const catalog = useOpenRouterModels(
     settings.isOpenRouterConnected,
     settings.effectiveModel,
@@ -98,57 +100,98 @@ export function SettingsScreen({
     }
   };
 
-  const savedRecipesSection = (
+  const syncStatus = cloudSync.isSyncing
+    ? "Syncing…"
+    : (cloudSync.error ??
+      (cloudSync.lastSyncedAt
+        ? `Last synced ${new Date(cloudSync.lastSyncedAt).toLocaleString()}`
+        : "Waiting for the first sync…"));
+
+  const cloudSyncSection = (
     <>
       <Text accessibilityRole="header" style={nativeStyles.sectionTitle}>
-        Saved Recipes
+        iCloud Sync
       </Text>
       <Card>
-        {recipeAccess.hasUnlimitedRecipes ? (
-          <View
-            accessibilityLabel="Unlimited recipes unlocked"
-            style={styles.connected}
-          >
-            <Ionicons
-              accessible={false}
-              name="checkmark-circle"
-              size={22}
-              color={colors.success}
-            />
-            <Text style={styles.connectedText}>Unlimited recipes unlocked</Text>
-          </View>
+        {!cloudSync.isAvailable ? (
+          <Text style={nativeStyles.muted}>
+            iCloud Sync isn’t available in this build.
+          </Text>
+        ) : entitlements.hasCloudSync ? (
+          <>
+            <View style={styles.switchRow}>
+              <Text style={styles.switchLabel}>Sync with iCloud</Text>
+              <Switch
+                accessibilityLabel="Sync with iCloud"
+                accessibilityHint="Keeps recipes, chats, cooking history, and preferences the same on your iCloud devices"
+                value={cloudSync.isEnabled}
+                onValueChange={(value) => void cloudSync.setEnabled(value)}
+                trackColor={{ true: colors.saffron }}
+              />
+            </View>
+            {cloudSync.isEnabled ? (
+              <>
+                <Text
+                  accessibilityLiveRegion="polite"
+                  style={
+                    cloudSync.error ? nativeStyles.error : nativeStyles.muted
+                  }
+                >
+                  {syncStatus}
+                </Text>
+                <Button
+                  disabled={cloudSync.isSyncing}
+                  label={cloudSync.isSyncing ? "Syncing…" : "Sync Now"}
+                  variant="secondary"
+                  onPress={() => void cloudSync.syncNow()}
+                />
+              </>
+            ) : (
+              <Text style={nativeStyles.muted}>
+                Turn on sync to merge this iPhone’s recipes, chats, cooking
+                history, and preferences with your other iCloud devices.
+              </Text>
+            )}
+            <Text style={nativeStyles.muted}>
+              Your OpenRouter connection stays on this device and is never
+              uploaded.
+            </Text>
+          </>
         ) : (
           <>
             <Text style={nativeStyles.muted}>
-              Save or import up to {FREE_RECIPE_LIMIT} recipes for free, or
-              unlock unlimited recipes with one purchase.
+              Chefness is free to use on this iPhone. Unlock iCloud Sync once to
+              keep recipes, chats, cooking history, and preferences the same on
+              every device signed in to your iCloud account.
             </Text>
             <Button
               disabled={
-                recipeAccess.isLoading ||
-                recipeAccess.isPurchasing ||
-                !recipeAccess.canPurchase
+                entitlements.isLoading ||
+                entitlements.isPurchasing ||
+                !entitlements.canPurchase
               }
               label={
-                recipeAccess.isPurchasing
+                entitlements.isPurchasing
                   ? "Purchasing…"
-                  : `Unlock Unlimited — ${recipeAccess.price}`
+                  : `Unlock iCloud Sync — ${entitlements.price}`
               }
-              onPress={() => void recipeAccess.purchase()}
+              onPress={() => void entitlements.purchase()}
+            />
+            <Button
+              disabled={entitlements.isLoading || entitlements.isPurchasing}
+              label={
+                entitlements.isLoading
+                  ? "Checking Purchases…"
+                  : "Restore Purchases"
+              }
+              variant="secondary"
+              onPress={() => void entitlements.restore()}
             />
           </>
         )}
-        <Button
-          disabled={recipeAccess.isLoading || recipeAccess.isPurchasing}
-          label={
-            recipeAccess.isLoading ? "Checking Purchases…" : "Restore Purchases"
-          }
-          variant="secondary"
-          onPress={() => void recipeAccess.restore()}
-        />
-        {recipeAccess.error && (
+        {entitlements.error && (
           <Text accessibilityLiveRegion="assertive" style={nativeStyles.error}>
-            {recipeAccess.error}
+            {entitlements.error}
           </Text>
         )}
       </Card>
@@ -197,7 +240,7 @@ export function SettingsScreen({
             </Text>
           )}
         </Card>
-        {!recipeAccess.hasUnlimitedRecipes && savedRecipesSection}
+        {cloudSyncSection}
         <Text accessibilityRole="header" style={nativeStyles.sectionTitle}>
           Dietary Restrictions
         </Text>
@@ -229,8 +272,7 @@ export function SettingsScreen({
         </Text>
         <Card>
           <Text style={nativeStyles.muted}>
-            Permanent preferences are included in future chats and stay on this
-            device.
+            Permanent preferences are included in future chats.
           </Text>
           <View style={styles.addRow}>
             <DictationField
@@ -323,7 +365,6 @@ export function SettingsScreen({
             Version {appVersion} ({buildNumber})
           </Text>
         </Card>
-        {recipeAccess.hasUnlimitedRecipes && savedRecipesSection}
       </ScrollView>
     </View>
   );
@@ -437,11 +478,18 @@ export function ModelSelectionScreen({
 }
 
 const styles = StyleSheet.create({
-  connected: { flexDirection: "row", alignItems: "center", gap: 7 },
-  connectedText: {
-    color: colors.success,
-    fontFamily: nativeFonts.sansBold,
+  switchRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+    minHeight: 44,
+  },
+  switchLabel: {
+    flex: 1,
+    color: colors.espresso,
     fontSize: 16,
+    fontFamily: nativeFonts.sansSemiBold,
   },
   selector: {
     minHeight: 48,

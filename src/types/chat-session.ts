@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { tombstoneFields } from "@/types/tombstone";
 
 /** Zod schema for a single chat message within a session. */
 const chatMessageSchema = z.object({
@@ -27,6 +28,7 @@ export const chatSessionSchema = z.object({
   mealSize: z.string().nullable(), // MealSize | null
   createdAt: z.string(),
   updatedAt: z.string(),
+  ...tombstoneFields,
 });
 
 /** TypeScript type inferred from the Zod schema. */

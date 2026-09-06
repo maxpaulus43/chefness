@@ -8,12 +8,14 @@
  * depends on the `StorageRepository` interface.
  */
 import type { StorageRepository } from "@/storage/interface";
-import type {
-  AiPreference,
-  CreateAiPreferenceInput,
-  UpdateAiPreferenceInput,
+import {
+  aiPreferenceSchema,
+  type AiPreference,
+  type CreateAiPreferenceInput,
+  type UpdateAiPreferenceInput,
 } from "@/types/ai-preference";
 import { IndexedDBRepository } from "@/storage/indexed-db";
+import { withSync } from "@/storage/synced";
 import { generateUUID } from "@/lib/uuid";
 
 /** Concrete type alias so consumers don't need to spell out the generics. */
@@ -23,7 +25,7 @@ export type AiPreferenceRepository = StorageRepository<
   UpdateAiPreferenceInput
 >;
 
-export const aiPreferenceRepository: AiPreferenceRepository =
+export const aiPreferenceRepository: AiPreferenceRepository = withSync(
   new IndexedDBRepository<
     AiPreference,
     CreateAiPreferenceInput,
@@ -50,4 +52,10 @@ export const aiPreferenceRepository: AiPreferenceRepository =
         updatedAt: new Date().toISOString(),
       };
     },
-  });
+  }),
+  {
+    storeName: "ai-preferences",
+    recordType: "AiPreference",
+    parse: (value) => aiPreferenceSchema.safeParse(value).data ?? null,
+  },
+);

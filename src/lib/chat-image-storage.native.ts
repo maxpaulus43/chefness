@@ -14,6 +14,36 @@ function isManagedImage(uri: string): boolean {
   return uri.startsWith(imageDirectory().uri);
 }
 
+/** Directory URI that all managed chat images live under (trailing slash). */
+export function chatImageDirectoryUri(): string {
+  return imageDirectory().uri;
+}
+
+export function chatImageFileUri(name: string): string {
+  return new File(imageDirectory(), name).uri;
+}
+
+export function chatImageExists(name: string): boolean {
+  return new File(imageDirectory(), name).exists;
+}
+
+/**
+ * Copy a file that another device uploaded into the managed directory under
+ * its original name, so synced sessions resolve to the same URI everywhere.
+ */
+export async function importChatImage(
+  sourceUri: string,
+  name: string,
+): Promise<void> {
+  const directory = imageDirectory();
+  directory.create({ idempotent: true, intermediates: true });
+  const destination = new File(directory, name);
+  if (destination.exists) return;
+  const source = new File(sourceUri);
+  if (!source.exists) throw new Error("Synced photo file is unavailable.");
+  await source.copy(destination);
+}
+
 /** Resize a picker image and move it from the picker cache into durable storage. */
 export async function storeChatImage(
   uri: string,

@@ -85,6 +85,23 @@ grep -Ei 'Chefness|RCTFatal|SIGTRAP|exception' /tmp/iphone.log
 
 If logs say `UIScene life cycle is required`, verify the scene plugin remains in `app.json`, then rerun clean prebuild.
 
+## 6. iCloud Sync checks
+
+Sync (CloudKit) is only active when the StoreKit test product is owned, the
+Settings toggle is on, and the device is signed into iCloud. See
+`docs/NATIVE_DEVELOPMENT.md` → "iCloud Sync (CloudKit) setup" for the Apple-side
+prerequisites (container, App ID capability, schema deployment). When verifying
+sync-related work:
+
+- Debug builds target the CloudKit **Development** environment; a signing
+  error mentioning `com.apple.developer.icloud-*` means the App ID lacks the
+  iCloud capability or the profile is stale.
+- Use **Settings → iCloud Sync → Sync Now** and watch the status line; errors
+  there are the engine's user-facing messages from
+  `src/lib/cloud-sync/engine.native.ts`.
+- Unit coverage for merge rules and the engine lives in
+  `tests/cloud-sync-*.test.ts` and runs with `bun test` on any machine.
+
 ## Completion gate
 
 Before reporting done: lint, native typecheck, Expo Doctor, iOS export, debug install, successful launch, live process, screenshot, and targeted flow verification must all pass.

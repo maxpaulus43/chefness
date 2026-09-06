@@ -15,28 +15,30 @@ import {
   type Purchase,
 } from "expo-iap";
 import {
-  UNLIMITED_RECIPES_PRODUCT_ID,
-  type RecipeAccess,
-} from "@/lib/recipe-access";
+  CLOUD_SYNC_FALLBACK_PRICE,
+  CLOUD_SYNC_PRODUCT_ID,
+  type Entitlements,
+} from "@/lib/entitlements";
 
-const RecipeAccessContext = createContext<RecipeAccess | null>(null);
+const EntitlementsContext = createContext<Entitlements | null>(null);
 
-export function RecipeAccessProvider({ children }: PropsWithChildren) {
-  const [hasUnlimitedRecipes, setHasUnlimitedRecipes] = useState(false);
+export function EntitlementsProvider({ children }: PropsWithChildren) {
+  const [hasCloudSync, setHasCloudSync] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isPurchasing, setIsPurchasing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const grantPurchase = (purchase: Purchase) => {
-    if (purchase.productId !== UNLIMITED_RECIPES_PRODUCT_ID) return;
-    // ponytail: StoreKit's current entitlement is enough for this local-only
-    // unlock. Add server validation if Chefness later gains user accounts.
-    setHasUnlimitedRecipes(true);
+    if (purchase.productId !== CLOUD_SYNC_PRODUCT_ID) return;
+    // StoreKit's current entitlement is the source of truth. The synced data
+    // lives in the user's own iCloud private database, so there is no server
+    // of ours that would need receipt validation.
+    setHasCloudSync(true);
     setIsPurchasing(false);
     setError(null);
     void finishTransaction({ purchase, isConsumable: false }).catch(() =>
       setError(
-        "Unlimited Recipes is unlocked, but the App Store transaction is still pending.",
+        "iCloud Sync is unlocked, but the App Store transaction is still pending.",
       ),
     );
   };
@@ -56,14 +58,14 @@ export function RecipeAccessProvider({ children }: PropsWithChildren) {
     let active = true;
     setIsLoading(true);
     void Promise.all([
-      fetchProducts({ skus: [UNLIMITED_RECIPES_PRODUCT_ID] }),
+      fetchProducts({ skus: [CLOUD_SYNC_PRODUCT_ID] }),
       getAvailablePurchases(),
     ])
       .then(([, purchases]) => {
         if (active)
-          setHasUnlimitedRecipes(
+          setHasCloudSync(
             purchases.some(
-              (purchase) => purchase.productId === UNLIMITED_RECIPES_PRODUCT_ID,
+              (purchase) => purchase.productId === CLOUD_SYNC_PRODUCT_ID,
             ),
           );
       })
@@ -83,7 +85,7 @@ export function RecipeAccessProvider({ children }: PropsWithChildren) {
     setError(null);
     try {
       await requestPurchase({
-        request: { apple: { sku: UNLIMITED_RECIPES_PRODUCT_ID } },
+        request: { apple: { sku: CLOUD_SYNC_PRODUCT_ID } },
         type: "in-app",
       });
     } catch (purchaseError) {
@@ -105,10 +107,10 @@ export function RecipeAccessProvider({ children }: PropsWithChildren) {
       await restorePurchases();
       const purchases = await getAvailablePurchases();
       const restored = purchases.some(
-        (purchase) => purchase.productId === UNLIMITED_RECIPES_PRODUCT_ID,
+        (purchase) => purchase.productId === CLOUD_SYNC_PRODUCT_ID,
       );
-      setHasUnlimitedRecipes(restored);
-      if (!restored) setError("No previous Unlimited Recipes purchase found.");
+      setHasCloudSync(restored);
+      if (!restored) setError("No previous iCloud Sync purchase found.");
     } catch {
       setError("Purchases could not be restored. Please try again.");
     } finally {
@@ -116,25 +118,23 @@ export function RecipeAccessProvider({ children }: PropsWithChildren) {
     }
   };
 
-  const product = products.find(
-    (item) => item.id === UNLIMITED_RECIPES_PRODUCT_ID,
-  );
-  const value: RecipeAccess = {
-    hasUnlimitedRecipes,
+  const product = products.find((item) => item.id === CLOUD_SYNC_PRODUCT_ID);
+  const value: Entitlements = {
+    hasCloudSync,
     isLoading,
     isPurchasing,
     canPurchase: connected && Boolean(product),
-    price: product?.displayPrice ?? "$9.99",
+    price: product?.displayPrice ?? CLOUD_SYNC_FALLBACK_PRICE,
     error,
     purchase,
     restore,
   };
 
-  return createElement(RecipeAccessContext.Provider, { value }, children);
+  return createElement(EntitlementsContext.Provider, { value }, children);
 }
 
-export function useRecipeAccess() {
-  const value = useContext(RecipeAccessContext);
-  if (!value) throw new Error("useRecipeAccess requires RecipeAccessProvider");
+export function useEntitlements() {
+  const value = useContext(EntitlementsContext);
+  if (!value) throw new Error("useEntitlements requires EntitlementsProvider");
   return value;
 }

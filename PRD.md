@@ -42,9 +42,9 @@ what you've cooked.**
 | **Mobile-first** | Designed for phones used in the kitchen — large touch targets, readable at arm's length, minimal typing required. |
 | **Offline-first** | All non-AI features work without an internet connection. Recipes, history, settings, and preferences are stored on-device. |
 | **AI-powered** | A conversational LLM is the primary interaction model. The AI adapts to the user's context (dietary restrictions, recent meals, preferences). |
-| **Single-user** | No accounts, no server. Everything is local to the device. |
-| **Privacy-respecting** | Data stays on-device. LLM requests use the user's locally stored OpenRouter OAuth key. Version 1 uses Sentry for privacy-scrubbed crash/error reporting and does not include product analytics. |
-| **Free with one-time upgrade** | On iOS, users can save or import five recipes for free. A $9.99 one-time purchase unlocks unlimited recipes. The web app remains unlimited. |
+| **Single-user** | No accounts, no server of ours. Everything is local to the device; iOS users can optionally mirror their data to their own iCloud account. |
+| **Privacy-respecting** | Data stays on-device unless the user turns on iCloud Sync, which stores it in the user's private CloudKit database (billed to their iCloud storage, never visible to us). LLM requests use the user's locally stored OpenRouter OAuth key, which is never synced. Version 1 uses Sentry for privacy-scrubbed crash/error reporting and does not include product analytics. |
+| **Free locally, pay for sync** | Everything on-device is free with no limits. On iOS, a $9.99 one-time purchase unlocks iCloud Sync across the user's devices. The web app has no purchase and no sync. |
 | **Warm & inviting visual design** | A "kitchen glassmorphism" aesthetic: a cream gradient background with subtle grain, Fraunces serif headings over Inter body text, a saffron/espresso/rose palette, frosted translucent cards with soft shadows, and consistent inline SVG icons instead of platform-dependent emojis. Tokens are centralized in `src/theme.ts`. |
 
 ---
@@ -302,18 +302,36 @@ manual "AI Configuration" provider/API-key section is not shown.
 - [x] The retained web Settings page includes support email, support website,
       and privacy policy links.
 
-### 4.4 iOS Recipe Limit & Unlimited Unlock
+### 4.4 iOS iCloud Sync (paid) — local use is free
 
-- The iOS app is free to download.
-- Free users can save or import up to five recipes total.
-- At the limit, existing recipes remain available to view, edit, share, cook,
-  and delete; only creation is blocked.
-- A $9.99 non-consumable in-app purchase unlocks unlimited saves and imports.
-- Settings shows purchase status, localized App Store pricing, purchase, and
-  Restore Purchases controls.
-- The retained web app remains unchanged and unlimited.
-- The free limit is the `FREE_RECIPE_LIMIT` constant in
-  `src/lib/recipe-access.ts`.
+- The iOS app is free to download and free to use without limits: recipes,
+  chats, cooking history, dietary settings, and AI memory are all unrestricted
+  on-device.
+- A $9.99 non-consumable in-app purchase unlocks **iCloud Sync**. The product
+  ID is the one previously sold as "Unlimited Recipes", so earlier buyers keep
+  their entitlement and receive sync automatically.
+- Settings > iCloud Sync shows: for non-owners, an explanation, localized App
+  Store pricing, Purchase, and Restore Purchases; for owners, a "Sync with
+  iCloud" toggle, status (syncing / last synced / actionable error), and a
+  Sync Now button.
+- Sync is off until the user turns it on. Turning it on merges this device's
+  data with iCloud (nothing is deleted); turning it off keeps all local data
+  and stops mirroring.
+- What syncs: recipes, chat sessions (including attached photos), cooking log
+  entries, AI memory preferences, and non-secret settings (dietary
+  restrictions, notes, model choice, model filters, onboarding completion).
+- What never syncs: the OpenRouter connection (Keychain, device-only) and any
+  legacy API key.
+- Conflict rule: the most recent change wins, compared by each record's
+  `updatedAt`. Deleting on one device deletes on the others (deletes are
+  timestamped tombstones, so a later edit elsewhere wins over an earlier
+  delete). Onboarding completion is sticky across devices, and a brand-new
+  device's untouched default settings never overwrite customized settings.
+- Requires an iCloud account on the device; the Settings card explains when
+  iCloud is signed out, restricted, or unavailable. Sync runs while the app is
+  open (on launch, foreground, after edits, periodically, and on demand); it
+  does not run in the background.
+- The retained web app is unaffected: it has no purchase and never syncs.
 
 ### 4.5 Navigation & Layout (MVP Scope)
 
@@ -789,7 +807,8 @@ A clear checklist of everything included in v1:
 
 - Conversation persistence (lost on refresh)
 - Multiple chat sessions
-- Any backend server or user accounts
+- Any backend server or user accounts (iCloud Sync uses the user's own
+  CloudKit private database, not a Chefness server)
 
 ---
 
@@ -862,8 +881,9 @@ dietary restrictions, and AI memory all use native screens and controls.
 
 Shared hooks, Zod schemas, the local tRPC router, and domain helpers remain the
 single business-logic implementation. Native non-secret records use
-AsyncStorage, the OpenRouter OAuth key uses iOS Keychain, and web records use
-IndexedDB. Expo platform extension resolution selects native settings,
+AsyncStorage (optionally mirrored to the user's CloudKit private database when
+iCloud Sync is purchased and enabled), the OpenRouter OAuth key uses iOS
+Keychain, and web records use IndexedDB. Expo platform extension resolution selects native settings,
 persistence, UUID, and OpenRouter streaming implementations. The app uses an
 S256 PKCE authentication session on native; a stateless HTTPS callback page
 forwards the authorization code to the app's custom URL scheme automatically.

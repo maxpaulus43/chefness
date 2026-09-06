@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { tombstoneFields } from "@/types/tombstone";
 
 /** Zod schema for a stored AI preference. */
 export const aiPreferenceSchema = z.object({
@@ -6,6 +7,7 @@ export const aiPreferenceSchema = z.object({
   text: z.string(), // e.g., "Hates cilantro"
   createdAt: z.string(),
   updatedAt: z.string(),
+  ...tombstoneFields,
 });
 
 /** TypeScript type inferred from the Zod schema. */

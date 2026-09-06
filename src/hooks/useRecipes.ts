@@ -6,23 +6,12 @@
  * all of that lives here.
  */
 import { trpc } from "@/trpc/client";
-import { useRecipeAccess } from "@/hooks/useRecipeAccess";
-import { canSaveRecipe, RecipeLimitError } from "@/lib/recipe-access";
 import type { CreateRecipeInput, UpdateRecipeInput } from "@/types/recipe";
 
 export function useRecipes() {
   const utils = trpc.useUtils();
-  const access = useRecipeAccess();
 
   const listQuery = trpc.recipe.list.useQuery();
-  const recipeCount = listQuery.data?.length ?? 0;
-  const canCreateRecipe = canSaveRecipe(
-    recipeCount,
-    access.hasUnlimitedRecipes,
-  );
-  const assertCanCreateRecipe = () => {
-    if (!canCreateRecipe) throw new RecipeLimitError();
-  };
 
   const createMutation = trpc.recipe.create.useMutation({
     onSuccess: () => {
@@ -55,20 +44,12 @@ export function useRecipes() {
     /** Non-null when the list query has errored. */
     error: listQuery.error ?? null,
 
-    /** Whether another recipe can be saved under the current entitlement. */
-    canCreateRecipe,
-
     /** Create a new recipe. */
-    createRecipe: (data: CreateRecipeInput) => {
-      assertCanCreateRecipe();
-      createMutation.mutate(data);
-    },
+    createRecipe: (data: CreateRecipeInput) => createMutation.mutate(data),
 
     /** Create a new recipe (async — resolves when the mutation completes). */
-    createRecipeAsync: (data: CreateRecipeInput) => {
-      assertCanCreateRecipe();
-      return createMutation.mutateAsync(data);
-    },
+    createRecipeAsync: (data: CreateRecipeInput) =>
+      createMutation.mutateAsync(data),
 
     /** `true` while a create is in flight. */
     isCreating: createMutation.isPending,
