@@ -2,7 +2,7 @@
   "expo": {
     "name": "Chefness",
     "slug": "chefness",
-    "version": "1.1.1",
+    "version": "1.1.2",
     "orientation": "portrait",
     "scheme": "chefness",
     "userInterfaceStyle": "light",
@@ -11,7 +11,7 @@
       "supportsTablet": true,
       "requireFullScreen": true,
       "bundleIdentifier": "com.maxpaulus.chefness",
-      "buildNumber": "9",
+      "buildNumber": "10",
       "appleTeamId": "WNCJFCHP22",
       "entitlements": {
         "keychain-access-groups": [
