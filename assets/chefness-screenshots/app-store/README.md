@@ -42,6 +42,20 @@ References:
 - https://developer.apple.com/app-store/review/guidelines/
 - https://developer.apple.com/help/app-store-connect/reference/app-information/screenshot-specifications/
 
+## 13-inch iPad set
+
+The matching portrait iPad screenshots are stored in the parent directory at
+**2064 × 2752 px**, sRGB PNG, with no alpha channel:
+
+1. `ipad-app-store-01-ai-cooking-guru.png`
+2. `ipad-app-store-02-adapt-recipes-with-ai.png`
+3. `ipad-app-store-03-made-for-how-you-eat.png`
+4. `ipad-app-store-04-remember-every-meal.png`
+5. `ipad-app-store-05-choose-your-ai.png`
+
+`ipad-app-store-contact-sheet.png` is a preview only and should not be uploaded
+to App Store Connect.
+
 ## Production note
 
 The marketing variants were created with the built-in image-generation/editing
