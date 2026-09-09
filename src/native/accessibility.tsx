@@ -9,26 +9,38 @@ import { AccessibilityInfo } from "react-native";
 
 const AccessibilityPreferencesContext = createContext({
   reduceTransparency: false,
+  reduceMotion: false,
 });
 
 export function AccessibilityPreferencesProvider({
   children,
 }: PropsWithChildren) {
   const [reduceTransparency, setReduceTransparency] = useState(false);
+  const [reduceMotion, setReduceMotion] = useState(false);
 
   useEffect(() => {
     void AccessibilityInfo.isReduceTransparencyEnabled().then(
       setReduceTransparency,
     );
-    const subscription = AccessibilityInfo.addEventListener(
+    void AccessibilityInfo.isReduceMotionEnabled().then(setReduceMotion);
+    const transparency = AccessibilityInfo.addEventListener(
       "reduceTransparencyChanged",
       setReduceTransparency,
     );
-    return () => subscription.remove();
+    const motion = AccessibilityInfo.addEventListener(
+      "reduceMotionChanged",
+      setReduceMotion,
+    );
+    return () => {
+      transparency.remove();
+      motion.remove();
+    };
   }, []);
 
   return (
-    <AccessibilityPreferencesContext.Provider value={{ reduceTransparency }}>
+    <AccessibilityPreferencesContext.Provider
+      value={{ reduceTransparency, reduceMotion }}
+    >
       {children}
     </AccessibilityPreferencesContext.Provider>
   );

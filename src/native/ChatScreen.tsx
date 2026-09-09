@@ -33,11 +33,21 @@ import { useSettings } from "@/hooks/useSettings";
 import { extractRecipeFromConversation } from "@/lib/recipe-extractor";
 import { extractPreference } from "@/lib/preference-extractor";
 import { formatOpenRouterError } from "@/lib/openrouter-error";
+import Animated, {
+  FadeIn,
+  FadeOut,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from "react-native-reanimated";
 import { useAccessibilityPreferences } from "@/native/accessibility";
 import { isNearChatBottom } from "@/native/chat-scroll";
 import { DictationField } from "@/native/DictationField";
+import { haptics } from "@/native/haptics";
+import { popIn, riseIn, springs } from "@/native/motion";
+import { Celebration, PressableScale, TypingDots } from "@/native/motion-views";
 import { nativeColors as colors, nativeFonts } from "@/native/theme";
-import { Button, Chip, Field, Loading, nativeStyles } from "@/native/ui";
+import { Button, Chip, Field, nativeStyles } from "@/native/ui";
 
 const mealTypes = ["breakfast", "lunch", "dinner", "snack", "dessert"] as const;
 const mealSizes = ["1", "2", "4", "6+"] as const;
@@ -46,6 +56,74 @@ const prompts = [
   "Help me use up leftover chicken",
   "Suggest a quick healthy lunch",
 ];
+
+/**
+ * The send control fills into a saffron disc as soon as there is something to
+ * send, and swaps to a stop control while a response streams.
+ */
+function SendButton({
+  active,
+  streaming,
+  disabled,
+  onPress,
+}: {
+  active: boolean;
+  streaming: boolean;
+  disabled: boolean;
+  onPress: () => void;
+}) {
+  const filled = active || streaming;
+  const progress = useSharedValue(filled ? 1 : 0);
+  useEffect(() => {
+    progress.set(withSpring(filled ? 1 : 0, springs.bouncy));
+  }, [filled, progress]);
+  const discStyle = useAnimatedStyle(() => ({
+    opacity: progress.get(),
+    transform: [{ scale: 0.55 + 0.45 * progress.get() }],
+  }));
+  const outlineStyle = useAnimatedStyle(() => ({
+    opacity: 1 - progress.get(),
+  }));
+  const fillStyle = useAnimatedStyle(() => ({
+    opacity: progress.get(),
+    transform: [{ rotate: `${(1 - progress.get()) * -45}deg` }],
+  }));
+  return (
+    <PressableScale
+      accessibilityRole="button"
+      accessibilityLabel={streaming ? "Stop response" : "Send message"}
+      accessibilityHint={
+        streaming
+          ? "Stops Chefness from generating more text"
+          : "Sends your message to Chefness"
+      }
+      accessibilityState={{ disabled }}
+      disabled={disabled}
+      haptic={null}
+      onPress={onPress}
+      scaleTo={0.88}
+      style={[styles.iconButton, disabled && styles.disabledButton]}
+    >
+      <Animated.View style={[styles.sendDisc, discStyle]} />
+      <Animated.View style={[styles.sendGlyph, outlineStyle]}>
+        <Ionicons
+          accessible={false}
+          name="arrow-up-circle-outline"
+          size={30}
+          color={colors.stone400}
+        />
+      </Animated.View>
+      <Animated.View style={[styles.sendGlyph, fillStyle]}>
+        <Ionicons
+          accessible={false}
+          name={streaming ? "stop" : "arrow-up"}
+          size={22}
+          color={colors.white}
+        />
+      </Animated.View>
+    </PressableScale>
+  );
+}
 
 function showMessageInfo(message: ChatMessage, selectText: () => void) {
   Alert.alert(
@@ -82,6 +160,17 @@ export function ChatScreen({
   );
   const [editDraft, setEditDraft] = useState("");
   const [busyAction, setBusyAction] = useState<string | null>(null);
+  const [bursts, setBursts] = useState<Record<string, number>>({});
+  // Only messages added after the current session appeared animate in, so
+  // opening a long conversation does not cascade dozens of bubbles.
+  const [seenSessionId, setSeenSessionId] = useState(chat.currentSessionId);
+  const [animateFromIndex, setAnimateFromIndex] = useState(
+    chat.messages.length,
+  );
+  if (seenSessionId !== chat.currentSessionId) {
+    setSeenSessionId(chat.currentSessionId);
+    setAnimateFromIndex(chat.messages.length);
+  }
   const list = useRef<FlatList<ChatMessage>>(null);
   const lastSubmittedMessage = useRef<{
     text: string;
@@ -116,6 +205,7 @@ export function ChatScreen({
 
   useEffect(() => {
     if (!chat.error) return;
+    haptics.error();
     hasUserScrolled.current = false;
     shouldAutoScroll.current = true;
     const frame = requestAnimationFrame(() => {
@@ -152,6 +242,7 @@ export function ChatScreen({
       !chat.isStreaming &&
       chat.messages[chat.messages.length - 1]?.role === "assistant"
     ) {
+      haptics.soft();
       AccessibilityInfo.announceForAccessibility("Chefness response complete");
     }
     wasStreaming.current = chat.isStreaming;
@@ -161,6 +252,7 @@ export function ChatScreen({
     if ((!text.trim() && !image) || chat.isStreaming || isDictating) return;
     const sent = text.trim();
     const sentImage = image;
+    haptics.medium();
     lastSubmittedMessage.current = { text: sent, imageDataUrl: sentImage };
     setText("");
     setComposerKey((key) => key + 1);
@@ -262,8 +354,14 @@ export function ChatScreen({
     }
   };
 
+  const celebrate = (key: string) => {
+    haptics.success();
+    setBursts((current) => ({ ...current, [key]: (current[key] ?? 0) + 1 }));
+  };
+
   const saveRecipe = async (index: number) => {
     if (!canCreateRecipe) {
+      haptics.warning();
       Alert.alert(
         "Unlock unlimited recipes",
         `The free version saves up to ${FREE_RECIPE_LIMIT} recipes. Upgrade once to save and import unlimited recipes.`,
@@ -284,8 +382,12 @@ export function ChatScreen({
       });
       const saved = await createRecipeAsync(recipe);
       chat.setMessageFlag(index, "savedRecipeId", saved.id);
-      Alert.alert("Recipe saved", saved.title);
+      celebrate(`recipe-${index}`);
+      AccessibilityInfo.announceForAccessibility(
+        `Recipe saved: ${saved.title}`,
+      );
     } catch (error) {
+      haptics.error();
       Alert.alert(
         "Couldn’t save recipe",
         formatOpenRouterError(
@@ -314,8 +416,12 @@ export function ChatScreen({
       });
       await createPreferenceAsync({ text: preference });
       chat.setMessageFlag(index, "memorySaved", true);
-      Alert.alert("Saved to memory", preference);
+      celebrate(`memory-${index}`);
+      AccessibilityInfo.announceForAccessibility(
+        `Saved to memory: ${preference}`,
+      );
     } catch (error) {
+      haptics.error();
       Alert.alert(
         "Couldn’t save memory",
         formatOpenRouterError(
@@ -365,63 +471,93 @@ export function ChatScreen({
           <>
             {!chat.messages.length && (
               <View style={styles.welcome}>
-                <Text style={styles.welcomeTitle}>What are we cooking?</Text>
-                <Text style={nativeStyles.muted}>
-                  Ask your personal cooking guru for ideas, recipes,
-                  substitutions, or step-by-step help.
-                </Text>
-                <Text style={nativeStyles.label}>Meal type</Text>
-                <View style={nativeStyles.row}>
-                  {mealTypes.map((item) => (
-                    <Chip
-                      key={item}
-                      label={item}
-                      selected={chat.mealType === item}
-                      onPress={() => chat.setMealType(item)}
-                    />
-                  ))}
-                </View>
-                <Text style={nativeStyles.label}>Cooking for</Text>
-                <View style={nativeStyles.row}>
-                  {mealSizes.map((item) => (
-                    <Chip
-                      key={item}
-                      label={item === "6+" ? "6+ people" : item}
-                      selected={chat.mealSize === item}
-                      onPress={() => chat.setMealSize(item)}
-                    />
-                  ))}
-                </View>
-                {prompts.map((prompt) => (
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityHint="Fills the message field with this suggestion"
+                <Animated.View entering={riseIn()}>
+                  <Text style={styles.welcomeTitle}>What are we cooking?</Text>
+                </Animated.View>
+                <Animated.View entering={riseIn().delay(60)}>
+                  <Text style={nativeStyles.muted}>
+                    Ask your personal cooking guru for ideas, recipes,
+                    substitutions, or step-by-step help.
+                  </Text>
+                </Animated.View>
+                <Animated.View
+                  entering={riseIn().delay(140)}
+                  style={styles.welcomeGroup}
+                >
+                  <Text style={nativeStyles.label}>Meal type</Text>
+                  <View style={nativeStyles.row}>
+                    {mealTypes.map((item) => (
+                      <Chip
+                        key={item}
+                        label={item}
+                        selected={chat.mealType === item}
+                        onPress={() => chat.setMealType(item)}
+                      />
+                    ))}
+                  </View>
+                </Animated.View>
+                <Animated.View
+                  entering={riseIn().delay(220)}
+                  style={styles.welcomeGroup}
+                >
+                  <Text style={nativeStyles.label}>Cooking for</Text>
+                  <View style={nativeStyles.row}>
+                    {mealSizes.map((item) => (
+                      <Chip
+                        key={item}
+                        label={item === "6+" ? "6+ people" : item}
+                        selected={chat.mealSize === item}
+                        onPress={() => chat.setMealSize(item)}
+                      />
+                    ))}
+                  </View>
+                </Animated.View>
+                {prompts.map((prompt, index) => (
+                  <Animated.View
                     key={prompt}
-                    style={styles.prompt}
-                    onPress={() => setText(prompt)}
+                    entering={riseIn().delay(300 + index * 70)}
                   >
-                    <Text style={styles.promptText}>{prompt}</Text>
-                  </Pressable>
+                    <PressableScale
+                      accessibilityRole="button"
+                      accessibilityHint="Fills the message field with this suggestion"
+                      haptic="select"
+                      scaleTo={0.97}
+                      style={styles.prompt}
+                      onPress={() => setText(prompt)}
+                    >
+                      <Ionicons
+                        accessible={false}
+                        name="sparkles-outline"
+                        size={17}
+                        color={colors.saffron}
+                      />
+                      <Text style={styles.promptText}>{prompt}</Text>
+                    </PressableScale>
+                  </Animated.View>
                 ))}
               </View>
             )}
             {!chat.isConfigured && (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityHint="Opens OpenRouter connection settings"
-                onPress={openSettings}
-                style={styles.setup}
-              >
-                <Text style={styles.setupText}>
-                  Connect OpenRouter in Settings to start chatting →
-                </Text>
-              </Pressable>
+              <Animated.View entering={riseIn().delay(120)}>
+                <PressableScale
+                  accessibilityRole="button"
+                  accessibilityHint="Opens OpenRouter connection settings"
+                  onPress={openSettings}
+                  scaleTo={0.97}
+                  style={styles.setup}
+                >
+                  <Text style={styles.setupText}>
+                    Connect OpenRouter in Settings to start chatting →
+                  </Text>
+                </PressableScale>
+              </Animated.View>
             )}
           </>
         }
         renderItem={({ item: message, index }) => (
-          <View
+          <Animated.View
             key={`${message.role}-${index}`}
+            entering={index >= animateFromIndex ? riseIn() : undefined}
             style={[
               styles.bubble,
               message.role === "user"
@@ -523,7 +659,7 @@ export function ChatScreen({
                         {message.content}
                       </Markdown>
                     ) : message.role === "assistant" && chat.isStreaming ? (
-                      <Loading compact label="Thinking" />
+                      <TypingDots />
                     ) : (
                       <Text selectable style={styles.messageText}>
                         {message.content}
@@ -532,9 +668,11 @@ export function ChatScreen({
                   </Pressable>
                 )}
                 {message.role === "user" && !chat.isStreaming ? (
-                  <Pressable
+                  <PressableScale
                     accessibilityRole="button"
                     accessibilityHint="Edits this message inline, then regenerates the response"
+                    haptic="select"
+                    scaleTo={0.94}
                     style={styles.editMessage}
                     onPress={() => {
                       setEditDraft(message.content);
@@ -550,48 +688,60 @@ export function ChatScreen({
                     <Text style={styles.editMessageText}>
                       Edit & regenerate
                     </Text>
-                  </Pressable>
+                  </PressableScale>
                 ) : null}
               </>
             )}
             {message.role === "assistant" &&
             message.content &&
             !chat.isStreaming ? (
-              <View style={nativeStyles.row}>
-                <Button
-                  label={
-                    message.savedRecipeId
-                      ? "Recipe Saved ✓"
-                      : busyAction === `recipe-${index}`
-                        ? "Saving Recipe"
-                        : "Save Recipe"
-                  }
-                  variant="secondary"
-                  disabled={!!message.savedRecipeId || !!busyAction}
-                  loading={busyAction === `recipe-${index}`}
-                  onPress={() => void saveRecipe(index)}
-                />
-                <Button
-                  label={
-                    message.memorySaved
-                      ? "Saved to Memory ✓"
-                      : busyAction === `memory-${index}`
-                        ? "Saving Memory"
-                        : "Save to Memory"
-                  }
-                  variant="secondary"
-                  disabled={!!message.memorySaved || !!busyAction}
-                  loading={busyAction === `memory-${index}`}
-                  onPress={() => void saveMemory(index)}
-                />
-              </View>
+              <Animated.View
+                entering={FadeIn.duration(220)}
+                style={nativeStyles.row}
+              >
+                <View style={styles.celebrated}>
+                  <Button
+                    label={
+                      message.savedRecipeId
+                        ? "Recipe Saved"
+                        : busyAction === `recipe-${index}`
+                          ? "Saving Recipe"
+                          : "Save Recipe"
+                    }
+                    variant={message.savedRecipeId ? "success" : "secondary"}
+                    icon="bookmark-outline"
+                    disabled={!!message.savedRecipeId || !!busyAction}
+                    loading={busyAction === `recipe-${index}`}
+                    onPress={() => void saveRecipe(index)}
+                  />
+                  <Celebration burst={bursts[`recipe-${index}`] ?? 0} />
+                </View>
+                <View style={styles.celebrated}>
+                  <Button
+                    label={
+                      message.memorySaved
+                        ? "Saved to Memory"
+                        : busyAction === `memory-${index}`
+                          ? "Saving Memory"
+                          : "Save to Memory"
+                    }
+                    variant={message.memorySaved ? "success" : "secondary"}
+                    icon="sparkles-outline"
+                    disabled={!!message.memorySaved || !!busyAction}
+                    loading={busyAction === `memory-${index}`}
+                    onPress={() => void saveMemory(index)}
+                  />
+                  <Celebration burst={bursts[`memory-${index}`] ?? 0} />
+                </View>
+              </Animated.View>
             ) : null}
-          </View>
+          </Animated.View>
         )}
         ListFooterComponent={
           chat.error ? (
-            <View
+            <Animated.View
               accessibilityLiveRegion="assertive"
+              entering={riseIn()}
               style={[
                 styles.errorBox,
                 chat.isRecipeLimitError && styles.recipeLimitBox,
@@ -619,22 +769,28 @@ export function ChatScreen({
                     : retryLastMessage
                 }
               />
-            </View>
+            </Animated.View>
           ) : null
         }
       />
       {editingIndex < 0 && image ? (
-        <View style={styles.preview}>
+        <Animated.View
+          entering={popIn()}
+          exiting={FadeOut.duration(140)}
+          style={styles.preview}
+        >
           <Image
             accessible
             accessibilityLabel="Photo ready to send"
             source={{ uri: image }}
             style={styles.previewImage}
           />
-          <Pressable
+          <PressableScale
             accessibilityRole="button"
             accessibilityLabel="Remove attached photo"
             accessibilityHint="Removes the photo before sending"
+            haptic="select"
+            scaleTo={0.85}
             style={styles.iconButton}
             onPress={() => {
               deleteChatImages([image]);
@@ -647,8 +803,8 @@ export function ChatScreen({
               size={28}
               color={colors.danger}
             />
-          </Pressable>
-        </View>
+          </PressableScale>
+        </Animated.View>
       ) : null}
       {editingIndex < 0 ? (
         <View
@@ -656,10 +812,11 @@ export function ChatScreen({
         >
           <View style={styles.composerInner}>
             {chat.canAttachImage && (
-              <Pressable
+              <PressableScale
                 accessibilityRole="button"
                 accessibilityLabel="Attach photo"
                 accessibilityHint="Choose the camera or photo library"
+                scaleTo={0.88}
                 style={styles.iconButton}
                 onPress={chooseImage}
               >
@@ -669,7 +826,7 @@ export function ChatScreen({
                   size={27}
                   color={colors.saffronDeep}
                 />
-              </Pressable>
+              </PressableScale>
             )}
             <DictationField
               key={composerKey}
@@ -681,33 +838,12 @@ export function ChatScreen({
               multiline
               containerStyle={styles.composerField}
             />
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={
-                chat.isStreaming ? "Stop response" : "Send message"
-              }
-              accessibilityHint={
-                chat.isStreaming
-                  ? "Stops Chefness from generating more text"
-                  : "Sends your message to Chefness"
-              }
-              accessibilityState={{
-                disabled: !chat.isStreaming && isDictating,
-              }}
+            <SendButton
+              active={!!text.trim() || !!image}
+              streaming={chat.isStreaming}
               disabled={!chat.isStreaming && isDictating}
-              style={[
-                styles.iconButton,
-                !chat.isStreaming && isDictating && styles.disabledButton,
-              ]}
               onPress={chat.isStreaming ? chat.stopStreaming : submit}
-            >
-              <Ionicons
-                accessible={false}
-                name={chat.isStreaming ? "stop-circle" : "send"}
-                size={28}
-                color={colors.saffronDeep}
-              />
-            </Pressable>
+            />
           </View>
         </View>
       ) : null}
@@ -738,24 +874,35 @@ const styles = StyleSheet.create({
     alignSelf: "center",
   },
   welcome: { gap: 12, paddingVertical: 20 },
+  welcomeGroup: { gap: 12 },
   welcomeTitle: {
-    fontSize: 28,
+    fontSize: 30,
+    lineHeight: 36,
     fontFamily: nativeFonts.serifBold,
     color: colors.espresso,
   },
   prompt: {
-    minHeight: 44,
-    justifyContent: "center",
-    padding: 13,
-    borderRadius: 14,
+    minHeight: 48,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 13,
+    borderRadius: 15,
     backgroundColor: colors.white,
     borderWidth: 1,
     borderColor: colors.stone200,
+    shadowColor: colors.espresso,
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
   },
   promptText: {
+    flex: 1,
     color: colors.saffronDeep,
     fontFamily: nativeFonts.sansSemiBold,
   },
+  celebrated: { position: "relative" },
   setup: {
     minHeight: 44,
     justifyContent: "center",
@@ -764,13 +911,22 @@ const styles = StyleSheet.create({
     padding: 14,
   },
   setupText: { color: colors.saffronDeep, fontFamily: nativeFonts.sansBold },
-  bubble: { maxWidth: "92%", padding: 13, borderRadius: 17, gap: 9 },
-  userBubble: { alignSelf: "flex-end", backgroundColor: colors.saffronTint },
+  bubble: { maxWidth: "92%", padding: 13, borderRadius: 19, gap: 9 },
+  userBubble: {
+    alignSelf: "flex-end",
+    backgroundColor: colors.saffronTint,
+    borderBottomRightRadius: 6,
+  },
   assistantBubble: {
     alignSelf: "flex-start",
     backgroundColor: colors.white,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.stone200,
+    borderBottomLeftRadius: 6,
+    shadowColor: colors.espresso,
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
   },
   messageText: {
     color: colors.espresso,
@@ -834,6 +990,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  sendDisc: {
+    position: "absolute",
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: colors.saffron,
+    shadowColor: colors.saffronDeep,
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+  },
+  sendGlyph: { position: "absolute" },
   disabledButton: { opacity: 0.5 },
   preview: {
     flexDirection: "row",
