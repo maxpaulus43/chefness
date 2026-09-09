@@ -3,10 +3,17 @@ import {
   AccessibilityInfo,
   Alert,
   Linking,
-  Pressable,
   StyleSheet,
   View,
 } from "react-native";
+import Animated, {
+  cancelAnimation,
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+} from "react-native-reanimated";
 import { Ionicons } from "@expo/vector-icons";
 import {
   ExpoSpeechRecognitionModule,
@@ -15,8 +22,35 @@ import {
 } from "expo-speech-recognition";
 import type { StyleProp, TextInputProps, ViewStyle } from "react-native";
 import { mergeDictation } from "@/native/dictation";
+import { PressableScale } from "@/native/motion-views";
 import { nativeColors as colors } from "@/native/theme";
 import { Field } from "@/native/ui";
+
+/** Expanding ring behind the microphone while speech is being captured. */
+function ListeningPulse({ active }: { active: boolean }) {
+  const progress = useSharedValue(0);
+  useEffect(() => {
+    if (!active) {
+      progress.set(0);
+      return;
+    }
+    progress.set(
+      withRepeat(
+        withTiming(1, { duration: 1000, easing: Easing.out(Easing.quad) }),
+        -1,
+        false,
+      ),
+    );
+    return () => cancelAnimation(progress);
+  }, [active, progress]);
+  const animatedStyle = useAnimatedStyle(() => ({
+    opacity: active ? 0.45 * (1 - progress.get()) : 0,
+    transform: [{ scale: 1 + 0.55 * progress.get() }],
+  }));
+  return (
+    <Animated.View pointerEvents="none" style={[styles.pulse, animatedStyle]} />
+  );
+}
 
 type DictationFieldProps = Omit<TextInputProps, "value" | "onChangeText"> & {
   value: string;
@@ -147,13 +181,15 @@ export function DictationField({
         onChangeText={onChangeText}
         style={[styles.input, props.style]}
       />
-      <Pressable
+      <PressableScale
         accessibilityRole="button"
         accessibilityLabel={
           isListening ? "Stop voice input" : "Start voice input"
         }
         accessibilityState={{ disabled: !editable || isStarting }}
         disabled={!editable || isStarting}
+        haptic="select"
+        scaleTo={0.86}
         onPress={
           isListening
             ? () => ExpoSpeechRecognitionModule.stop()
@@ -165,13 +201,14 @@ export function DictationField({
           (!editable || isStarting) && styles.disabled,
         ]}
       >
+        <ListeningPulse active={isListening} />
         <Ionicons
           accessible={false}
           name={isListening ? "stop-circle" : "mic-outline"}
           size={27}
           color={isListening ? colors.danger : colors.saffronDeep}
         />
-      </Pressable>
+      </PressableScale>
     </View>
   );
 }
@@ -187,5 +224,12 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   microphoneListening: { backgroundColor: colors.dangerTint },
+  pulse: {
+    position: "absolute",
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: colors.danger,
+  },
   disabled: { opacity: 0.5 },
 });

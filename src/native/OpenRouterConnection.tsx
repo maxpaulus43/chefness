@@ -5,6 +5,8 @@ import * as WebBrowser from "expo-web-browser";
 import { Ionicons } from "@expo/vector-icons";
 import type { useSettings } from "@/hooks/useSettings";
 import { buildAuthUrl, exchangeCodeForKey } from "@/lib/openrouter-oauth";
+import { haptics } from "@/native/haptics";
+import { Pop } from "@/native/motion-views";
 import { nativeColors as colors, nativeFonts } from "@/native/theme";
 import { Button, Card, nativeStyles } from "@/native/ui";
 
@@ -52,8 +54,9 @@ export function OpenRouterConnection({
 
       const key = await exchangeCodeForKey(code, verifier, "S256");
       await settings.updateSettingsAsync({ openRouterOAuthKey: key });
-      Alert.alert("Connected", "Your OpenRouter account is ready.");
+      haptics.success();
     } catch (error) {
+      haptics.error();
       Alert.alert(
         "Couldn’t connect OpenRouter",
         error instanceof Error ? error.message : "Try again.",
@@ -71,12 +74,14 @@ export function OpenRouterConnection({
             accessibilityLabel="OpenRouter status: Connected"
             style={{ flexDirection: "row", alignItems: "center", gap: 7 }}
           >
-            <Ionicons
-              accessible={false}
-              name="checkmark-circle"
-              size={22}
-              color={colors.success}
-            />
+            <Pop>
+              <Ionicons
+                accessible={false}
+                name="checkmark-circle"
+                size={22}
+                color={colors.success}
+              />
+            </Pop>
             <Text
               style={{
                 color: colors.success,
@@ -120,7 +125,10 @@ export function OpenRouterConnection({
           </Text>
           <Button
             disabled={connecting}
+            haptic="medium"
+            icon="link-outline"
             label={connecting ? "Connecting…" : "Connect AI"}
+            loading={connecting}
             onPress={() => void connect()}
           />
         </>

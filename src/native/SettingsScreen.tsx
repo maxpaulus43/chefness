@@ -5,13 +5,13 @@ import {
   FlatList,
   Linking,
   Platform,
-  Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
   View,
 } from "react-native";
+import Animated, { FadeOut } from "react-native-reanimated";
 import Constants from "expo-constants";
 import { Ionicons } from "@expo/vector-icons";
 import { useSettings } from "@/hooks/useSettings";
@@ -22,6 +22,9 @@ import { FREE_RECIPE_LIMIT } from "@/lib/recipe-access";
 import { DIETARY_RESTRICTIONS } from "@/lib/dietary-restrictions";
 import type { SettingsStackParamList } from "@/native/navigation-routes";
 import { DictationField } from "@/native/DictationField";
+import { haptics } from "@/native/haptics";
+import { layoutTransition, useStaggeredEntering } from "@/native/motion";
+import { Pop, PressableScale } from "@/native/motion-views";
 import { OpenRouterConnection } from "@/native/OpenRouterConnection";
 import { nativeColors as colors, nativeFonts } from "@/native/theme";
 import { Button, Card, Chip, Field, Loading, nativeStyles } from "@/native/ui";
@@ -48,6 +51,7 @@ export function SettingsScreen({
   );
   const [notes, setNotes] = useState(settings.otherDietaryNotes);
   const [newPreference, setNewPreference] = useState("");
+  const enteringFor = useStaggeredEntering();
   useEffect(
     () => setLocalRestrictions(settings.dietaryRestrictions),
     [settings.dietaryRestrictions],
@@ -66,6 +70,7 @@ export function SettingsScreen({
   const addPreference = () => {
     const text = newPreference.trim();
     if (!text) return;
+    haptics.success();
     createPreference({ text });
     setNewPreference("");
   };
@@ -109,12 +114,14 @@ export function SettingsScreen({
             accessibilityLabel="Unlimited recipes unlocked"
             style={styles.connected}
           >
-            <Ionicons
-              accessible={false}
-              name="checkmark-circle"
-              size={22}
-              color={colors.success}
-            />
+            <Pop>
+              <Ionicons
+                accessible={false}
+                name="checkmark-circle"
+                size={22}
+                color={colors.success}
+              />
+            </Pop>
             <Text style={styles.connectedText}>Unlimited recipes unlocked</Text>
           </View>
         ) : (
@@ -129,6 +136,8 @@ export function SettingsScreen({
                 recipeAccess.isPurchasing ||
                 !recipeAccess.canPurchase
               }
+              haptic="medium"
+              icon="lock-open-outline"
               label={
                 recipeAccess.isPurchasing
                   ? "Purchasing…"
@@ -169,25 +178,35 @@ export function SettingsScreen({
         <OpenRouterConnection settings={settings} />
         <Card>
           <Text style={nativeStyles.label}>Model</Text>
-          <Pressable
+          <PressableScale
             accessibilityRole="button"
             accessibilityLabel={`Selected model: ${catalog.selectedModel?.name ?? settings.effectiveModel}`}
             accessibilityHint="Opens model selection"
             accessibilityState={{ disabled: !settings.isOpenRouterConnected }}
             disabled={!settings.isOpenRouterConnected}
             onPress={() => navigation.navigate("ModelSelection")}
-            style={styles.selector}
+            scaleTo={0.98}
+            style={[
+              styles.selector,
+              !settings.isOpenRouterConnected && styles.selectorDisabled,
+            ]}
           >
+            <Ionicons
+              accessible={false}
+              name="hardware-chip-outline"
+              size={20}
+              color={colors.saffronDeep}
+            />
             <Text style={styles.selectorText}>
               {catalog.selectedModel?.name ?? settings.effectiveModel}
             </Text>
             <Ionicons
               accessible={false}
-              name="chevron-down"
+              name="chevron-forward"
               size={20}
-              color={colors.stone600}
+              color={colors.stone400}
             />
-          </Pressable>
+          </PressableScale>
           {catalog.error && (
             <Text
               accessibilityLiveRegion="assertive"
@@ -240,15 +259,35 @@ export function SettingsScreen({
               multiline
               placeholder="I dislike cilantro…"
             />
-            <Button label="Add" onPress={addPreference} />
+            <Button
+              label="Add"
+              icon="add"
+              haptic={null}
+              disabled={!newPreference.trim()}
+              onPress={addPreference}
+            />
           </View>
-          {preferences.map((preference) => (
-            <View key={preference.id} style={styles.preference}>
+          {preferences.map((preference, index) => (
+            <Animated.View
+              key={preference.id}
+              entering={enteringFor(index)}
+              exiting={FadeOut.duration(160)}
+              layout={layoutTransition}
+              style={styles.preference}
+            >
+              <Ionicons
+                accessible={false}
+                name="sparkles-outline"
+                size={16}
+                color={colors.saffronDeep}
+              />
               <Text style={styles.preferenceText}>{preference.text}</Text>
-              <Pressable
+              <PressableScale
                 accessibilityRole="button"
                 accessibilityLabel={`Delete preference: ${preference.text}`}
                 accessibilityHint="Removes this preference from AI memory"
+                haptic="select"
+                scaleTo={0.85}
                 style={styles.iconButton}
                 onPress={() => deletePreference(preference.id)}
               >
@@ -258,8 +297,8 @@ export function SettingsScreen({
                   size={23}
                   color={colors.roseText}
                 />
-              </Pressable>
-            </View>
+              </PressableScale>
+            </Animated.View>
           ))}
         </Card>
         {__DEV__ ? (
@@ -404,11 +443,13 @@ export function ModelSelectionScreen({
           renderItem={({ item: model }) => {
             const selected = model.id === settings.effectiveModel;
             return (
-              <Pressable
+              <PressableScale
                 accessibilityRole="button"
                 accessibilityLabel={`${model.name}, ${model.id}${selected ? ", selected" : ""}`}
                 accessibilityHint="Selects this model and closes the sheet"
                 accessibilityState={{ selected }}
+                haptic="success"
+                scaleTo={0.975}
                 style={[styles.model, selected && styles.selectedModel]}
                 onPress={() => {
                   settings.updateSettings({ llmModel: model.id });
@@ -420,14 +461,16 @@ export function ModelSelectionScreen({
                   <Text style={styles.modelId}>{model.id}</Text>
                 </View>
                 {selected && (
-                  <Ionicons
-                    accessible={false}
-                    name="checkmark"
-                    size={24}
-                    color={colors.saffronDeep}
-                  />
+                  <Pop>
+                    <Ionicons
+                      accessible={false}
+                      name="checkmark-circle"
+                      size={24}
+                      color={colors.saffronDeep}
+                    />
+                  </Pop>
                 )}
-              </Pressable>
+              </PressableScale>
             );
           }}
         />
@@ -446,27 +489,31 @@ const styles = StyleSheet.create({
   selector: {
     minHeight: 48,
     padding: 12,
+    gap: 10,
     borderWidth: 1,
     borderColor: colors.stone300,
-    borderRadius: 12,
+    borderRadius: 13,
     backgroundColor: colors.white,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
+  selectorDisabled: { opacity: 0.5 },
   selectorText: {
     flex: 1,
     color: colors.espresso,
     fontSize: 15,
-    fontFamily: nativeFonts.sans,
+    fontFamily: nativeFonts.sansSemiBold,
   },
   addRow: { gap: 8, alignItems: "stretch" },
   preference: {
     flexDirection: "row",
     gap: 10,
     alignItems: "center",
-    padding: 11,
-    borderRadius: 10,
+    paddingVertical: 6,
+    paddingLeft: 12,
+    paddingRight: 4,
+    borderRadius: 12,
     backgroundColor: colors.creamDeep,
   },
   preferenceText: {
@@ -484,14 +531,20 @@ const styles = StyleSheet.create({
   model: {
     minHeight: 44,
     padding: 13,
-    borderRadius: 12,
+    borderRadius: 13,
     backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.stone200,
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
   },
   modelText: { flex: 1 },
-  selectedModel: { borderWidth: 2, borderColor: colors.saffron },
+  selectedModel: {
+    borderWidth: 2,
+    borderColor: colors.saffron,
+    backgroundColor: colors.saffronTint,
+  },
   modelName: { color: colors.espresso, fontFamily: nativeFonts.sansBold },
   modelId: {
     color: colors.stone500,

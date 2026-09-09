@@ -331,6 +331,47 @@ When adding UI, extend `src/theme.ts` rather than introducing new ad-hoc colors.
 
 ---
 
+## 4b. Native motion & feedback
+
+The iOS app is meant to feel tactile ("juicy"): every interaction responds
+physically, state changes are animated rather than swapped, and a few moments
+of success are celebrated. All of this is built on `react-native-reanimated`
+(already required by the swipe rows) and `expo-haptics`, and lives in three
+small modules under `src/native/`:
+
+| Module | Purpose |
+| --- | --- |
+| `motion-timing.ts` | Pure, unit-tested timing helpers: `staggerDelay` (first-screenful list cascade) and `celebrationParticles` (deterministic confetti layout). No React Native imports. |
+| `motion.ts` | Shared spring presets (`springs.snappy/gentle/bouncy`), `layoutTransition` for list rows, `popIn()`/`riseIn()` entering builders (factories, because Reanimated builders mutate), and the hooks `useStaggeredEntering` and `useSelectionPop`. |
+| `motion-views.tsx` | Animated primitives: `PressableScale` (spring press feedback + haptic), `Pop`, `Breathe`, `TypingDots`, and `Celebration` (a brief confetti burst centred on its parent). |
+| `haptics.ts` | Fire-and-forget wrappers (`select`, `tap`, `soft`, `medium`, `success`, `warning`, `error`) that are iOS-only and never throw. |
+
+**Conventions:**
+
+- Interactive controls use `PressableScale` (or `Button`/`Chip` from `ui.tsx`,
+  which wrap it) instead of a bare `Pressable`. Pick the haptic by meaning:
+  `select` for toggles/chips/tabs, `tap` for ordinary buttons, `medium` for
+  committing something (send, save, log), `success`/`warning`/`error` for
+  outcomes. Pass `haptic={null}` to cancel/back buttons.
+- Lists use `Animated.FlatList` with `itemLayoutAnimation={layoutTransition}`;
+  rows get `entering={enteringFor(index)}` from `useStaggeredEntering` and a
+  short `FadeOut` exit so deletions collapse smoothly.
+- Successful saves show state in place (the `success` `Button` variant plus a
+  `Celebration` burst and a success haptic) rather than a blocking alert;
+  screen readers get the same information via `announceForAccessibility`.
+  Failures still use `Alert`.
+- Reanimated animations honour the system Reduce Motion setting by default.
+  JS-driven effects (`Celebration`, `TypingDots`, `Breathe`) read
+  `reduceMotion` from `useAccessibilityPreferences` and fall back to static
+  rendering. Never gate functionality on an animation finishing.
+- Recipe detail check-off state for ingredients and steps is intentionally
+  ephemeral component state; it is a cooking aid, not persisted data.
+
+`expo-haptics` is a native module: run `bunx expo prebuild --platform ios
+--clean` after pulling this dependency before building in Xcode.
+
+---
+
 ## 5. Rule: Hooks own all business logic
 
 Every domain entity gets a custom hook in `src/hooks/` (e.g. `useRecipes`).

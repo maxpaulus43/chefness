@@ -1,12 +1,24 @@
 import { useState } from "react";
 import { Alert, ScrollView, StyleSheet, Text, View } from "react-native";
+import Animated, { FadeInLeft, FadeInRight } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import type { useSettings } from "@/hooks/useSettings";
 import { DIETARY_RESTRICTIONS } from "@/lib/dietary-restrictions";
+import { haptics } from "@/native/haptics";
+import { layoutTransition, riseIn } from "@/native/motion";
+import { Breathe, Pop } from "@/native/motion-views";
 import { OpenRouterConnection } from "@/native/OpenRouterConnection";
 import { nativeColors as colors, nativeFonts } from "@/native/theme";
 import { Button, Card, Chip, Field, nativeStyles } from "@/native/ui";
+
+function stepEntering(direction: 1 | -1) {
+  return (direction > 0 ? FadeInRight : FadeInLeft)
+    .springify()
+    .damping(20)
+    .stiffness(170)
+    .mass(0.9);
+}
 
 export function OnboardingScreen({
   settings,
@@ -14,11 +26,17 @@ export function OnboardingScreen({
   settings: ReturnType<typeof useSettings>;
 }) {
   const [step, setStep] = useState(0);
+  const [direction, setDirection] = useState<1 | -1>(1);
   const [restrictions, setRestrictions] = useState<string[]>(
     settings.dietaryRestrictions,
   );
   const [notes, setNotes] = useState(settings.otherDietaryNotes);
   const [finishing, setFinishing] = useState(false);
+
+  const goTo = (next: number) => {
+    setDirection(next > step ? 1 : -1);
+    setStep(next);
+  };
 
   const savePersonalization = async () => {
     try {
@@ -26,8 +44,9 @@ export function OnboardingScreen({
         dietaryRestrictions: restrictions,
         otherDietaryNotes: notes.trim(),
       });
-      setStep(2);
+      goTo(2);
     } catch {
+      haptics.error();
       Alert.alert("Couldn’t save preferences", "Please try again.");
     }
   };
@@ -36,7 +55,9 @@ export function OnboardingScreen({
     setFinishing(true);
     try {
       await settings.updateSettingsAsync({ hasCompletedOnboarding: true });
+      haptics.success();
     } catch {
+      haptics.error();
       Alert.alert("Couldn’t finish setup", "Please try again.");
     } finally {
       setFinishing(false);
@@ -57,9 +78,14 @@ export function OnboardingScreen({
         style={styles.progress}
       >
         {[0, 1, 2].map((index) => (
-          <View
+          <Animated.View
             key={index}
-            style={[styles.progressDot, index <= step && styles.progressActive]}
+            layout={layoutTransition}
+            style={[
+              styles.progressDot,
+              index <= step && styles.progressActive,
+              index === step && styles.progressCurrent,
+            ]}
           />
         ))}
       </View>
@@ -71,38 +97,56 @@ export function OnboardingScreen({
       >
         {step === 0 ? (
           <View style={styles.hero}>
-            <View style={styles.iconCircle}>
-              <Ionicons
-                accessible={false}
-                name="restaurant-outline"
-                size={45}
-                color={colors.saffronDeep}
-              />
-            </View>
-            <Text accessibilityRole="header" style={styles.title}>
-              Your personal cooking guru
-            </Text>
-            <Text style={styles.body}>
-              Get practical meal ideas, save recipes, and remember what works
-              for you.
-            </Text>
-            <Card style={styles.privacyCard}>
-              <Ionicons
-                accessible={false}
-                name="lock-closed-outline"
-                size={24}
-                color={colors.success}
-              />
-              <Text style={styles.privacyText}>
-                Your recipes, history, and preferences stay on this device.
+            <Pop>
+              <Breathe style={styles.iconCircle}>
+                <Ionicons
+                  accessible={false}
+                  name="restaurant-outline"
+                  size={45}
+                  color={colors.saffronDeep}
+                />
+              </Breathe>
+            </Pop>
+            <Animated.View entering={riseIn().delay(120)}>
+              <Text accessibilityRole="header" style={styles.title}>
+                Your personal cooking guru
               </Text>
-            </Card>
-            <Button label="Get Started" onPress={() => setStep(1)} />
+            </Animated.View>
+            <Animated.View entering={riseIn().delay(200)}>
+              <Text style={styles.body}>
+                Get practical meal ideas, save recipes, and remember what works
+                for you.
+              </Text>
+            </Animated.View>
+            <Animated.View entering={riseIn().delay(300)}>
+              <Card style={styles.privacyCard}>
+                <Ionicons
+                  accessible={false}
+                  name="lock-closed-outline"
+                  size={24}
+                  color={colors.success}
+                />
+                <Text style={styles.privacyText}>
+                  Your recipes, history, and preferences stay on this device.
+                </Text>
+              </Card>
+            </Animated.View>
+            <Animated.View entering={riseIn().delay(420)}>
+              <Button
+                label="Get Started"
+                haptic="medium"
+                onPress={() => goTo(1)}
+              />
+            </Animated.View>
           </View>
         ) : null}
 
         {step === 1 ? (
-          <View style={styles.section}>
+          <Animated.View
+            key="personalize"
+            entering={stepEntering(direction)}
+            style={styles.section}
+          >
             <Text accessibilityRole="header" style={styles.title}>
               Make it yours
             </Text>
@@ -129,24 +173,31 @@ export function OnboardingScreen({
             />
             <Button
               label="Continue"
+              haptic="medium"
               disabled={settings.isUpdating}
               onPress={() => void savePersonalization()}
             />
             <Button
               label="Skip"
               variant="secondary"
-              onPress={() => setStep(2)}
+              haptic={null}
+              onPress={() => goTo(2)}
             />
             <Button
               label="Back"
               variant="secondary"
-              onPress={() => setStep(0)}
+              haptic={null}
+              onPress={() => goTo(0)}
             />
-          </View>
+          </Animated.View>
         ) : null}
 
         {step === 2 ? (
-          <View style={styles.section}>
+          <Animated.View
+            key="connect"
+            entering={stepEntering(direction)}
+            style={styles.section}
+          >
             <Text accessibilityRole="header" style={styles.title}>
               Connect your cooking guru
             </Text>
@@ -163,15 +214,17 @@ export function OnboardingScreen({
                     ? "Start Cooking"
                     : "Continue Without AI"
               }
+              haptic="medium"
               disabled={finishing}
               onPress={() => void finish()}
             />
             <Button
               label="Back"
               variant="secondary"
-              onPress={() => setStep(1)}
+              haptic={null}
+              onPress={() => goTo(1)}
             />
-          </View>
+          </Animated.View>
         ) : null}
       </ScrollView>
     </SafeAreaView>
@@ -187,12 +240,13 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   progressDot: {
-    width: 28,
-    height: 5,
+    width: 10,
+    height: 6,
     borderRadius: 999,
     backgroundColor: colors.stone300,
   },
   progressActive: { backgroundColor: colors.saffron },
+  progressCurrent: { width: 32 },
   content: {
     flexGrow: 1,
     justifyContent: "center",

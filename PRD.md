@@ -1,6 +1,6 @@
 # Chefness — Product Requirements Document
 
-> **Last updated:** 2026-08-19
+> **Last updated:** 2026-09-09
 >
 > This document is the single source of truth for **product requirements**.
 > For technical architecture details, see [ARCHITECTURE.md](./ARCHITECTURE.md).
@@ -46,6 +46,7 @@ what you've cooked.**
 | **Privacy-respecting** | Data stays on-device. LLM requests use the user's locally stored OpenRouter OAuth key. Version 1 uses Sentry for privacy-scrubbed crash/error reporting and does not include product analytics. |
 | **Free with one-time upgrade** | On iOS, users can save or import five recipes for free. A $9.99 one-time purchase unlocks unlimited recipes. The web app remains unlimited. |
 | **Warm & inviting visual design** | A "kitchen glassmorphism" aesthetic: a cream gradient background with subtle grain, Fraunces serif headings over Inter body text, a saffron/espresso/rose palette, frosted translucent cards with soft shadows, and consistent inline SVG icons instead of platform-dependent emojis. Tokens are centralized in `src/theme.ts`. |
+| **Tactile, satisfying interactions (iOS)** | Controls physically respond to touch with spring scaling and meaningful haptics; lists cascade in and collapse smoothly; state changes animate in place; a few moments of success (saving a recipe or memory, logging a cooked meal, finishing every step) are celebrated with a small confetti burst. Motion is restrained, consistent (shared spring presets), and respects Reduce Motion. See ARCHITECTURE.md §4b. |
 
 ---
 
@@ -106,6 +107,11 @@ what you've cooked.**
 - Photo attachment source choices use the iOS action sheet. Model selection
   marks the current choice with a checkmark and allows pull-to-refresh because
   its OpenRouter catalog is remote; device-local lists do not offer refresh.
+- Tab icons fill in and bounce when their tab becomes active, and tab presses
+  give a selection haptic. List rows cascade in on first render, settle
+  slightly under the finger, and collapse smoothly when deleted. Onboarding
+  steps slide in the direction of travel and the progress indicator stretches
+  to the current step.
 - The `chefness://` URL scheme has destinations for recipes, chats, history,
   settings, and model selection so navigation is ready for external links.
 
@@ -198,6 +204,12 @@ the user refreshes or closes the app.
 - [x] Native chat thinking, recipe/memory saves, and AI recipe edits show an
       animated progress indicator. Save actions remain hidden while chat text
       is streaming.
+- [x] On iOS, new chat bubbles rise into place, the assistant shows bouncing
+      "thinking" dots, and the send control fills into a saffron disc as soon as
+      there is something to send. Sending, response completion, and errors
+      each have a distinct haptic. Saving a recipe or memory turns the button
+      into a green success state with a confetti burst instead of showing a
+      blocking alert; the result is also announced to screen readers.
 - [ ] A "New Chat" button is accessible (e.g., in the chat header) and
       confirms before clearing if a conversation is in progress.
 - [x] If OpenRouter is not connected, the chat view shows a clear message
@@ -405,6 +417,12 @@ viewable in the Recipes tab.
       reported by OpenRouter for that preview.
 - [x] Empty state in Recipes tab: "No saved recipes yet. Chat with your
       cooking guru and save recipes you like!"
+- [x] On iOS, ingredients and steps in the recipe detail view can be tapped to
+      check them off while cooking (a pop-in checkmark, strike-through, and a
+      soft haptic). Checking the final step shows an "All done" badge with a
+      confetti burst. Check-off state is temporary and resets when the screen
+      is left. "I Cooked This" turns into a green "Cooked" state with a
+      celebration when the meal is logged.
 
 ### 5.1.1 Import Recipes from URL
 
