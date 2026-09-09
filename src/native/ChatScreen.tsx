@@ -104,8 +104,10 @@ function SendButton({
       scaleTo={0.88}
       style={[styles.iconButton, disabled && styles.disabledButton]}
     >
-      <Animated.View style={[styles.sendDisc, discStyle]} />
-      <Animated.View style={[styles.sendGlyph, outlineStyle]}>
+      <View style={styles.sendLayer}>
+        <Animated.View style={[styles.sendDisc, discStyle]} />
+      </View>
+      <Animated.View style={[styles.sendLayer, outlineStyle]}>
         <Ionicons
           accessible={false}
           name="arrow-up-circle-outline"
@@ -113,7 +115,7 @@ function SendButton({
           color={colors.stone400}
         />
       </Animated.View>
-      <Animated.View style={[styles.sendGlyph, fillStyle]}>
+      <Animated.View style={[styles.sendLayer, fillStyle]}>
         <Ionicons
           accessible={false}
           name={streaming ? "stop" : "arrow-up"}
@@ -709,7 +711,9 @@ export function ChatScreen({
                           : "Save Recipe"
                     }
                     variant={message.savedRecipeId ? "success" : "secondary"}
-                    icon="bookmark-outline"
+                    icon={
+                      message.savedRecipeId ? undefined : "bookmark-outline"
+                    }
                     disabled={!!message.savedRecipeId || !!busyAction}
                     loading={busyAction === `recipe-${index}`}
                     onPress={() => void saveRecipe(index)}
@@ -726,7 +730,7 @@ export function ChatScreen({
                           : "Save to Memory"
                     }
                     variant={message.memorySaved ? "success" : "secondary"}
-                    icon="sparkles-outline"
+                    icon={message.memorySaved ? undefined : "sparkles-outline"}
                     disabled={!!message.memorySaved || !!busyAction}
                     loading={busyAction === `memory-${index}`}
                     onPress={() => void saveMemory(index)}
@@ -990,8 +994,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  sendDisc: {
+  sendLayer: {
     position: "absolute",
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  sendDisc: {
     width: 34,
     height: 34,
     borderRadius: 17,
@@ -1001,7 +1013,6 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 3 },
   },
-  sendGlyph: { position: "absolute" },
   disabledButton: { opacity: 0.5 },
   preview: {
     flexDirection: "row",

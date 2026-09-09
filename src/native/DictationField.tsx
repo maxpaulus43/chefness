@@ -48,7 +48,9 @@ function ListeningPulse({ active }: { active: boolean }) {
     transform: [{ scale: 1 + 0.55 * progress.get() }],
   }));
   return (
-    <Animated.View pointerEvents="none" style={[styles.pulse, animatedStyle]} />
+    <View pointerEvents="none" style={styles.pulseLayer}>
+      <Animated.View style={[styles.pulse, animatedStyle]} />
+    </View>
   );
 }
 
@@ -224,8 +226,16 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   microphoneListening: { backgroundColor: colors.dangerTint },
-  pulse: {
+  pulseLayer: {
     position: "absolute",
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  pulse: {
     width: 34,
     height: 34,
     borderRadius: 17,
