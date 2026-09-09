@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   Alert,
-  FlatList,
   Pressable,
   ScrollView,
   Share,
@@ -9,6 +8,8 @@ import {
   Text,
   View,
 } from "react-native";
+import Animated, { FadeOut } from "react-native-reanimated";
+import { Ionicons } from "@expo/vector-icons";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useRecipes } from "@/hooks/useRecipes";
 import { useCookingLog } from "@/hooks/useCookingLog";
@@ -18,6 +19,14 @@ import { recipeToMarkdown } from "@/lib/recipe-markdown";
 import type { Recipe, UpdateRecipeInput } from "@/types/recipe";
 import type { RecipesStackParamList } from "@/native/navigation-routes";
 import { DictationField } from "@/native/DictationField";
+import { haptics } from "@/native/haptics";
+import {
+  layoutTransition,
+  popIn,
+  riseIn,
+  useStaggeredEntering,
+} from "@/native/motion";
+import { Celebration, PressableScale } from "@/native/motion-views";
 import { nativeColors as colors, nativeFonts } from "@/native/theme";
 import { ListInteractionRow } from "@/native/ListInteractionRow";
 import {
@@ -35,6 +44,7 @@ export function RecipeListScreen({
 }: NativeStackScreenProps<RecipesStackParamList, "RecipeList">) {
   const { recipes, isLoading, deleteRecipe } = useRecipes();
   const search = useRecipeSearch(recipes);
+  const enteringFor = useStaggeredEntering();
   const confirmDelete = (recipe: Recipe) =>
     Alert.alert("Delete recipe?", recipe.title, [
       { text: "Cancel", style: "cancel" },
@@ -52,11 +62,12 @@ export function RecipeListScreen({
     );
   return (
     <View style={nativeStyles.screen}>
-      <FlatList
+      <Animated.FlatList
         data={search.visibleRecipes}
         initialNumToRender={8}
         maxToRenderPerBatch={8}
         windowSize={7}
+        itemLayoutAnimation={layoutTransition}
         keyExtractor={(recipe) => recipe.id}
         contentContainerStyle={nativeStyles.scroll}
         keyboardDismissMode="interactive"
@@ -93,59 +104,133 @@ export function RecipeListScreen({
         ListEmptyComponent={
           recipes.length === 0 ? (
             <Empty
+              icon="book-outline"
               title="No saved recipes yet"
               body="Chat with your cooking guru and save recipes you like!"
             />
           ) : (
             <Empty
+              icon="search-outline"
               title="No matching recipes"
               body="Try another title, description, or ingredient."
             />
           )
         }
-        renderItem={({ item: recipe }) => (
-          <ListInteractionRow
-            menuActions={[
-              { id: "open", title: "Open", image: "book" },
-              { id: "edit", title: "Edit", image: "pencil" },
-              {
-                id: "delete",
-                title: "Delete",
-                image: "trash",
-                attributes: { destructive: true },
-              },
-            ]}
-            onDelete={() => confirmDelete(recipe)}
-            onPress={() =>
-              navigation.navigate("RecipeDetail", { recipeId: recipe.id })
-            }
-            onMenuAction={(id) => {
-              if (id === "open")
-                navigation.navigate("RecipeDetail", { recipeId: recipe.id });
-              if (id === "edit")
-                navigation.navigate("RecipeEdit", { recipeId: recipe.id });
-              if (id === "delete") confirmDelete(recipe);
-            }}
+        renderItem={({ item: recipe, index }) => (
+          <Animated.View
+            entering={enteringFor(index)}
+            exiting={FadeOut.duration(180)}
           >
-            <View
-              accessible
-              accessibilityRole="button"
-              accessibilityLabel={`${recipe.title}. ${recipe.description}. ${recipe.ingredients.length} ingredients, ${recipe.steps.length} steps`}
-              accessibilityHint="Opens recipe details; long press for more actions"
+            <ListInteractionRow
+              menuActions={[
+                { id: "open", title: "Open", image: "book" },
+                { id: "edit", title: "Edit", image: "pencil" },
+                {
+                  id: "delete",
+                  title: "Delete",
+                  image: "trash",
+                  attributes: { destructive: true },
+                },
+              ]}
+              onDelete={() => confirmDelete(recipe)}
+              onPress={() =>
+                navigation.navigate("RecipeDetail", { recipeId: recipe.id })
+              }
+              onMenuAction={(id) => {
+                if (id === "open")
+                  navigation.navigate("RecipeDetail", { recipeId: recipe.id });
+                if (id === "edit")
+                  navigation.navigate("RecipeEdit", { recipeId: recipe.id });
+                if (id === "delete") confirmDelete(recipe);
+              }}
             >
-              <Card style={styles.menuCard}>
-                <Text style={styles.recipeTitle}>{recipe.title}</Text>
-                <Text style={nativeStyles.muted}>{recipe.description}</Text>
-                <Text style={styles.meta}>
-                  {recipe.ingredients.length} ingredients ·{" "}
-                  {recipe.steps.length} steps
-                </Text>
-              </Card>
-            </View>
-          </ListInteractionRow>
+              <View
+                accessible
+                accessibilityRole="button"
+                accessibilityLabel={`${recipe.title}. ${recipe.description}. ${recipe.ingredients.length} ingredients, ${recipe.steps.length} steps`}
+                accessibilityHint="Opens recipe details; long press for more actions"
+              >
+                <Card style={styles.menuCard}>
+                  <Text style={styles.recipeTitle}>{recipe.title}</Text>
+                  <Text style={nativeStyles.muted}>{recipe.description}</Text>
+                  <View style={styles.metaRow}>
+                    <Ionicons
+                      accessible={false}
+                      name="list-outline"
+                      size={15}
+                      color={colors.saffronDeep}
+                    />
+                    <Text style={styles.meta}>
+                      {recipe.ingredients.length} ingredients
+                    </Text>
+                    <Text style={styles.metaDot}>·</Text>
+                    <Ionicons
+                      accessible={false}
+                      name="footsteps-outline"
+                      size={15}
+                      color={colors.saffronDeep}
+                    />
+                    <Text style={styles.meta}>{recipe.steps.length} steps</Text>
+                  </View>
+                </Card>
+              </View>
+            </ListInteractionRow>
+          </Animated.View>
         )}
       />
     </View>
+  );
+}
+
+/**
+ * A recipe line the cook can tap to check off while working through the
+ * recipe. Checked state is deliberately ephemeral; it resets when the screen
+ * is left.
+ */
+function ChecklistLine({
+  text,
+  marker,
+  checked,
+  onToggle,
+  accessibilityLabel,
+}: {
+  text: string;
+  marker: string | number;
+  checked: boolean;
+  onToggle: () => void;
+  accessibilityLabel: string;
+}) {
+  return (
+    <PressableScale
+      accessibilityRole="checkbox"
+      accessibilityState={{ checked }}
+      accessibilityLabel={accessibilityLabel}
+      accessibilityHint="Toggles whether this is done"
+      haptic="soft"
+      scaleTo={0.985}
+      style={styles.checkLine}
+      onPress={onToggle}
+    >
+      <View style={[styles.marker, checked && styles.markerChecked]}>
+        {checked ? (
+          <Animated.View key="check" entering={popIn()}>
+            <Ionicons
+              accessible={false}
+              name="checkmark"
+              size={17}
+              color={colors.white}
+            />
+          </Animated.View>
+        ) : (
+          <Text accessible={false} style={styles.markerText}>
+            {marker}
+          </Text>
+        )}
+      </View>
+      <Text style={[styles.lineText, checked && styles.lineTextChecked]}>
+        {text}
+      </Text>
+    </PressableScale>
   );
 }
 
@@ -163,6 +248,10 @@ export function RecipeDetailScreen({
   const [logStatus, setLogStatus] = useState<"idle" | "logging" | "logged">(
     "idle",
   );
+  const [cookedBurst, setCookedBurst] = useState(0);
+  const [stepsBurst, setStepsBurst] = useState(0);
+  const [checkedIngredients, setCheckedIngredients] = useState<number[]>([]);
+  const [checkedSteps, setCheckedSteps] = useState<number[]>([]);
   const ai = useRecipeAiEditor();
   useEffect(() => {
     if (recipe) navigation.setOptions({ title: recipe.title });
@@ -206,8 +295,11 @@ export function RecipeDetailScreen({
         recipeId: recipe.id,
       });
       setLogStatus("logged");
+      haptics.success();
+      setCookedBurst((count) => count + 1);
     } catch (error) {
       setLogStatus("idle");
+      haptics.error();
       Alert.alert(
         "Couldn’t add to history",
         error instanceof Error ? error.message : "Try again.",
@@ -233,6 +325,24 @@ export function RecipeDetailScreen({
         },
       },
     ]);
+  const toggleIngredient = (index: number) =>
+    setCheckedIngredients((current) =>
+      current.includes(index)
+        ? current.filter((value) => value !== index)
+        : [...current, index],
+    );
+  const toggleStep = (index: number) => {
+    const next = checkedSteps.includes(index)
+      ? checkedSteps.filter((value) => value !== index)
+      : [...checkedSteps, index];
+    setCheckedSteps(next);
+    if (next.length === recipe.steps.length && recipe.steps.length > 1) {
+      haptics.success();
+      setStepsBurst((count) => count + 1);
+    }
+  };
+  const allStepsDone =
+    recipe.steps.length > 0 && checkedSteps.length === recipe.steps.length;
   return (
     <View style={nativeStyles.screen}>
       <ScrollView
@@ -241,22 +351,32 @@ export function RecipeDetailScreen({
         keyboardDismissMode="interactive"
         keyboardShouldPersistTaps="handled"
       >
-        <Text accessibilityRole="header" style={styles.detailTitle}>
-          {recipe.title}
-        </Text>
-        <Text style={styles.description}>{recipe.description}</Text>
-        <View style={nativeStyles.row}>
-          <Button
-            label={
-              logStatus === "logged"
-                ? "Cooked ✓"
-                : logStatus === "logging"
-                  ? "Logging…"
-                  : "I Cooked This"
-            }
-            disabled={logStatus !== "idle"}
-            onPress={() => void logMeal()}
-          />
+        <Animated.View entering={riseIn()}>
+          <Text accessibilityRole="header" style={styles.detailTitle}>
+            {recipe.title}
+          </Text>
+        </Animated.View>
+        <Animated.View entering={riseIn().delay(50)}>
+          <Text style={styles.description}>{recipe.description}</Text>
+        </Animated.View>
+        <Animated.View entering={riseIn().delay(110)} style={nativeStyles.row}>
+          <View style={styles.celebrated}>
+            <Button
+              label={
+                logStatus === "logged"
+                  ? "Cooked"
+                  : logStatus === "logging"
+                    ? "Logging…"
+                    : "I Cooked This"
+              }
+              icon={logStatus === "logged" ? undefined : "flame-outline"}
+              variant={logStatus === "logged" ? "success" : "primary"}
+              haptic="medium"
+              disabled={logStatus !== "idle"}
+              onPress={() => void logMeal()}
+            />
+            <Celebration burst={cookedBurst} />
+          </View>
           <Button
             label="Edit"
             variant="secondary"
@@ -270,7 +390,7 @@ export function RecipeDetailScreen({
             onPress={() => void shareRecipe()}
           />
           <Button label="Delete" variant="danger" onPress={confirmDelete} />
-        </View>
+        </Animated.View>
         <Card>
           <Text accessibilityRole="header" style={nativeStyles.sectionTitle}>
             Edit with AI
@@ -366,37 +486,48 @@ export function RecipeDetailScreen({
             </View>
           )}
         </Card>
-        <Text accessibilityRole="header" style={nativeStyles.sectionTitle}>
-          Ingredients
-        </Text>
+        <View style={styles.sectionHeader}>
+          <Text accessibilityRole="header" style={nativeStyles.sectionTitle}>
+            Ingredients
+          </Text>
+          <Text style={styles.sectionHint}>Tap to check off</Text>
+        </View>
         {recipe.ingredients.map((item, index) => (
-          <View
-            accessible
+          <ChecklistLine
+            key={`${item}-${index}`}
+            text={item}
+            marker=""
+            checked={checkedIngredients.includes(index)}
+            onToggle={() => toggleIngredient(index)}
             accessibilityLabel={item}
-            key={`${item}-${index}`}
-            style={styles.line}
-          >
-            <Text accessible={false} style={styles.bullet}>
-              •
-            </Text>
-            <Text style={styles.lineText}>{item}</Text>
-          </View>
+          />
         ))}
-        <Text accessibilityRole="header" style={nativeStyles.sectionTitle}>
-          Steps
-        </Text>
+        <View style={styles.sectionHeader}>
+          <Text accessibilityRole="header" style={nativeStyles.sectionTitle}>
+            Steps
+          </Text>
+          {allStepsDone ? (
+            <Animated.View entering={popIn()} style={styles.doneBadge}>
+              <Ionicons
+                accessible={false}
+                name="checkmark-circle"
+                size={16}
+                color={colors.success}
+              />
+              <Text style={styles.doneBadgeText}>All done</Text>
+            </Animated.View>
+          ) : null}
+          <Celebration burst={stepsBurst} />
+        </View>
         {recipe.steps.map((item, index) => (
-          <View
-            accessible
-            accessibilityLabel={`Step ${index + 1}. ${item}`}
+          <ChecklistLine
             key={`${item}-${index}`}
-            style={styles.line}
-          >
-            <Text accessible={false} style={styles.step}>
-              {index + 1}
-            </Text>
-            <Text style={styles.lineText}>{item}</Text>
-          </View>
+            text={item}
+            marker={index + 1}
+            checked={checkedSteps.includes(index)}
+            onToggle={() => toggleStep(index)}
+            accessibilityLabel={`Step ${index + 1}. ${item}`}
+          />
         ))}
       </ScrollView>
     </View>
@@ -495,8 +626,17 @@ function RecipeEditForm({
           onChangeText={setSteps}
           multiline
         />
-        <Button label="Save Changes" onPress={() => void save()} />
-        <Button label="Cancel" variant="secondary" onPress={onClose} />
+        <Button
+          label="Save Changes"
+          haptic="medium"
+          onPress={() => void save()}
+        />
+        <Button
+          label="Cancel"
+          variant="secondary"
+          haptic={null}
+          onPress={onClose}
+        />
       </ScrollView>
     </View>
   );
@@ -515,7 +655,61 @@ const styles = StyleSheet.create({
     color: colors.espresso,
     fontFamily: nativeFonts.serifBold,
   },
+  metaRow: { flexDirection: "row", alignItems: "center", gap: 5 },
   meta: { color: colors.saffronDeep, fontFamily: nativeFonts.sansSemiBold },
+  metaDot: { color: colors.stone400, marginHorizontal: 2 },
+  celebrated: { position: "relative" },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    justifyContent: "space-between",
+    gap: 10,
+    position: "relative",
+  },
+  sectionHint: {
+    color: colors.stone500,
+    fontSize: 13,
+    fontFamily: nativeFonts.sans,
+  },
+  doneBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: colors.successTint,
+    borderWidth: 1,
+    borderColor: colors.successTintBorder,
+  },
+  doneBadgeText: {
+    color: colors.success,
+    fontSize: 13,
+    fontFamily: nativeFonts.sansBold,
+  },
+  marker: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.saffronTint,
+    borderWidth: 1.5,
+    borderColor: colors.saffronTintBorder,
+  },
+  markerChecked: {
+    backgroundColor: colors.success,
+    borderColor: colors.success,
+  },
+  markerText: {
+    color: colors.saffronDeep,
+    fontSize: 14,
+    fontFamily: nativeFonts.sansBold,
+  },
+  lineTextChecked: {
+    color: colors.stone400,
+    textDecorationLine: "line-through",
+  },
   detailTitle: {
     fontSize: 32,
     lineHeight: 40,
@@ -529,6 +723,13 @@ const styles = StyleSheet.create({
     fontFamily: nativeFonts.sans,
   },
   line: { flexDirection: "row", gap: 10, alignItems: "flex-start" },
+  checkLine: {
+    flexDirection: "row",
+    gap: 12,
+    alignItems: "flex-start",
+    minHeight: 44,
+    paddingVertical: 4,
+  },
   bullet: {
     color: colors.saffronDeep,
     fontSize: 22,

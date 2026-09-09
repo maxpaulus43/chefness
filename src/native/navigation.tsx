@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef } from "react";
-import { Alert, FlatList, Pressable, Text, View } from "react-native";
+import { Alert, Text, View } from "react-native";
+import Animated, { FadeOut } from "react-native-reanimated";
 import { Ionicons } from "@expo/vector-icons";
 import { NavigationContainer } from "@react-navigation/native";
 import {
@@ -30,7 +31,14 @@ import {
 } from "@/native/navigation-routes";
 import { ListInteractionRow } from "@/native/ListInteractionRow";
 import { OnboardingScreen } from "@/native/OnboardingScreen";
-import { Loading, nativeStyles } from "@/native/ui";
+import { haptics } from "@/native/haptics";
+import {
+  layoutTransition,
+  useSelectionPop,
+  useStaggeredEntering,
+} from "@/native/motion";
+import { PressableScale } from "@/native/motion-views";
+import { Empty, Loading, nativeStyles } from "@/native/ui";
 import { decodeSharedUrl } from "@/lib/share-url-encoding";
 import { useAccessibilityPreferences } from "@/native/accessibility";
 import { nativeColors as colors, nativeFonts } from "@/native/theme";
@@ -74,10 +82,11 @@ function ChatNavigator({
           title: "Chefness",
           headerRight: () => (
             <View style={{ flexDirection: "row", gap: 4 }}>
-              <Pressable
+              <PressableScale
                 accessibilityRole="button"
                 accessibilityLabel="Chat history"
                 accessibilityHint="Opens saved conversations"
+                scaleTo={0.86}
                 style={styles.headerButton}
                 onPress={() => stackNavigation.navigate("ChatHistory")}
               >
@@ -87,11 +96,12 @@ function ChatNavigator({
                   size={25}
                   color={colors.espresso}
                 />
-              </Pressable>
-              <Pressable
+              </PressableScale>
+              <PressableScale
                 accessibilityRole="button"
                 accessibilityLabel="New chat"
                 accessibilityHint="Starts a new conversation"
+                scaleTo={0.86}
                 style={styles.headerButton}
                 onPress={newChat}
               >
@@ -101,7 +111,7 @@ function ChatNavigator({
                   size={27}
                   color={colors.saffronDeep}
                 />
-              </Pressable>
+              </PressableScale>
             </View>
           ),
         })}
@@ -166,6 +176,7 @@ function ChatHistorySheet({
   chat: ChatValue;
 }) {
   const { sessions, deleteSession, deleteAllSessions } = useChatSessions();
+  const enteringFor = useStaggeredEntering();
   const openSession = (sessionId: string) => {
     chat.loadSession(sessionId);
     navigation.goBack();
@@ -195,10 +206,12 @@ function ChatHistorySheet({
     navigation.setOptions({
       headerRight: sessions.length
         ? () => (
-            <Pressable
+            <PressableScale
               accessibilityRole="button"
               accessibilityLabel="Delete all chats"
+              haptic="warning"
               hitSlop={8}
+              scaleTo={0.86}
               onPress={confirmDeleteAll}
             >
               <Ionicons
@@ -207,67 +220,111 @@ function ChatHistorySheet({
                 size={23}
                 color={colors.danger}
               />
-            </Pressable>
+            </PressableScale>
           )
         : undefined,
     });
   }, [confirmDeleteAll, navigation, sessions.length]);
   return (
     <View style={nativeStyles.screen}>
-      <FlatList
+      <Animated.FlatList
         data={sessions}
         initialNumToRender={10}
         maxToRenderPerBatch={8}
         windowSize={7}
+        itemLayoutAnimation={layoutTransition}
         keyExtractor={(session) => session.id}
         contentContainerStyle={nativeStyles.scroll}
         ListEmptyComponent={
-          <Text style={nativeStyles.muted}>No saved conversations yet.</Text>
+          <Empty
+            icon="chatbubbles-outline"
+            title="No saved conversations yet"
+            body="Your chats are saved here automatically as you cook."
+          />
         }
-        renderItem={({ item: session }) => (
-          <ListInteractionRow
-            menuActions={[
-              {
-                id: "open",
-                title: "Open Conversation",
-                image: "bubble.left.and.bubble.right",
-              },
-              {
-                id: "delete",
-                title: "Delete",
-                image: "trash",
-                attributes: { destructive: true },
-              },
-            ]}
-            onDelete={() => confirmDelete(session.id, session.title)}
-            onPress={() => openSession(session.id)}
-            onMenuAction={(id) => {
-              if (id === "open") openSession(session.id);
-              if (id === "delete") confirmDelete(session.id, session.title);
-            }}
+        renderItem={({ item: session, index }) => (
+          <Animated.View
+            entering={enteringFor(index)}
+            exiting={FadeOut.duration(180)}
           >
-            <View
-              accessible
-              accessibilityRole="button"
-              accessibilityLabel={`${session.title}. Updated ${new Date(session.updatedAt).toLocaleDateString()}. ${session.messages.length} messages`}
-              accessibilityHint="Opens conversation; long press for more actions"
-              style={{
-                padding: 15,
-                paddingBottom: 48,
-                backgroundColor: colors.white,
-                borderRadius: 14,
+            <ListInteractionRow
+              menuActions={[
+                {
+                  id: "open",
+                  title: "Open Conversation",
+                  image: "bubble.left.and.bubble.right",
+                },
+                {
+                  id: "delete",
+                  title: "Delete",
+                  image: "trash",
+                  attributes: { destructive: true },
+                },
+              ]}
+              onDelete={() => confirmDelete(session.id, session.title)}
+              onPress={() => openSession(session.id)}
+              onMenuAction={(id) => {
+                if (id === "open") openSession(session.id);
+                if (id === "delete") confirmDelete(session.id, session.title);
               }}
             >
-              <Text style={nativeStyles.label}>{session.title}</Text>
-              <Text style={nativeStyles.muted}>
-                {new Date(session.updatedAt).toLocaleDateString()} ·{" "}
-                {session.messages.length} messages
-              </Text>
-            </View>
-          </ListInteractionRow>
+              <View
+                accessible
+                accessibilityRole="button"
+                accessibilityLabel={`${session.title}. Updated ${new Date(session.updatedAt).toLocaleDateString()}. ${session.messages.length} messages`}
+                accessibilityHint="Opens conversation; long press for more actions"
+                style={styles.sessionCard}
+              >
+                <Text style={nativeStyles.label}>{session.title}</Text>
+                <Text style={nativeStyles.muted}>
+                  {new Date(session.updatedAt).toLocaleDateString()} ·{" "}
+                  {session.messages.length} messages
+                </Text>
+              </View>
+            </ListInteractionRow>
+          </Animated.View>
         )}
       />
     </View>
+  );
+}
+
+const tabIcons: Record<
+  keyof RootTabParamList,
+  {
+    idle: keyof typeof Ionicons.glyphMap;
+    focused: keyof typeof Ionicons.glyphMap;
+  }
+> = {
+  ChatTab: { idle: "chatbubble-outline", focused: "chatbubble" },
+  RecipesTab: { idle: "book-outline", focused: "book" },
+  HistoryTab: { idle: "time-outline", focused: "time" },
+  SettingsTab: { idle: "settings-outline", focused: "settings" },
+};
+
+/** Tab glyphs fill in and give a small bounce when their tab becomes active. */
+function TabIcon({
+  route,
+  focused,
+  color,
+  size,
+}: {
+  route: keyof RootTabParamList;
+  focused: boolean;
+  color: string;
+  size: number;
+}) {
+  const pop = useSelectionPop(focused);
+  const icons = tabIcons[route];
+  return (
+    <Animated.View style={pop}>
+      <Ionicons
+        accessible={false}
+        name={focused ? icons.focused : icons.idle}
+        color={color}
+        size={size}
+      />
+    </Animated.View>
   );
 }
 
@@ -310,13 +367,6 @@ function SettingsNavigator() {
   );
 }
 
-const tabIcons: Record<keyof RootTabParamList, keyof typeof Ionicons.glyphMap> =
-  {
-    ChatTab: "chatbubble-outline",
-    RecipesTab: "book-outline",
-    HistoryTab: "time-outline",
-    SettingsTab: "settings-outline",
-  };
 export function NativeNavigation() {
   const { reduceTransparency } = useAccessibilityPreferences();
   const settings = useSettings();
@@ -327,6 +377,7 @@ export function NativeNavigation() {
   return (
     <NavigationContainer linking={linking}>
       <Tabs.Navigator
+        screenListeners={{ tabPress: () => haptics.select() }}
         screenOptions={({ route }) => ({
           headerShown: false,
           tabBarActiveTintColor: colors.saffronDeep as string,
@@ -339,10 +390,10 @@ export function NativeNavigation() {
               : colors.glassStrong,
             borderTopColor: colors.stone300,
           },
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons
-              accessible={false}
-              name={tabIcons[route.name]}
+          tabBarIcon: ({ color, size, focused }) => (
+            <TabIcon
+              route={route.name}
+              focused={focused}
               color={color}
               size={size}
             />
@@ -386,5 +437,13 @@ const styles = {
     minHeight: 44,
     alignItems: "center",
     justifyContent: "center",
+  },
+  sessionCard: {
+    padding: 15,
+    paddingBottom: 48,
+    backgroundColor: colors.white,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.stone200,
   },
 } as const;

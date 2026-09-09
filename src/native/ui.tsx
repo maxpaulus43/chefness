@@ -79,6 +79,7 @@ export function Button({
     setHasToggled(true);
   }
   const light = variant === "primary";
+  const glyph = icon ?? (variant === "success" ? "checkmark-circle" : null);
   const textColor = light
     ? colors.white
     : variant === "success"
@@ -109,22 +110,24 @@ export function Button({
           <Loading compact color={textColor} label={label} />
         ) : (
           <>
-            {variant === "success" ? (
-              <Pop>
+            {glyph ? (
+              variant === "success" || variant === "danger" ? (
+                <Pop key={variant}>
+                  <Ionicons
+                    accessible={false}
+                    name={glyph}
+                    size={18}
+                    color={textColor}
+                  />
+                </Pop>
+              ) : (
                 <Ionicons
                   accessible={false}
-                  name="checkmark-circle"
+                  name={glyph}
                   size={18}
-                  color={colors.success}
+                  color={textColor}
                 />
-              </Pop>
-            ) : icon ? (
-              <Ionicons
-                accessible={false}
-                name={icon}
-                size={18}
-                color={textColor}
-              />
+              )
             ) : null}
             <Text style={[styles.buttonText, { color: textColor }]}>
               {label}
