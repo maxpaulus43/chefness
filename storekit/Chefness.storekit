@@ -16,17 +16,17 @@
   "products" : [
     {
       "displayPrice" : "9.99",
-      "familyShareable" : false,
+      "familyShareable" : true,
       "internalID" : "A7C43B10",
       "localizations" : [
         {
-          "description" : "Save and import unlimited recipes in Chefness.",
-          "displayName" : "Unlimited Recipes",
+          "description" : "Enable iCloud sync for recipes, chat text, history, and preferences. Photos stay on-device.",
+          "displayName" : "iCloud Sync",
           "locale" : "en_US"
         }
       ],
       "productID" : "com.maxpaulus.chefness.unlimited_recipes",
-      "referenceName" : "Unlimited Recipes",
+      "referenceName" : "iCloud Sync",
       "type" : "NonConsumable"
     }
   ],

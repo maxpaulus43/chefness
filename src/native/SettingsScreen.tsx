@@ -9,6 +9,7 @@ import {
   RefreshControl,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   View,
 } from "react-native";
@@ -17,8 +18,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useSettings } from "@/hooks/useSettings";
 import { useOpenRouterModels } from "@/hooks/useOpenRouterModels";
 import { useAiPreferences } from "@/hooks/useAiPreferences";
-import { useRecipeAccess } from "@/hooks/useRecipeAccess";
-import { FREE_RECIPE_LIMIT } from "@/lib/recipe-access";
+import { useCloudSync } from "@/hooks/useCloudSync.native";
 import { DIETARY_RESTRICTIONS } from "@/lib/dietary-restrictions";
 import type { SettingsStackParamList } from "@/native/navigation-routes";
 import { DictationField } from "@/native/DictationField";
@@ -36,7 +36,7 @@ export function SettingsScreen({
   navigation,
 }: NativeStackScreenProps<SettingsStackParamList, "Settings">) {
   const settings = useSettings();
-  const recipeAccess = useRecipeAccess();
+  const sync = useCloudSync();
   const catalog = useOpenRouterModels(
     settings.isOpenRouterConnected,
     settings.effectiveModel,
@@ -98,57 +98,117 @@ export function SettingsScreen({
     }
   };
 
-  const savedRecipesSection = (
+  const syncSection = (
     <>
       <Text accessibilityRole="header" style={nativeStyles.sectionTitle}>
-        Saved Recipes
+        iCloud Sync
       </Text>
       <Card>
-        {recipeAccess.hasUnlimitedRecipes ? (
-          <View
-            accessibilityLabel="Unlimited recipes unlocked"
-            style={styles.connected}
-          >
-            <Ionicons
-              accessible={false}
-              name="checkmark-circle"
-              size={22}
-              color={colors.success}
+        <Text style={nativeStyles.muted}>
+          Unlimited recipes are free on this device. Sync recipes, chat text,
+          history, and preferences across your Apple devices with one purchase.
+          Photos and OpenRouter connections stay on each device.
+        </Text>
+        {sync.status?.entitled ? (
+          <>
+            <View style={styles.selector}>
+              <Text style={nativeStyles.label}>iCloud Sync</Text>
+              <Switch
+                accessibilityLabel="iCloud Sync"
+                value={sync.status.enabled}
+                onValueChange={(enabled) => {
+                  if (enabled) {
+                    void sync.setEnabled(true);
+                    return;
+                  }
+                  Alert.alert(
+                    "Pause iCloud Sync?",
+                    "Your local and iCloud data will stay. Edits and deletions made while paused will sync when you turn it back on.",
+                    [
+                      { text: "Cancel", style: "cancel" },
+                      {
+                        text: "Pause Sync",
+                        onPress: () => void sync.setEnabled(false),
+                      },
+                    ],
+                  );
+                }}
+              />
+            </View>
+            <Text accessibilityLiveRegion="polite" style={nativeStyles.muted}>
+              {!sync.status.enabled
+                ? "Sync paused"
+                : sync.status.busy
+                  ? "Syncing…"
+                  : sync.status.error
+                    ? "Sync needs attention"
+                    : sync.status.dirty
+                      ? "Changes waiting to sync"
+                      : sync.status.lastSyncedAt
+                        ? "Synced"
+                        : "Waiting for first sync"}
+            </Text>
+            {sync.status.lastSyncedAt && (
+              <Text style={nativeStyles.muted}>
+                Last synced:{" "}
+                {new Date(sync.status.lastSyncedAt).toLocaleString()}
+              </Text>
+            )}
+            <Button
+              label="Sync Now"
+              variant="secondary"
+              disabled={!sync.status.enabled || sync.status.busy}
+              onPress={() => void sync.syncNow()}
             />
-            <Text style={styles.connectedText}>Unlimited recipes unlocked</Text>
-          </View>
+            {sync.status.needsAccountConfirmation && (
+              <Button
+                label="Review Changed iCloud Account"
+                variant="secondary"
+                onPress={() =>
+                  Alert.alert(
+                    "Merge into this iCloud account?",
+                    "This device contains data from another iCloud account. Continuing uploads this entire local library, including chats and dietary information, into the currently signed-in account. Its existing library will be merged, not replaced.",
+                    [
+                      { text: "Cancel", style: "cancel" },
+                      {
+                        text: "Merge Library",
+                        onPress: () => void sync.confirmAccount(),
+                      },
+                    ],
+                  )
+                }
+              />
+            )}
+          </>
         ) : (
           <>
             <Text style={nativeStyles.muted}>
-              Save or import up to {FREE_RECIPE_LIMIT} recipes for free, or
-              unlock unlimited recipes with one purchase.
+              Purchasing turns sync on automatically using your iCloud account.
+              You can turn it off afterward. Requires iCloud sign-in. Photos do
+              not sync.
             </Text>
             <Button
               disabled={
-                recipeAccess.isLoading ||
-                recipeAccess.isPurchasing ||
-                !recipeAccess.canPurchase
+                sync.isLoading || sync.isPurchasing || !sync.canPurchase
               }
               label={
-                recipeAccess.isPurchasing
+                sync.isPurchasing
                   ? "Purchasing…"
-                  : `Unlock Unlimited — ${recipeAccess.price}`
+                  : `Enable iCloud Sync — ${sync.price} once`
               }
-              onPress={() => void recipeAccess.purchase()}
+              onPress={() => void sync.purchase()}
             />
           </>
         )}
         <Button
-          disabled={recipeAccess.isLoading || recipeAccess.isPurchasing}
-          label={
-            recipeAccess.isLoading ? "Checking Purchases…" : "Restore Purchases"
-          }
+          disabled={sync.isLoading || sync.isPurchasing}
+          label={sync.isLoading ? "Checking Purchases…" : "Restore Purchases"}
           variant="secondary"
-          onPress={() => void recipeAccess.restore()}
+          onPress={() => void sync.restore()}
         />
-        {recipeAccess.error && (
+        {(sync.error ?? sync.status?.error) && (
           <Text accessibilityLiveRegion="assertive" style={nativeStyles.error}>
-            {recipeAccess.error}
+            {sync.error ?? sync.status?.error}
           </Text>
         )}
       </Card>
@@ -197,7 +257,7 @@ export function SettingsScreen({
             </Text>
           )}
         </Card>
-        {!recipeAccess.hasUnlimitedRecipes && savedRecipesSection}
+        {syncSection}
         <Text accessibilityRole="header" style={nativeStyles.sectionTitle}>
           Dietary Restrictions
         </Text>
@@ -229,8 +289,8 @@ export function SettingsScreen({
         </Text>
         <Card>
           <Text style={nativeStyles.muted}>
-            Permanent preferences are included in future chats and stay on this
-            device.
+            Permanent preferences are included in future chats and sync across
+            your devices when iCloud Sync is enabled.
           </Text>
           <View style={styles.addRow}>
             <DictationField
@@ -323,7 +383,6 @@ export function SettingsScreen({
             Version {appVersion} ({buildNumber})
           </Text>
         </Card>
-        {recipeAccess.hasUnlimitedRecipes && savedRecipesSection}
       </ScrollView>
     </View>
   );
@@ -437,12 +496,6 @@ export function ModelSelectionScreen({
 }
 
 const styles = StyleSheet.create({
-  connected: { flexDirection: "row", alignItems: "center", gap: 7 },
-  connectedText: {
-    color: colors.success,
-    fontFamily: nativeFonts.sansBold,
-    fontSize: 16,
-  },
   selector: {
     minHeight: 48,
     padding: 12,

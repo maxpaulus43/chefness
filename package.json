@@ -92,5 +92,14 @@
     "vite-plugin-pwa": "^1.2.0",
     "wrangler": "4"
   },
+  "expo": {
+    "doctor": {
+      "reactNativeDirectoryCheck": {
+        "exclude": [
+          "chefness-cloud"
+        ]
+      }
+    }
+  },
   "main": "index.js"
 }

@@ -1,84 +1,61 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { LibraryStore } from "@/storage/library-store";
+import { ensureMigrated } from "@/storage/native-credential";
 import type { StorageRepository } from "@/storage/interface";
+import type { Clock, Entity } from "@/storage/sync-merge";
 
-interface NativeRepositoryOptions<
-  TEntity extends { id: string },
-  TCreate,
-  TUpdate extends { id: string },
-> {
-  storeName: string;
-  buildEntity: (data: TCreate) => TEntity;
-  applyUpdate: (existing: TEntity, data: TUpdate) => TEntity;
-}
+export const nativeLibrary = new LibraryStore(AsyncStorage, ensureMigrated);
 
-/** AsyncStorage-backed native implementation matching the web IndexedDB boundary. */
+/** Same repository boundary, now with atomic local writes and durable sync metadata. */
 export class IndexedDBRepository<
   TEntity extends { id: string },
   TCreate,
   TUpdate extends { id: string },
 > implements StorageRepository<TEntity, TCreate, TUpdate>
 {
-  private readonly key: string;
-  private readonly buildEntity: (data: TCreate) => TEntity;
-  private readonly applyUpdate: (existing: TEntity, data: TUpdate) => TEntity;
+  constructor(
+    private options: {
+      storeName: string;
+      buildEntity: (data: TCreate) => TEntity;
+      applyUpdate: (existing: TEntity, data: TUpdate) => TEntity;
+    },
+  ) {}
 
-  constructor(options: NativeRepositoryOptions<TEntity, TCreate, TUpdate>) {
-    this.key = `chefness:${options.storeName}`;
-    this.buildEntity = options.buildEntity;
-    this.applyUpdate = options.applyUpdate;
+  async getAll(): Promise<TEntity[]> {
+    return (await nativeLibrary.getAll(this.options.storeName)) as TEntity[];
   }
-
-  private async readAll(): Promise<TEntity[]> {
-    const value = await AsyncStorage.getItem(this.key);
-    if (!value) return [];
-    const parsed: unknown = JSON.parse(value);
-    return Array.isArray(parsed) ? (parsed as TEntity[]) : [];
-  }
-
-  private writeAll(entities: TEntity[]): Promise<void> {
-    return AsyncStorage.setItem(this.key, JSON.stringify(entities));
-  }
-
-  getAll(): Promise<TEntity[]> {
-    return this.readAll();
-  }
-
   async getById(id: string): Promise<TEntity | undefined> {
-    return (await this.readAll()).find((entity) => entity.id === id);
+    return (await this.getAll()).find((entity) => entity.id === id);
   }
-
   async create(data: TCreate): Promise<TEntity> {
-    const entity = this.buildEntity(data);
-    const entities = await this.readAll();
-    await this.writeAll([
-      ...entities.filter((item) => item.id !== entity.id),
-      entity,
-    ]);
-    return entity;
+    const entity = this.options.buildEntity(data);
+    return (await nativeLibrary.change(
+      this.options.storeName,
+      entity.id,
+      () => entity as Entity,
+    )) as TEntity;
   }
-
   async update(data: TUpdate): Promise<TEntity | undefined> {
-    const entities = await this.readAll();
-    const index = entities.findIndex((entity) => entity.id === data.id);
-    if (index < 0) return undefined;
-    const existing = entities[index];
-    if (!existing) return undefined;
-    const updated = this.applyUpdate(existing, data);
-    entities[index] = updated;
-    await this.writeAll(entities);
-    return updated;
+    return (await nativeLibrary.change(
+      this.options.storeName,
+      data.id,
+      (existing) =>
+        existing
+          ? (this.options.applyUpdate(existing as TEntity, data) as Entity)
+          : undefined,
+      (data as TUpdate & { syncBaseClock?: Clock }).syncBaseClock,
+    )) as TEntity | undefined;
   }
-
   async delete(id: string): Promise<boolean> {
-    const entities = await this.readAll();
-    const next = entities.filter((entity) => entity.id !== id);
-    if (next.length === entities.length) return false;
-    await this.writeAll(next);
-    return true;
+    let deleted = false;
+    await nativeLibrary.change(this.options.storeName, id, (existing) => {
+      deleted = Boolean(existing);
+      return undefined;
+    });
+    return deleted;
   }
 }
 
-/** Compatibility export; native repositories open AsyncStorage lazily. */
 export function getDB(): Promise<never> {
   return Promise.reject(
     new Error(

@@ -31,8 +31,9 @@ Keep the phone unlocked during installation and first launch.
 
 ## Test in-app purchases without real money
 
-Chefness includes `storekit/Chefness.storekit` with the Unlimited Recipes test
-product. After a clean prebuild:
+Chefness includes `storekit/Chefness.storekit` with the family-shareable iCloud
+Sync test product. Configure the CloudKit container/signing first; see
+[ICLOUD_SYNC.md](ICLOUD_SYNC.md) for setup and the two-device acceptance checklist. After a clean prebuild:
 
 1. Open `ios/Chefness.xcworkspace` in Xcode.
 2. Drag `storekit/Chefness.storekit` into the Chefness project navigator; do not

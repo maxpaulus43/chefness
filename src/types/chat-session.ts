@@ -8,6 +8,10 @@ const chatMessageSchema = z.object({
   modelId: z.string().optional().default(""),
   /** Resized image data URL attached to a user message. */
   imageDataUrl: z.string().optional().default(""),
+  /** Photo exists on its original device but is not included in iCloud sync. */
+  hasPhoto: z.boolean().optional(),
+  /** Opaque attachment identity, never a local path or image bytes. */
+  photoId: z.string().optional(),
   timestamp: z.string(), // ISO string
   // Hidden context used for URL-imported recipes. Not rendered as chat text,
   // but persisted so later "Save Current Recipe" extraction can reconstruct
@@ -27,6 +31,8 @@ export const chatSessionSchema = z.object({
   mealSize: z.string().nullable(), // MealSize | null
   createdAt: z.string(),
   updatedAt: z.string(),
+  /** Native sync revision used to preserve edits made from an older chat view. */
+  syncClock: z.record(z.string(), z.number().int().nonnegative()).optional(),
 });
 
 /** TypeScript type inferred from the Zod schema. */
@@ -47,6 +53,9 @@ export type CreateChatSessionInput = z.infer<typeof createChatSessionInput>;
 /** Input schema for updating an existing chat session. */
 export const updateChatSessionInput = z.object({
   id: z.string(),
+  syncBaseClock: z
+    .record(z.string(), z.number().int().nonnegative())
+    .optional(),
   title: z.string().optional(),
   messages: z.array(chatMessageSchema).optional(),
   mealType: z.string().nullable().optional(),

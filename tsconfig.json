@@ -8,6 +8,6 @@
       "path": "./tsconfig.node.json"
     }
   ],
-  "compilerOptions": {},
+  "compilerOptions": { "paths": { "@/*": ["./src/*"] } },
   "extends": "expo/tsconfig.base"
 }

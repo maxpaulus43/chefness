@@ -11,7 +11,8 @@ task has the full context without needing to reverse-engineer it from code.
 Chefness is a **client-side-first** cooking app with an iPhone and iPad Expo/React Native iOS
 app and a retained PWA build. There is **no separate application backend for
 user data**. All data operations run on-device through the same local tRPC
-router. iOS persists through AsyncStorage; the web build uses IndexedDB. The
+router. iOS persists through an atomic AsyncStorage library document and optionally
+syncs through Apple's private CloudKit database; the web build uses IndexedDB. The
 repository boundary keeps business hooks and router procedures platform-neutral.
 
 Exception: the app may include tiny stateless Cloudflare Worker API endpoints
@@ -35,14 +36,53 @@ seller is the legal personal name associated with that membership.
 
 ### iOS monetization
 
-The iOS app is free and allows five saved recipes. A $9.99 non-consumable
-StoreKit purchase (`com.maxpaulus.chefness.unlimited_recipes`) unlocks unlimited
-recipe saves and imports. The limit is centralized in
-`src/lib/recipe-access.ts`; editing, sharing, and deleting existing recipes are
-never restricted. `expo-iap` reads current App Store entitlements locally and
-supports purchase restoration. The retained web app remains unlimited and does
-not load StoreKit. `storekit/Chefness.storekit` provides a no-charge local test
-product for Xcode-run development builds.
+Local recipe saves/imports are unlimited and free. The $9.99 non-consumable
+StoreKit purchase unlocks iCloud Sync, retaining the original product ID
+`com.maxpaulus.chefness.unlimited_recipes`. `useCloudSync.native.ts` reads StoreKit
+entitlements, including family-shared purchases, enables sync on purchase/restore
+unless explicitly disabled on that device, and rechecks on resume and while active.
+The retained web app remains local-only and does not load StoreKit or CloudKit.
+`storekit/Chefness.storekit` simulates the family-shareable iCloud Sync product;
+Family Sharing must also be enabled separately in App Store Connect.
+
+### iCloud sync
+
+`docs/ICLOUD_SYNC.md` contains the agreed contract, Apple-side setup, ceilings,
+and two-device release checklist. The local Swift Expo module in
+`modules/chefness-cloud/` exposes account checks and optimistic fetch/save of a
+`ChefnessLibrary.snapshot` CKAsset in the user's **private** database in
+`iCloud.com.maxpaulus.chefness`. No Chefness account, household data sharing,
+photo transfer, or web sync is provided.
+
+`LibraryStore` serializes native transactions and stores collections, revision
+clocks, tombstones, and device-only sync preferences in one AsyncStorage value,
+`chefness:library-v1`. Migration validates old arrays and retains them as an
+untouched fallback after the credential migration has scrubbed their OAuth key.
+Never downgrade to a build that writes those legacy arrays after migration.
+`CloudSyncService`, behind the local tRPC sync router, merges received snapshots
+inside a local transaction so in-flight local edits cannot be lost. Failed saves
+remain pending; compare-and-save conflicts refetch and merge before retrying.
+
+Recipes, history/ratings, and AI memories use whole-record last-edit-wins (device
+time, deterministic revision tie-break). Settings synchronize only an allowlist,
+with per-field clocks. Deletions retain permanent tombstones and beat offline
+edits. Concurrent chat versions fork deterministically; the active chat supplies
+its base clock so stale in-memory edits cannot overwrite newly received data.
+Idle chat views and query caches refresh when cloud data arrives; streaming and
+unsaved text are not replaced.
+
+Photos retain opaque IDs and a `hasPhoto` marker, but their bytes and file paths
+never enter CloudKit. Locally held photos are restored by ID during merges;
+other devices render placeholders and annotate outgoing model context. OpenRouter
+keys, onboarding state, and the sync toggle remain device-local. An iCloud account
+switch stops transfer until explicit confirmation to merge the local library into
+the new account. Disabling sync keeps all data and queues edits/deletions.
+
+The v1 transport sends a whole text snapshot with a 20 MB ceiling; migrate to
+per-record CloudKit change tracking if libraries/traffic outgrow this. Sync runs
+after local changes, on resume, and every 30 seconds while active; background
+execution and closed-app delivery are not guaranteed. Settings shows status,
+last successful sync, pending changes/errors, and Sync Now.
 
 ### Tech stack
 
@@ -371,7 +411,8 @@ Entity repositories import `src/storage/indexed-db.ts`. Platform resolution
 selects the appropriate implementation:
 
 - Web: `indexed-db.ts` stores entities in IndexedDB.
-- Native: `indexed-db.native.ts` stores the same entity arrays in AsyncStorage.
+- Native: `indexed-db.native.ts` delegates to `LibraryStore`, which atomically
+  persists collections and sync metadata in AsyncStorage.
 
 Both implement the same async `StorageRepository`, so routers, hooks, validation,
 and cache invalidation are shared unchanged. `local-storage.ts` and the one-time
@@ -389,7 +430,8 @@ Each entity gets a file in `src/storage/` (e.g. `recipes.ts`) that:
 The repository is responsible for generating `id`, `createdAt`, and `updatedAt`
 inside `buildEntity` — the tRPC router just passes user input through.
 
-Native and web records are intentionally device-local and are not synchronized.
+Web records remain device-local. Native records optionally synchronize through
+CloudKit after the paid unlock; the local repository remains usable offline.
 On iOS, non-secret settings remain in AsyncStorage while the OpenRouter OAuth key
 is stored separately in iOS Keychain by the native settings repository. Repository
 reads hydrate the key in memory for existing hooks, while writes strip it from the

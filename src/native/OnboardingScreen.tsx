@@ -94,7 +94,8 @@ export function OnboardingScreen({
                 color={colors.success}
               />
               <Text style={styles.privacyText}>
-                Your recipes, history, and preferences stay on this device.
+                Your recipes, history, and preferences stay on this device
+                unless you enable the paid iCloud Sync upgrade.
               </Text>
             </Card>
             <Button label="Get Started" onPress={() => setStep(1)} />

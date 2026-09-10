@@ -53,7 +53,8 @@
             sent to
             <a href="mailto:support@chefness.org">support@chefness.org</a>.
             Chefness does not require a Chefness account and does not operate a
-            server-side account or cloud-sync service for your cooking data.
+            server-side account service for your cooking data. Optional iCloud
+            sync uses Apple's CloudKit service and your iCloud account.
           </p>
         </section>
 
@@ -77,8 +78,17 @@
             does not display or log the key.
           </p>
           <p>
-            Chefness does not upload this local collection to a Chefness account
-            or synchronize it between devices.
+            Purchasing the iCloud Sync upgrade enables synchronization of
+            recipes, chat text, cooking history and ratings, dietary
+            information, AI memories, and non-secret preferences through your
+            private iCloud database. Photos, OpenRouter credentials, onboarding
+            state, and the device's sync switch are excluded. You can pause sync
+            in Chefness Settings; local and iCloud data remain, and edits and
+            deletions synchronize when re-enabled. Switching iCloud accounts
+            requires confirmation before the local library is merged into a
+            different account. Sharing the purchase through Apple Family Sharing
+            does not share your cooking data with family members. Apple's iCloud
+            terms and privacy policy apply to data stored there.
           </p>
         </section>
 
@@ -171,9 +181,9 @@
           </p>
           <p>
             Recognized text is handled like text you type. It remains on your
-            device unless you choose to send it as part of an AI request, as
-            described above. You can change microphone and speech-recognition
-            permissions in iOS Settings.
+            device unless included in iCloud-synced chat text or sent as part of
+            an AI request, as described above. You can change microphone and
+            speech-recognition permissions in iOS Settings.
           </p>
         </section>
 
@@ -235,6 +245,17 @@
             persist across reinstallation. Copies of other local data may remain
             in device backups according to your Apple and iCloud settings and
             retention policies.
+          </p>
+          <p>
+            Deleting synced content propagates to other synced devices. Sync is
+            not a versioned backup. Chefness retains deletion identifiers and
+            sync metadata to prevent offline devices from restoring deleted
+            items; the deleted item's content is removed from the active cloud
+            snapshot. Deleting the app or pausing sync does not delete its
+            iCloud library. You can manage Chefness's iCloud data through
+            Apple's iCloud storage controls. Pause sync on your devices before
+            removing that cloud data if you do not want their local libraries
+            uploaded again.
           </p>
           <p>
             Data already sent to OpenRouter, a model provider, a recipe website,

@@ -1,13 +1,22 @@
 import { expect, test } from "bun:test";
-import {
-  canSaveRecipe,
-  FREE_RECIPE_LIMIT,
-  RecipeLimitError,
-} from "../src/lib/recipe-access";
+import { readFileSync } from "node:fs";
+import { ICLOUD_SYNC_PRODUCT_ID } from "../src/lib/cloud-access";
 
-test("free users stop at the configurable recipe limit", () => {
-  expect(canSaveRecipe(FREE_RECIPE_LIMIT - 1, false)).toBe(true);
-  expect(canSaveRecipe(FREE_RECIPE_LIMIT, false)).toBe(false);
-  expect(canSaveRecipe(FREE_RECIPE_LIMIT, true)).toBe(true);
-  expect(new RecipeLimitError().message).toContain(`${FREE_RECIPE_LIMIT}`);
+test("the existing one-time product unlocks sync, with no recipe-count gate", () => {
+  expect(ICLOUD_SYNC_PRODUCT_ID).toBe(
+    "com.maxpaulus.chefness.unlimited_recipes",
+  );
+  for (const path of [
+    "src/hooks/useRecipes.ts",
+    "src/hooks/useChat.ts",
+    "src/native/ChatScreen.tsx",
+  ])
+    expect(readFileSync(path, "utf8")).not.toMatch(
+      /canCreateRecipe|RecipeLimit|FREE_RECIPE_LIMIT|useRecipeAccess/,
+    );
+  const product = JSON.parse(readFileSync("storekit/Chefness.storekit", "utf8"))
+    .products[0];
+  expect(product.productID).toBe(ICLOUD_SYNC_PRODUCT_ID);
+  expect(product.type).toBe("NonConsumable");
+  expect(product.familyShareable).toBe(true);
 });

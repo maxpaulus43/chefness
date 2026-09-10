@@ -30,6 +30,8 @@ import {
   updateChatSessionInput,
 } from "@/types/chat-session";
 import { chatSessionRepository } from "@/storage/chat-sessions";
+import { cloudSync } from "@/storage/cloud-sync";
+import { cloudSyncStatusSchema } from "@/types/cloud-sync";
 
 const recipeRouter = router({
   /** Return every stored recipe. */
@@ -232,7 +234,27 @@ const chatSessionRouter = router({
     }),
 });
 
+const cloudSyncRouter = router({
+  status: procedure
+    .output(cloudSyncStatusSchema)
+    .query(() => cloudSync.status()),
+  probe: procedure.output(z.boolean()).mutation(() => cloudSync.probe()),
+  setEntitled: procedure
+    .input(z.boolean())
+    .output(z.void())
+    .mutation(({ input }) => cloudSync.setEntitled(input)),
+  setEnabled: procedure
+    .input(z.boolean())
+    .output(z.void())
+    .mutation(({ input }) => cloudSync.setEnabled(input)),
+  confirmAccount: procedure
+    .output(z.void())
+    .mutation(() => cloudSync.confirmAccount()),
+  run: procedure.output(z.void()).mutation(() => cloudSync.run()),
+});
+
 export const appRouter = router({
+  cloudSync: cloudSyncRouter,
   recipe: recipeRouter,
   settings: settingsRouter,
   cookingLog: cookingLogRouter,

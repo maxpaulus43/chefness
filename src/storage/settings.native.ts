@@ -1,5 +1,9 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as SecureStore from "expo-secure-store";
+import {
+  ensureMigrated,
+  SECURE_STORE_KEY,
+  SECURE_STORE_OPTIONS,
+} from "@/storage/native-credential";
 import { IndexedDBRepository } from "@/storage/indexed-db";
 import type { StorageRepository } from "@/storage/interface";
 import type {
@@ -15,13 +19,6 @@ export type SettingsRepository = StorageRepository<
 >;
 
 export const SETTINGS_SINGLETON_ID = "user-settings";
-
-const ASYNC_STORAGE_KEY = "chefness:settings";
-const MIGRATION_MARKER_KEY = "chefness:openrouter-keychain-migrated";
-const SECURE_STORE_KEY = "chefness.openrouter-oauth-key";
-const SECURE_STORE_OPTIONS: SecureStore.SecureStoreOptions = {
-  keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
-};
 
 const settingsStorage = new IndexedDBRepository<
   Settings,
@@ -66,55 +63,6 @@ const settingsStorage = new IndexedDBRepository<
     updatedAt: new Date().toISOString(),
   }),
 });
-
-let migrationPromise: Promise<void> | undefined;
-
-/** Move a legacy plaintext OAuth key to Keychain, then scrub it from AsyncStorage. */
-async function migrateLegacyCredential(): Promise<void> {
-  if (await AsyncStorage.getItem(MIGRATION_MARKER_KEY)) return;
-
-  const serialized = await AsyncStorage.getItem(ASYNC_STORAGE_KEY);
-  if (serialized) {
-    const parsed: unknown = JSON.parse(serialized);
-    if (Array.isArray(parsed)) {
-      let legacyKey = "";
-      const scrubbed = parsed.map((value: unknown) => {
-        if (
-          typeof value !== "object" ||
-          value === null ||
-          !("openRouterOAuthKey" in value)
-        ) {
-          return value;
-        }
-        const record = value as Record<string, unknown>;
-        if (!legacyKey && typeof record.openRouterOAuthKey === "string") {
-          legacyKey = record.openRouterOAuthKey;
-        }
-        const { openRouterOAuthKey: _, ...nonSecretSettings } = record;
-        return nonSecretSettings;
-      });
-
-      if (legacyKey && !(await SecureStore.getItemAsync(SECURE_STORE_KEY))) {
-        await SecureStore.setItemAsync(
-          SECURE_STORE_KEY,
-          legacyKey,
-          SECURE_STORE_OPTIONS,
-        );
-      }
-      await AsyncStorage.setItem(ASYNC_STORAGE_KEY, JSON.stringify(scrubbed));
-    }
-  }
-
-  await AsyncStorage.setItem(MIGRATION_MARKER_KEY, "1");
-}
-
-function ensureMigrated(): Promise<void> {
-  migrationPromise ??= migrateLegacyCredential().catch((error: unknown) => {
-    migrationPromise = undefined;
-    throw error;
-  });
-  return migrationPromise;
-}
 
 async function secureCredential(): Promise<string> {
   await ensureMigrated();

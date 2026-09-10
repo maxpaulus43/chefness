@@ -42,9 +42,9 @@ what you've cooked.**
 | **Mobile-first** | Designed for phones used in the kitchen — large touch targets, readable at arm's length, minimal typing required. |
 | **Offline-first** | All non-AI features work without an internet connection. Recipes, history, settings, and preferences are stored on-device. |
 | **AI-powered** | A conversational LLM is the primary interaction model. The AI adapts to the user's context (dietary restrictions, recent meals, preferences). |
-| **Single-user** | No accounts, no server. Everything is local to the device. |
-| **Privacy-respecting** | Data stays on-device. LLM requests use the user's locally stored OpenRouter OAuth key. Version 1 uses Sentry for privacy-scrubbed crash/error reporting and does not include product analytics. |
-| **Free with one-time upgrade** | On iOS, users can save or import five recipes for free. A $9.99 one-time purchase unlocks unlimited recipes. The web app remains unlimited. |
+| **Single-user** | No Chefness accounts or application server. Optional personal iCloud sync across Apple devices; no household data sharing. |
+| **Privacy-respecting** | Data stays on-device unless iCloud Sync is enabled or sent in an AI request. OpenRouter keys and chat photos do not sync. LLM requests use the user's locally stored OpenRouter OAuth key. Version 1 uses Sentry for privacy-scrubbed crash/error reporting and does not include product analytics. |
+| **Free with one-time upgrade** | Unlimited local saves/imports are free. A $9.99 one-time iOS purchase unlocks iCloud Sync and supports purchase Family Sharing. The web app remains unlimited and local-only. |
 | **Warm & inviting visual design** | A "kitchen glassmorphism" aesthetic: a cream gradient background with subtle grain, Fraunces serif headings over Inter body text, a saffron/espresso/rose palette, frosted translucent cards with soft shadows, and consistent inline SVG icons instead of platform-dependent emojis. Tokens are centralized in `src/theme.ts`. |
 
 ---
@@ -302,18 +302,39 @@ manual "AI Configuration" provider/API-key section is not shown.
 - [x] The retained web Settings page includes support email, support website,
       and privacy policy links.
 
-### 4.4 iOS Recipe Limit & Unlimited Unlock
+### 4.4 iCloud Sync — One-Time Unlock
 
-- The iOS app is free to download.
-- Free users can save or import up to five recipes total.
-- At the limit, existing recipes remain available to view, edit, share, cook,
-  and delete; only creation is blocked.
-- A $9.99 non-consumable in-app purchase unlocks unlimited saves and imports.
-- Settings shows purchase status, localized App Store pricing, purchase, and
-  Restore Purchases controls.
-- The retained web app remains unchanged and unlimited.
-- The free limit is the `FREE_RECIPE_LIMIT` constant in
-  `src/lib/recipe-access.ts`.
+- Unlimited local recipe saves/imports and all existing local features are free.
+- A $9.99 non-consumable purchase enables iCloud sync automatically. Users can
+  pause it afterward; an explicit off preference survives restore/restart.
+- Sync saved recipes, cooking history/ratings, dietary restrictions, AI memory,
+  chat text, selected model, and model-filter settings between iPhones/iPads on
+  the same iCloud account. No Chefness login, web sync, or household data sharing.
+- Purchase Family Sharing shares the unlock, not the buyer's library.
+- Chat photos stay on their original device. Elsewhere, show “Photo available
+  only on the original device” and tell the AI that the image is unavailable.
+  OpenRouter keys, onboarding completion, and sync switches remain device-local.
+- First sync merges collections by ID without fuzzy duplicate detection.
+- Most recent whole-record edit wins for recipes/history/memories; settings
+  resolve per field. Device clocks determine recency, with deterministic ties.
+  Concurrent chat continuations remain separate conversations rather than being
+  interleaved. Sync completed messages, not live streaming tokens.
+- Deletion wins over offline edits and propagates to all synced devices. No
+  Recently Deleted. Sync is continuity, not versioned backup.
+- Pausing retains local/cloud data. Offline edits and deletions merge on resume.
+- Changing iCloud accounts requires explicit consent before the existing local
+  library is uploaded into a different account. Local use remains available.
+- Settings discloses automatic enablement and excluded photos before purchase;
+  shows localized pricing, Restore Purchases, toggle, actionable errors, pending
+  state, last successful sync, and Sync Now. No paywall while saving recipes.
+- Failed uploads, missing iCloud sign-in, and quota/network errors never block
+  local use or discard pending changes. Do not show Synced while changes remain.
+- Sync after local changes, on launch/resume, and periodically while active.
+  Closed-app delivery is not guaranteed. V1 text-snapshot limit is 20 MB; local
+  saves continue above that limit.
+- See `docs/ICLOUD_SYNC.md` for implementation and two-physical-device acceptance
+  checks. Apple-side container/schema setup and Family Sharing enablement are
+  required before release.
 
 ### 4.5 Navigation & Layout (MVP Scope)
 

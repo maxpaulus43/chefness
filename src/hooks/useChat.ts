@@ -29,12 +29,12 @@ import { useAiPreferences } from "@/hooks/useAiPreferences";
 import { useChatSessions } from "@/hooks/useChatSessions";
 import { useRecipes } from "@/hooks/useRecipes";
 import { streamChat } from "@/lib/llm-stream";
+import { generateUUID } from "@/lib/uuid";
 import { formatOpenRouterError } from "@/lib/openrouter-error";
 import { extractRecipeFromUrl } from "@/lib/recipe-url-extractor";
 import type { ExtractedRecipeFromUrl } from "@/lib/recipe-url-extractor";
-import { RecipeLimitError, RECIPE_LIMIT_MESSAGE } from "@/lib/recipe-access";
 import type { CookingLogEntry } from "@/types/cooking-log";
-import type { ChatSessionMessage } from "@/types/chat-session";
+import type { ChatSession, ChatSessionMessage } from "@/types/chat-session";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -48,6 +48,8 @@ export interface ChatMessage {
   modelId?: string;
   /** Resized image attached to a user message. */
   imageDataUrl?: string;
+  hasPhoto?: boolean;
+  photoId?: string;
   /** Persisted action flags — only relevant for assistant messages. */
   savedRecipeId?: string; // ID of saved recipe, or empty/undefined = not saved
   memorySaved?: boolean;
@@ -220,10 +222,14 @@ function formatImportedRecipeContext(
 }
 
 function messageContentForModel(message: ChatMessage): string {
-  if (!message.importedRecipeContext) return message.content;
+  const content =
+    message.hasPhoto && !message.imageDataUrl
+      ? `${message.content}\n[An earlier photo is available only on the original device and cannot be seen in this conversation.]`
+      : message.content;
+  if (!message.importedRecipeContext) return content;
 
   return [
-    message.content,
+    content,
     "",
     "Hidden Chefness context from the recipe URL in this message:",
     message.importedRecipeContext,
@@ -250,10 +256,10 @@ export function useChat() {
   const {
     sessions,
     isLoading: areSessionsLoading,
-    updateSession,
+    updateSessionAsync,
     createSessionAsync,
   } = useChatSessions();
-  const { createRecipeAsync, canCreateRecipe } = useRecipes();
+  const { createRecipeAsync } = useRecipes();
   const { selectedModelSupportsVision } = useOpenRouterModels(
     isConfigured,
     effectiveModel,
@@ -276,6 +282,14 @@ export function useChat() {
 
   /** Guard so session restore runs only once (when sessions first load). */
   const hasRestoredRef = useRef(false);
+  const sessionRef = useRef<{
+    id: string;
+    clock: ChatSession["syncClock"];
+  } | null>(null);
+  const [pendingSaves, setPendingSaves] = useState(0);
+  const saveQueue = useRef<Promise<void>>(Promise.resolve());
+  const unsavedRef = useRef(false);
+  const observedSession = useRef<string | null>(null);
 
   // -------------------------------------------------------------------------
   // Restore the most recent session on mount
@@ -292,12 +306,15 @@ export function useChat() {
 
     const mostRecent = sessions[0]; // sorted by updatedAt desc
     setCurrentSessionId(mostRecent.id);
+    sessionRef.current = { id: mostRecent.id, clock: mostRecent.syncClock };
     setMessages(
       mostRecent.messages.map((m) => ({
         role: m.role,
         content: m.content,
         modelId: m.modelId,
         imageDataUrl: m.imageDataUrl,
+        hasPhoto: m.hasPhoto,
+        photoId: m.photoId,
         importedRecipeContext: m.importedRecipeContext,
         savedRecipeId: m.savedRecipeId,
         memorySaved: m.memorySaved,
@@ -308,6 +325,32 @@ export function useChat() {
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- runtime data from IndexedDB may be null despite type assertion
     setMealSize((mostRecent.mealSize as MealSize) ?? null);
   }, [areSessionsLoading, sessions]);
+
+  // Refresh an idle open conversation after sync without replacing a streaming
+  // response or an unsaved local edit. Its base clock protects stale editors.
+  useEffect(() => {
+    if (!currentSessionId || isStreaming || pendingSaves || unsavedRef.current)
+      return;
+    const session = sessions.find((item) => item.id === currentSessionId);
+    if (!session) {
+      if (observedSession.current === currentSessionId) {
+        setMessages([]);
+        setCurrentSessionId(null);
+        sessionRef.current = null;
+      }
+      return;
+    }
+    observedSession.current = session.id;
+    if (
+      JSON.stringify(session.syncClock) ===
+      JSON.stringify(sessionRef.current?.clock)
+    )
+      return;
+    sessionRef.current = { id: session.id, clock: session.syncClock };
+    setMessages(session.messages);
+    setMealType(session.mealType as MealType | null);
+    setMealSize(session.mealSize as MealSize | null);
+  }, [currentSessionId, isStreaming, pendingSaves, sessions]);
 
   // -------------------------------------------------------------------------
   // Helpers for session persistence
@@ -321,6 +364,8 @@ export function useChat() {
         content: m.content,
         modelId: m.modelId ?? "",
         imageDataUrl: m.imageDataUrl ?? "",
+        hasPhoto: m.hasPhoto,
+        photoId: m.photoId,
         timestamp: new Date().toISOString(),
         importedRecipeContext: m.importedRecipeContext ?? "",
         savedRecipeId: m.savedRecipeId ?? "",
@@ -340,14 +385,34 @@ export function useChat() {
       mt: MealType | null,
       ms: MealSize | null,
     ) => {
-      updateSession({
-        id: sessionId,
-        messages: toSessionMessages(msgs),
-        mealType: mt,
-        mealSize: ms,
+      const active = sessionRef.current;
+      setPendingSaves((count) => count + 1);
+      unsavedRef.current = true;
+      saveQueue.current = saveQueue.current.then(async () => {
+        try {
+          const saved = await updateSessionAsync({
+            id: active?.id ?? sessionId,
+            syncBaseClock: active?.clock,
+            messages: toSessionMessages(msgs),
+            mealType: mt,
+            mealSize: ms,
+          });
+          if (active && sessionRef.current === active) {
+            active.id = saved.id;
+            active.clock = saved.syncClock;
+            setCurrentSessionId(saved.id);
+            unsavedRef.current = false;
+          }
+        } catch {
+          setError(
+            "This conversation could not be saved. Your messages are still on screen; try again before leaving.",
+          );
+        } finally {
+          setPendingSaves((count) => count - 1);
+        }
       });
     },
-    [updateSession, toSessionMessages],
+    [updateSessionAsync, toSessionMessages],
   );
 
   // -------------------------------------------------------------------------
@@ -364,37 +429,18 @@ export function useChat() {
       flag: "savedRecipeId" | "memorySaved",
       value?: string | boolean,
     ) => {
-      setMessages((prev) => {
-        const next = [...prev];
-        const msg = next[index];
-        if (msg) {
-          if (flag === "savedRecipeId") {
-            next[index] = { ...msg, savedRecipeId: value as string };
-          } else {
-            next[index] = { ...msg, [flag]: true };
-          }
-        }
-        // Persist immediately so the flag is durable.
-        if (currentSessionId) {
-          const sessionMsgs = next.map((m) => ({
-            role: m.role,
-            content: m.content,
-            modelId: m.modelId ?? "",
-            imageDataUrl: m.imageDataUrl ?? "",
-            timestamp: new Date().toISOString(),
-            importedRecipeContext: m.importedRecipeContext ?? "",
-            savedRecipeId: m.savedRecipeId ?? "",
-            memorySaved: m.memorySaved ?? false,
-          })) as ChatSessionMessage[];
-          updateSession({
-            id: currentSessionId,
-            messages: sessionMsgs,
-          });
-        }
-        return next;
-      });
+      const next = [...messages];
+      const message = next[index];
+      if (!message) return;
+      next[index] =
+        flag === "savedRecipeId"
+          ? { ...message, savedRecipeId: value as string }
+          : { ...message, memorySaved: true };
+      setMessages(next);
+      if (currentSessionId)
+        persistMessages(currentSessionId, next, mealType, mealSize);
     },
-    [currentSessionId, updateSession],
+    [messages, currentSessionId, persistMessages, mealType, mealSize],
   );
 
   // -------------------------------------------------------------------------
@@ -406,7 +452,11 @@ export function useChat() {
       baseMessages: ChatMessage[],
       text: string,
       imageDataUrl = "",
-      options?: { forceNewSession?: boolean },
+      options?: {
+        forceNewSession?: boolean;
+        hasPhoto?: boolean;
+        photoId?: string;
+      },
     ) => {
       if (
         typeof navigator !== "undefined" &&
@@ -434,6 +484,9 @@ export function useChat() {
         role: "user",
         content: text,
         imageDataUrl,
+        hasPhoto: Boolean(imageDataUrl || options?.hasPhoto),
+        photoId:
+          options?.photoId ?? (imageDataUrl ? generateUUID() : undefined),
       };
       let history = [...baseMessages, userMsg];
       setMessages([...history, { role: "assistant", content: "" }]);
@@ -450,6 +503,7 @@ export function useChat() {
             mealSize,
           });
           sessionId = session.id;
+          sessionRef.current = { id: session.id, clock: session.syncClock };
           setCurrentSessionId(sessionId);
         } catch {
           // Session creation failed — continue without persistence.
@@ -464,7 +518,6 @@ export function useChat() {
 
       if (recipeUrlMessage?.mode === "auto-save") {
         try {
-          if (!canCreateRecipe) throw new RecipeLimitError();
           const extracted = await extractRecipeFromUrl({
             url: recipeUrlMessage.url,
             signal: controller.signal,
@@ -491,21 +544,13 @@ export function useChat() {
             return;
           }
 
-          if (err instanceof RecipeLimitError) {
-            setMessages(history);
-            setError(err.message);
-            if (sessionId) {
-              persistMessages(sessionId, history, mealType, mealSize);
-            }
-          } else {
-            const finalMessages: ChatMessage[] = [
-              ...history,
-              { role: "assistant", content: importError(err) },
-            ];
-            setMessages(finalMessages);
-            if (sessionId) {
-              persistMessages(sessionId, finalMessages, mealType, mealSize);
-            }
+          const finalMessages: ChatMessage[] = [
+            ...history,
+            { role: "assistant", content: importError(err) },
+          ];
+          setMessages(finalMessages);
+          if (sessionId) {
+            persistMessages(sessionId, finalMessages, mealType, mealSize);
           }
         } finally {
           abortRef.current = null;
@@ -645,7 +690,6 @@ export function useChat() {
       currentSessionId,
       createSessionAsync,
       createRecipeAsync,
-      canCreateRecipe,
       persistMessages,
       toSessionMessages,
     ],
@@ -671,6 +715,8 @@ export function useChat() {
       setMealType(null);
       setMealSize(null);
       setCurrentSessionId(null);
+      sessionRef.current = null;
+      unsavedRef.current = false;
       await sendMessageFromHistory([], url, "", { forceNewSession: true });
     },
     [sendMessageFromHistory],
@@ -689,6 +735,7 @@ export function useChat() {
         messages.slice(0, index),
         text,
         msg.imageDataUrl,
+        { hasPhoto: msg.hasPhoto, photoId: msg.photoId },
       );
     },
     [messages, isStreaming, sendMessageFromHistory],
@@ -717,6 +764,8 @@ export function useChat() {
     setMealType(null);
     setMealSize(null);
     setCurrentSessionId(null);
+    sessionRef.current = null;
+    unsavedRef.current = false;
   }, []);
 
   // -------------------------------------------------------------------------
@@ -735,12 +784,16 @@ export function useChat() {
       setError(null);
 
       setCurrentSessionId(session.id);
+      sessionRef.current = { id: session.id, clock: session.syncClock };
+      unsavedRef.current = false;
       setMessages(
         session.messages.map((m) => ({
           role: m.role,
           content: m.content,
           modelId: m.modelId,
           imageDataUrl: m.imageDataUrl,
+          hasPhoto: m.hasPhoto,
+          photoId: m.photoId,
           importedRecipeContext: m.importedRecipeContext,
           savedRecipeId: m.savedRecipeId,
           memorySaved: m.memorySaved,
@@ -758,7 +811,6 @@ export function useChat() {
     messages,
     isStreaming,
     error,
-    isRecipeLimitError: error === RECIPE_LIMIT_MESSAGE,
     mealType,
     mealSize,
     sendMessage,
