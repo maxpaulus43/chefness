@@ -21,7 +21,7 @@ import {
   useSpeechRecognitionEvent,
 } from "expo-speech-recognition";
 import type { StyleProp, TextInputProps, ViewStyle } from "react-native";
-import { mergeDictation } from "@/native/dictation";
+import { createDictationTimeout, mergeDictation } from "@/native/dictation";
 import { PressableScale } from "@/native/motion-views";
 import { nativeColors as colors } from "@/native/theme";
 import { Field } from "@/native/ui";
@@ -84,6 +84,9 @@ export function DictationField({
   const [isListening, setIsListening] = useState(false);
   const active = useRef(false);
   const draft = useRef("");
+  const [silenceTimeout] = useState(() =>
+    createDictationTimeout(() => ExpoSpeechRecognitionModule.stop()),
+  );
   const isDictating = isStarting || isListening;
 
   useEffect(() => {
@@ -92,28 +95,36 @@ export function DictationField({
 
   useEffect(
     () => () => {
+      silenceTimeout.clear();
       if (!active.current) return;
       active.current = false;
       ExpoSpeechRecognitionModule.abort();
     },
-    [],
+    [silenceTimeout],
   );
 
   useSpeechRecognitionEvent("start", () => {
     if (!active.current) return;
     setIsStarting(false);
     setIsListening(true);
+    silenceTimeout.reset();
     AccessibilityInfo.announceForAccessibility("Listening");
   });
 
   useSpeechRecognitionEvent("result", (event) => {
     if (!active.current) return;
     const transcript = event.results[0]?.transcript;
-    if (transcript) onChangeText(mergeDictation(draft.current, transcript));
+    if (transcript) {
+      silenceTimeout.reset();
+      const text = mergeDictation(draft.current, transcript);
+      if (event.isFinal) draft.current = text;
+      onChangeText(text);
+    }
   });
 
   useSpeechRecognitionEvent("end", () => {
     if (!active.current) return;
+    silenceTimeout.clear();
     active.current = false;
     setIsStarting(false);
     setIsListening(false);
@@ -122,6 +133,7 @@ export function DictationField({
 
   useSpeechRecognitionEvent("error", (event) => {
     if (!active.current) return;
+    silenceTimeout.clear();
     active.current = false;
     setIsStarting(false);
     setIsListening(false);
@@ -159,12 +171,13 @@ export function DictationField({
       ExpoSpeechRecognitionModule.start({
         lang: "en-US",
         interimResults: true,
-        continuous: false,
+        continuous: true,
         requiresOnDeviceRecognition: true,
         addsPunctuation: true,
         iosTaskHint: TaskHintIOS.dictation,
       });
     } catch {
+      silenceTimeout.clear();
       active.current = false;
       setIsStarting(false);
       Alert.alert(
@@ -194,7 +207,10 @@ export function DictationField({
         scaleTo={0.86}
         onPress={
           isListening
-            ? () => ExpoSpeechRecognitionModule.stop()
+            ? () => {
+                silenceTimeout.clear();
+                ExpoSpeechRecognitionModule.stop();
+              }
             : () => void start()
         }
         style={[

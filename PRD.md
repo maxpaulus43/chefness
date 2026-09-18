@@ -180,7 +180,9 @@ the user refreshes or closes the app.
       inputs have accessible microphone buttons backed by Apple’s Speech
       framework. Dictation appends to any existing draft, shows interim results,
       and requires on-device recognition without a network fallback. Microphone
-      audio is not saved.
+      audio is not saved. Dictation allows approximately 10 seconds without a
+      speech result before stopping, preserves finalized phrases across pauses,
+      and can still be stopped manually.
 - [x] Sending a message dismisses the keyboard and scrolls chat to the bottom.
       Tapping outside the native composer also dismisses the keyboard. The
       composer grows and shrinks with its text while keeping its controls

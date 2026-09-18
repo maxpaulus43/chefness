@@ -107,7 +107,9 @@ product for Xcode-run development builds.
   edit, history note, and AI memory inputs use the reusable `DictationField`,
   which wraps Apple’s Speech framework through `expo-speech-recognition`, appends
   interim speech to the existing draft, and requires on-device recognition with
-  no network fallback. Microphone audio is not persisted.
+  no network fallback. Continuous recognition uses an app-owned 10-second
+  inactivity timeout, reset by speech results; finalized utterances are appended
+  before the next utterance. Stop remains available. Microphone audio is not persisted.
 - `src/native/navigation-routes.ts` is the typed route/deep-link contract.
   The `chefness://` scheme resolves recipe IDs, chat-session IDs, history,
   settings, and model selection to nested tab/stack destinations. The retained
