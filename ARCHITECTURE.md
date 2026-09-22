@@ -482,7 +482,12 @@ are zero, supports vision when `image` is an input modality, and supports tools
 when `tools` is listed in `supported_parameters`. Free, vision, and tools filter
 choices persist in the non-secret settings record and are restored whenever the
 model picker reopens. The default is the stable `openrouter/free` router rather
-than a specific free model that may disappear.
+than a specific free model that may disappear. Both streaming clients share
+`free-router-retry.ts`: chat requests to `openrouter/free` discard replies from
+the known Nemotron content-safety classifier (or an exact `User Safety: safe/unsafe`
+label) and retry up to twice with the original conversation. Rejected text and
+model metadata are cleared; exhaustion uses the existing chat error flow.
+Other models, ordinary refusals, and network failures are not retried.
 
 For vision-capable selected models, Chat exposes an image attachment control.
 `useImageAttachment` delegates resizing/encoding to

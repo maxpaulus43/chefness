@@ -219,6 +219,10 @@ the user refreshes or closes the app.
 - [x] If the OpenRouter request fails (network error, expired connection, model
       unavailable, or rate limit), an inline error message is scrolled into view
       with a "Retry" option that resends the failed message after remediation.
+- [x] When the free model router returns a content-safety classification instead
+      of a chat answer, Chefness automatically retries up to twice without
+      saving the rejected answer. Repeated classifications show an error asking
+      the user to choose another OpenRouter model.
 - [ ] The chat UI is usable on a 375px-wide screen (iPhone SE).
 
 #### System Prompt Structure (MVP)

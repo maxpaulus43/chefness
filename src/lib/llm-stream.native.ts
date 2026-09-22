@@ -1,4 +1,5 @@
 import { fetch } from "expo/fetch";
+import { retryFreeRouterChat } from "./free-router-retry";
 
 export interface StreamMessage {
   role: "user" | "assistant" | "system";
@@ -57,6 +58,10 @@ function headers(apiKey: string) {
 }
 
 export async function streamChat(options: StreamOptions): Promise<string> {
+  return retryFreeRouterChat(options, streamChatOnce);
+}
+
+async function streamChatOnce(options: StreamOptions): Promise<string> {
   const response = await fetch(endpoint, {
     method: "POST",
     headers: headers(options.apiKey),

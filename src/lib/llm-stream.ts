@@ -11,6 +11,7 @@
  */
 import { toProviderConfig, getProvider } from "@clinebot/llms";
 import type { ProviderInfo } from "@clinebot/llms";
+import { retryFreeRouterChat } from "./free-router-retry";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -526,6 +527,10 @@ export async function callWithTools(
  * @returns The full accumulated response text.
  */
 export async function streamChat(options: StreamOptions): Promise<string> {
+  return retryFreeRouterChat(options, streamChatOnce);
+}
+
+async function streamChatOnce(options: StreamOptions): Promise<string> {
   const {
     providerId,
     modelId,
