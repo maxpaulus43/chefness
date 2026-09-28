@@ -13,7 +13,10 @@ export async function retryFreeRouterChat(
   }
 
   for (let attempt = 0; attempt < 3; attempt++) {
-    options.signal?.throwIfAborted();
+    // React Native's AbortSignal does not implement throwIfAborted().
+    if (options.signal?.aborted) {
+      throw options.signal.reason ?? new DOMException("Aborted", "AbortError");
+    }
     const response = { classifier: false };
     const text = await stream({
       ...options,
@@ -35,7 +38,9 @@ export async function retryFreeRouterChat(
     // Clear rejected text/metadata, including when the stream omitted its model.
     options.onToken("", "");
     options.onModel?.("");
-    options.signal?.throwIfAborted();
+    if (options.signal?.aborted) {
+      throw options.signal.reason ?? new DOMException("Aborted", "AbortError");
+    }
   }
   throw new Error(
     "OpenRouter repeatedly selected a content-safety classifier instead of a chat model. Choose another OpenRouter model in Settings.",

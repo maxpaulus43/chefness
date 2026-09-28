@@ -1,4 +1,5 @@
 import { expect, test } from "bun:test";
+import { AbortController as NativeAbortController } from "abort-controller/dist/abort-controller";
 import { retryFreeRouterChat } from "../src/lib/free-router-retry";
 import type { StreamOptions } from "../src/lib/llm-stream";
 
@@ -64,6 +65,30 @@ test("does not retry ordinary answers, refusals, or manually selected models", a
       }),
     ).toBe(answer);
     expect(calls).toBe(1);
+  }
+});
+
+test("supports React Native signals without throwIfAborted, including cancellation", async () => {
+  for (const abortAt of [0, 1, 3, null]) {
+    const controller = new NativeAbortController();
+    const signal = controller.signal as AbortSignal;
+    expect(signal.throwIfAborted).toBeUndefined();
+    if (abortAt === 0) controller.abort();
+    let calls = 0;
+    const result = retryFreeRouterChat({ ...request(), signal }, async () => {
+      calls++;
+      if (calls === abortAt) controller.abort();
+      return calls < 3 || abortAt !== null
+        ? "User Safety: safe"
+        : "Add yogurt.";
+    });
+    if (abortAt === null) {
+      expect(await result).toBe("Add yogurt.");
+      expect(calls).toBe(3);
+    } else {
+      await expect(result).rejects.toMatchObject({ name: "AbortError" });
+      expect(calls).toBe(abortAt);
+    }
   }
 });
 
